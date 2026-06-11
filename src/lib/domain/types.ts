@@ -1,0 +1,163 @@
+export type WorkflowStatus = "healthy" | "degraded" | "failed" | "unknown";
+export type IssueStatus = "open" | "in_review" | "resolved" | "ignored";
+export type IssueSeverity = "low" | "medium" | "high" | "critical";
+export type WorkflowType =
+  | "http_endpoint"
+  | "webhook"
+  | "n8n"
+  | "make"
+  | "zapier"
+  | "mcp_server"
+  | "custom_api"
+  | "manual_log";
+export type CheckType = "health" | "synthetic" | "schema" | "latency" | "cost" | "ai_judge";
+export type CheckRunStatus = "healthy" | "degraded" | "failed" | "skipped";
+export type ReportStatus = "draft" | "ready_to_send" | "sent" | "failed";
+
+export type Agency = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  primaryColor: string;
+  plan: string;
+};
+
+export type Client = {
+  id: string;
+  agencyId: string;
+  name: string;
+  slug: string;
+  industry: string;
+  owner: string;
+  reportRecipientEmail: string;
+  reportStatus: "not_started" | "draft" | "ready" | "sent";
+  healthScore: number;
+  lastActivityAt: string;
+  notes: string;
+  archived: boolean;
+};
+
+export type Workflow = {
+  id: string;
+  agencyId: string;
+  clientId: string;
+  name: string;
+  type: WorkflowType;
+  environment: "production" | "staging" | "development";
+  endpointUrl: string;
+  method: "GET" | "POST" | "PUT" | "PATCH";
+  authType: "none" | "bearer" | "api_key_header" | "basic";
+  checkFrequencyMinutes: number;
+  status: WorkflowStatus;
+  passRate: number;
+  latencyMs: number;
+  monthlyCost: number;
+  lastCheckAt: string;
+  includedInReports: boolean;
+};
+
+export type Check = {
+  id: string;
+  agencyId: string;
+  workflowId: string;
+  name: string;
+  type: CheckType;
+  schedule: string;
+  enabled: boolean;
+  assertionCount: number;
+  latestStatus: CheckRunStatus;
+};
+
+export type CheckRun = {
+  id: string;
+  agencyId: string;
+  clientId: string;
+  workflowId: string;
+  checkId: string;
+  status: CheckRunStatus;
+  statusCode?: number;
+  latencyMs: number;
+  responseSummary: string;
+  errorMessage?: string;
+  startedAt: string;
+  completedAt: string;
+};
+
+export type Issue = {
+  id: string;
+  agencyId: string;
+  clientId: string;
+  workflowId: string;
+  checkRunId?: string;
+  severity: IssueSeverity;
+  status: IssueStatus;
+  title: string;
+  description: string;
+  suggestedAction: string;
+  owner: string;
+  reportable: boolean;
+  detectedAt: string;
+  resolvedAt?: string;
+  resolutionNote?: string;
+};
+
+export type TestPack = {
+  id: string;
+  agencyId: string;
+  workflowId: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  caseCount: number;
+  passRate: number;
+  lastRunAt: string;
+};
+
+export type ReportSummary = {
+  id: string;
+  agencyId: string;
+  clientId: string;
+  clientName: string;
+  period: string;
+  periodLabel: string;
+  status: ReportStatus;
+  checksRun: number;
+  issuesCaught: number;
+  issuesResolved: number;
+  workflowsMonitored: number;
+  passRate: number;
+  summary: string;
+  recommendations: string[];
+  generatedAt?: string;
+};
+
+export type TuesdayOpsSeedData = {
+  agency: Agency;
+  clients: Client[];
+  workflows: Workflow[];
+  checks: Check[];
+  checkRuns: CheckRun[];
+  issues: Issue[];
+  testPacks: TestPack[];
+  reports: ReportSummary[];
+};
+
+export type PortfolioSummary = {
+  activeClients: number;
+  monitoredWorkflows: number;
+  openIssues: number;
+  checkPassRate: number;
+};
+
+export type WorkflowHealthRow = {
+  workflowId: string;
+  workflowName: string;
+  clientName: string;
+  status: WorkflowStatus;
+  passRate: number;
+  latencyMs: number;
+  lastCheckAt: string;
+  openIssues: number;
+  includedInReports: boolean;
+};

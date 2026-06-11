@@ -13,11 +13,11 @@ Status values:
 
 ### T0.1 Create Next.js project
 
-- [ ] Initialize Next.js app with TypeScript.
-- [ ] Add Tailwind CSS.
-- [ ] Add shadcn/ui.
-- [ ] Add base layout.
-- [ ] Add lint/typecheck/test scripts.
+- [x] Initialize Next.js app with TypeScript.
+- [x] Add Tailwind CSS.
+- [x] Add shadcn/ui-compatible primitives.
+- [x] Add base layout.
+- [x] Add lint/typecheck/test scripts.
 
 Acceptance:
 
@@ -27,9 +27,9 @@ Acceptance:
 
 ### T0.2 Add project documentation
 
-- [ ] Add all docs from Codex pack.
-- [ ] Add env example.
-- [ ] Add setup instructions.
+- [x] Add all docs from Codex pack.
+- [x] Add env example.
+- [x] Add setup instructions.
 
 Acceptance:
 
@@ -37,10 +37,10 @@ Acceptance:
 
 ### T0.3 Add base design system
 
-- [ ] Configure typography.
-- [ ] Configure muted lavender primary theme.
-- [ ] Add common Card, Badge, Button, Table patterns.
-- [ ] Add app shell layout.
+- [x] Configure typography.
+- [x] Configure muted lavender primary theme.
+- [x] Add common Card, Badge, Button, Table patterns.
+- [x] Add app shell layout.
 
 Acceptance:
 

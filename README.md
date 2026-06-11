@@ -85,3 +85,45 @@ Build the smallest useful product that proves this loop:
 7. Generate a monthly report.
 
 If a feature does not support this loop, it should not be part of the MVP.
+
+## Local development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the app:
+
+```bash
+npm run dev
+```
+
+Verify the foundation:
+
+```bash
+npm run lint
+npm run typecheck
+npm run test
+```
+
+Build for production:
+
+```bash
+npm run build
+```
+
+## Current implementation state
+
+The repository now contains the first MVP foundation slice:
+
+- Next.js App Router app
+- TypeScript and Tailwind CSS
+- TuesdayOps app shell
+- seeded operational domain data
+- overview dashboard
+- clients, workflows, checks, issues, reports, and settings screens
+- domain summary tests
+
+The app currently uses seeded data. Real Supabase auth, tenant-scoped persistence, scheduled check jobs, alerts, report PDF generation, and Stripe billing are the next implementation milestones.

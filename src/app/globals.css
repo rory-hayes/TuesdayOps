@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fbfaf8;
+  --foreground: #172033;
+  --card: #ffffff;
+  --card-foreground: #172033;
+  --muted: #f1efed;
+  --muted-foreground: #667085;
+  --border: #e7e2dd;
+  --primary: #7c6cf2;
+  --primary-foreground: #ffffff;
+  --success: #16845f;
+  --success-background: #e8f6ef;
+  --warning: #a15c00;
+  --warning-background: #fff3d6;
+  --danger: #b42318;
+  --danger-background: #fee4e2;
+  --shadow-soft: 0 18px 50px rgb(23 32 51 / 8%);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-success: var(--success);
+  --color-success-background: var(--success-background);
+  --color-warning: var(--warning);
+  --color-warning-background: var(--warning-background);
+  --color-danger: var(--danger);
+  --color-danger-background: var(--danger-background);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

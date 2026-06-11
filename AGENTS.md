@@ -66,6 +66,7 @@ Use this stack unless the user explicitly changes direction:
 - Background jobs must be idempotent where possible.
 - Scheduled checks must not create duplicate issues for the same active failure unless the failure changes materially.
 - Reports must be reproducible from stored source data.
+- For Next.js 16+ work, check local package docs and warnings when framework behavior is unclear.
 
 ## Security rules
 
