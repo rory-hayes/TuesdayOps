@@ -4,6 +4,9 @@ import type {
   CheckRunStatus,
   Client,
   Issue,
+  ReportItem,
+  ReportMetrics,
+  ReportStatus,
   TestCase,
   TestPack,
   TestRun,
@@ -136,6 +139,33 @@ type TestRunRow = {
   created_at: string;
 };
 
+type ReportRow = {
+  id: string;
+  agency_id: string;
+  client_id: string;
+  period: string;
+  period_label: string;
+  status: ReportStatus;
+  summary: string;
+  metrics_json: unknown;
+  recommendations_json: unknown;
+  pdf_url: string | null;
+  send_error: string | null;
+  generated_at: string | null;
+  sent_at: string | null;
+  created_at: string;
+};
+
+type ReportItemRow = {
+  id: string;
+  agency_id: string;
+  report_id: string;
+  category: ReportItem["category"];
+  title: string;
+  body: string;
+  sort_order: number;
+};
+
 type AgencySnapshot = TuesdayOpsSeedData["agency"];
 
 export async function getOperationalData(
@@ -151,6 +181,8 @@ export async function getOperationalData(
     testPacksResult,
     testCasesResult,
     testRunsResult,
+    reportsResult,
+    reportItemsResult,
   ] = await Promise.all([
     supabase
       .from("clients")
@@ -194,6 +226,16 @@ export async function getOperationalData(
       .eq("agency_id", agency.id)
       .order("created_at", { ascending: false })
       .limit(150),
+    supabase
+      .from("reports")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("report_items")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .order("sort_order", { ascending: true }),
   ]);
 
   const error =
@@ -204,7 +246,9 @@ export async function getOperationalData(
     issuesResult.error ??
     testPacksResult.error ??
     testCasesResult.error ??
-    testRunsResult.error;
+    testRunsResult.error ??
+    reportsResult.error ??
+    reportItemsResult.error;
 
   if (error) {
     throw new Error(`Unable to load operational data: ${error.message}`);
@@ -218,6 +262,8 @@ export async function getOperationalData(
   const testPackRows = (testPacksResult.data ?? []) as TestPackRow[];
   const testCaseRows = (testCasesResult.data ?? []) as TestCaseRow[];
   const testRunRows = (testRunsResult.data ?? []) as TestRunRow[];
+  const reportRows = (reportsResult.data ?? []) as ReportRow[];
+  const reportItemRows = (reportItemsResult.data ?? []) as ReportItemRow[];
 
   const workflows = workflowRows.map((row) => mapWorkflow(row, runRows));
   const clients = clientRows.map((row) => mapClient(row, workflows));
@@ -227,6 +273,8 @@ export async function getOperationalData(
   const testPacks = testPackRows.map((row) => mapTestPack(row, testCaseRows, testRunRows));
   const testCases = testCaseRows.map((row) => mapTestCase(row, testRunRows));
   const testRuns = testRunRows.map(mapTestRun);
+  const reports = reportRows.map((row) => mapReport(row, clientRows));
+  const reportItems = reportItemRows.map(mapReportItem);
 
   return {
     agency,
@@ -238,7 +286,8 @@ export async function getOperationalData(
     testPacks,
     testCases,
     testRuns,
-    reports: [],
+    reports,
+    reportItems,
   };
 }
 
@@ -428,5 +477,60 @@ function mapTestRun(row: TestRunRow): TestRun {
     responseSummary: row.response_summary,
     errorMessage: row.error_message ?? undefined,
     createdAt: row.created_at,
+  };
+}
+
+function mapReport(row: ReportRow, clientRows: ClientRow[]) {
+  const client = clientRows.find((candidate) => candidate.id === row.client_id);
+  const metrics = parseReportMetrics(row.metrics_json);
+  const recommendations = Array.isArray(row.recommendations_json)
+    ? row.recommendations_json.filter((item): item is string => typeof item === "string")
+    : [];
+
+  return {
+    id: row.id,
+    agencyId: row.agency_id,
+    clientId: row.client_id,
+    clientName: client?.name ?? "Unknown client",
+    period: row.period,
+    periodLabel: row.period_label,
+    status: row.status,
+    checksRun: metrics.checksRun,
+    issuesCaught: metrics.issuesCaught,
+    issuesResolved: metrics.issuesResolved,
+    workflowsMonitored: metrics.workflowsMonitored,
+    passRate: metrics.passRate,
+    summary: row.summary,
+    recommendations,
+    pdfUrl: row.pdf_url ?? undefined,
+    sendError: row.send_error ?? undefined,
+    sentAt: row.sent_at ?? undefined,
+    generatedAt: row.generated_at ?? row.created_at,
+  };
+}
+
+function mapReportItem(row: ReportItemRow): ReportItem {
+  return {
+    id: row.id,
+    agencyId: row.agency_id,
+    reportId: row.report_id,
+    category: row.category,
+    title: row.title,
+    body: row.body,
+    sortOrder: row.sort_order,
+  };
+}
+
+function parseReportMetrics(value: unknown): ReportMetrics {
+  const source = value && typeof value === "object" ? (value as Partial<ReportMetrics>) : {};
+
+  return {
+    workflowsMonitored: Number(source.workflowsMonitored ?? 0),
+    checksRun: Number(source.checksRun ?? 0),
+    issuesCaught: Number(source.issuesCaught ?? 0),
+    issuesResolved: Number(source.issuesResolved ?? 0),
+    testRuns: Number(source.testRuns ?? 0),
+    testFailures: Number(source.testFailures ?? 0),
+    passRate: Number(source.passRate ?? 0),
   };
 }

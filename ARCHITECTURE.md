@@ -25,11 +25,11 @@ Browser
 
 ## 2. Core services
 
-### Current Milestones 1-5 implementation slice
+### Current Milestones 1-6 implementation slice
 
 - Next.js App Router server components and server actions handle authenticated UI flows.
 - Supabase Auth manages identity through SSR cookie clients and route protection.
-- Supabase Postgres stores profiles, agencies, memberships, clients, workflows, checks, check runs, issues, test packs, test cases, and test runs.
+- Supabase Postgres stores profiles, agencies, memberships, clients, workflows, checks, check runs, issues, test packs, test cases, test runs, reports, and report items.
 - Supabase RLS enforces `agency_id` membership boundaries for tenant-owned records.
 - Manual endpoint checks run synchronously from server actions and persist redacted summaries.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
@@ -40,7 +40,8 @@ Browser
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
-- Report generation, billing, and analytics remain planned later milestones.
+- Monthly reports aggregate stored workflow, check, issue, and synthetic run data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts.
+- Billing and analytics remain planned later milestones.
 
 ### Web app
 
@@ -151,11 +152,12 @@ User selects client + month
   -> aggregate issues caught/resolved
   -> aggregate workflow health
   -> aggregate test pack results
-  -> generate executive summary
-  -> render report preview
-  -> generate PDF
-  -> store PDF in Supabase Storage
-  -> mark report generated
+  -> generate client-safe executive summary and report items
+  -> render report preview from stored report data
+  -> generate PDF from stored report data
+  -> store PDF in private Supabase Storage
+  -> download through tenant-authenticated route
+  -> send report link by Resend when configured
 ```
 
 ## 8. Security architecture

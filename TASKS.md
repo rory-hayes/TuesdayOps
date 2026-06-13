@@ -263,9 +263,9 @@ Acceptance:
 
 ### T6.1 Reports schema
 
-- [ ] Add reports table.
-- [ ] Add report_items table.
-- [ ] Add report status lifecycle.
+- [x] Add reports table.
+- [x] Add report_items table.
+- [x] Add report status lifecycle.
 
 Acceptance:
 
@@ -273,10 +273,10 @@ Acceptance:
 
 ### T6.2 Report aggregation service
 
-- [ ] Aggregate check runs.
-- [ ] Aggregate issues caught/resolved.
-- [ ] Aggregate test pack results.
-- [ ] Generate summary data.
+- [x] Aggregate check runs.
+- [x] Aggregate issues caught/resolved.
+- [x] Aggregate test pack results.
+- [x] Generate summary data.
 
 Acceptance:
 
@@ -284,9 +284,9 @@ Acceptance:
 
 ### T6.3 Report preview UI
 
-- [ ] Build report preview page.
-- [ ] Add report modules.
-- [ ] Add branding preview.
+- [x] Build report preview page.
+- [x] Add report modules.
+- [x] Add branding preview.
 
 Acceptance:
 
@@ -294,9 +294,9 @@ Acceptance:
 
 ### T6.4 PDF generation
 
-- [ ] Implement PDF generation.
-- [ ] Store PDF in Supabase Storage.
-- [ ] Add download action.
+- [x] Implement PDF generation.
+- [x] Store PDF in Supabase Storage.
+- [x] Add download action.
 
 Acceptance:
 
@@ -304,9 +304,9 @@ Acceptance:
 
 ### T6.5 Send report email
 
-- [ ] Send report email via Resend.
-- [ ] Attach/link PDF.
-- [ ] Mark report sent.
+- [x] Send report email via Resend.
+- [x] Attach/link PDF.
+- [x] Mark report sent.
 
 Acceptance:
 

@@ -76,6 +76,15 @@ Current Milestone 5 test-pack E2E status:
 - Covered flow: confirmed QA user sign-in, onboarding, client creation, workflow creation, test pack creation, test case creation, manual pack run, persisted failed `test_runs` row, issue creation linked to `test_run_id`, Checks page failed state, and issue visibility in the issue queue.
 - Browser plugin DOM smoke check confirmed the rendered `/checks` page includes the synthetic pack panel, add-pack/add-case controls, run-pack control, and failed run state. Screenshot capture timed out through the in-app browser, but Playwright CLI E2E captured the run state successfully.
 
+Current Milestone 6 report E2E status:
+
+- Report aggregation unit coverage passes for period-bounded check runs, issues caught/resolved, synthetic run metrics, report-safe items, and redaction of raw response summaries.
+- PDF helper coverage passes for valid PDF byte generation and report email copy with a download link.
+- Applied the reports Supabase migration to the linked remote project.
+- `npm run e2e -- e2e/reports.spec.ts` passed against the local app and remote Supabase project.
+- Covered flow: confirmed QA user sign-in, onboarding, client creation, workflow creation, manual failed check run, issue creation, monthly report generation, report preview, PDF generation, authenticated PDF download, and Resend send status handling.
+- Full Playwright suite passed with scheduled checks, alerts, test packs, and reports: `4 passed`.
+
 ## Critical test areas
 
 ### Assertion engine
