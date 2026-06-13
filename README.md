@@ -131,7 +131,7 @@ npm run build
 
 ## Current implementation state
 
-The repository now contains the foundation plus Milestones 1-3 implementation:
+The repository now contains the foundation, Milestones 1-3, and the issue-management slice of Milestone 4:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
@@ -143,6 +143,8 @@ The repository now contains the foundation plus Milestones 1-3 implementation:
 - client create/update/archive server actions
 - workflow creation with encrypted auth config handling
 - endpoint health check creation, manual run execution, assertion evaluation, and check run persistence
-- domain and assertion tests
+- failed/degraded manual checks create deduped issues with severity mapping
+- issue queue filters, expandable details, assignment, resolution notes, and ignore actions
+- domain, assertion, and issue-engine tests
 
-Scheduled checks, issue creation/deduplication, alerts, test packs, report PDF generation, and Stripe billing are later milestones.
+Scheduled checks, alerts, test packs, report PDF generation, and Stripe billing are later milestones.

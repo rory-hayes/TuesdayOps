@@ -80,15 +80,18 @@ type IssueRow = {
   client_id: string;
   workflow_id: string;
   check_run_id: string | null;
+  owner_user_id: string | null;
   severity: Issue["severity"];
   status: Issue["status"];
   title: string;
   description: string;
   suggested_action: string;
   reportable: boolean;
+  occurrence_count: number | null;
   resolved_at: string | null;
   resolution_note: string | null;
   created_at: string;
+  last_seen_at: string | null;
 };
 
 type AgencySnapshot = TuesdayOpsSeedData["agency"];
@@ -273,14 +276,17 @@ function mapIssue(row: IssueRow): Issue {
     clientId: row.client_id,
     workflowId: row.workflow_id,
     checkRunId: row.check_run_id ?? undefined,
+    ownerUserId: row.owner_user_id ?? undefined,
     severity: row.severity,
     status: row.status,
     title: row.title,
     description: row.description,
     suggestedAction: row.suggested_action,
-    owner: "Unassigned",
+    owner: row.owner_user_id ? "Assigned" : "Unassigned",
     reportable: row.reportable,
+    occurrenceCount: row.occurrence_count ?? 1,
     detectedAt: row.created_at,
+    lastSeenAt: row.last_seen_at ?? row.created_at,
     resolvedAt: row.resolved_at ?? undefined,
     resolutionNote: row.resolution_note ?? undefined,
   };

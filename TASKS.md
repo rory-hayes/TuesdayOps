@@ -195,10 +195,10 @@ Acceptance:
 
 ### T4.2 Issue schema and service
 
-- [ ] Add issues table.
-- [ ] Add issue creation service.
-- [ ] Add severity mapping.
-- [ ] Add issue dedupe.
+- [x] Add issues table.
+- [x] Add issue creation service.
+- [x] Add severity mapping.
+- [x] Add issue dedupe.
 
 Acceptance:
 
@@ -207,10 +207,10 @@ Acceptance:
 
 ### T4.3 Issues page
 
-- [ ] Build issue queue.
-- [ ] Add filters.
-- [ ] Add issue detail drawer.
-- [ ] Add assign/resolve/ignore actions.
+- [x] Build issue queue.
+- [x] Add filters.
+- [x] Add issue detail drawer.
+- [x] Add assign/resolve/ignore actions.
 
 Acceptance:
 

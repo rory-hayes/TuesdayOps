@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import { runHttpCheck, type WorkflowAuthConfig } from "@/lib/checks/runner";
+import { createOrUpdateIssueForCheckRun } from "@/lib/issues/service";
 import { decryptJsonPayload, type EncryptedJsonPayload } from "@/lib/security/secrets";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,6 +26,7 @@ type CheckRunWorkflowRow = {
   id: string;
   agency_id: string;
   client_id: string;
+  name: string;
   endpoint_url: string;
   method: "GET" | "POST" | "PUT" | "PATCH";
   auth_type: "none" | "bearer" | "api_key_header" | "basic";
@@ -35,6 +37,7 @@ type CheckRunCheckRow = {
   id: string;
   agency_id: string;
   workflow_id: string;
+  name: string;
   config_json: unknown;
   workflows: CheckRunWorkflowRow | CheckRunWorkflowRow[];
 };
@@ -86,7 +89,7 @@ export async function runCheckAction(formData: FormData) {
   const { data, error } = await supabase
     .from("checks")
     .select(
-      "id, agency_id, workflow_id, config_json, workflows(id, agency_id, client_id, endpoint_url, method, auth_type, encrypted_auth_config)",
+      "id, agency_id, workflow_id, name, config_json, workflows(id, agency_id, client_id, name, endpoint_url, method, auth_type, encrypted_auth_config)",
     )
     .eq("agency_id", workspace.agency.id)
     .eq("id", parsed.data.checkId)
@@ -118,23 +121,54 @@ export async function runCheckAction(formData: FormData) {
     authConfig,
   });
 
-  const { error: runError } = await supabase.from("check_runs").insert({
-    agency_id: workspace.agency.id,
-    client_id: workflow.client_id,
-    workflow_id: workflow.id,
-    check_id: check.id,
-    status: result.status,
-    status_code: result.statusCode,
-    latency_ms: result.latencyMs,
-    response_summary: result.responseSummary,
-    assertion_results_json: result.assertionResults,
-    error_message: result.errorMessage,
-    started_at: result.startedAt,
-    completed_at: result.completedAt,
-  });
+  const { data: runRow, error: runError } = await supabase
+    .from("check_runs")
+    .insert({
+      agency_id: workspace.agency.id,
+      client_id: workflow.client_id,
+      workflow_id: workflow.id,
+      check_id: check.id,
+      status: result.status,
+      status_code: result.statusCode,
+      latency_ms: result.latencyMs,
+      response_summary: result.responseSummary,
+      assertion_results_json: result.assertionResults,
+      error_message: result.errorMessage,
+      started_at: result.startedAt,
+      completed_at: result.completedAt,
+    })
+    .select("id")
+    .single();
 
-  if (runError) {
-    redirect(`/workflows/${workflow.id}?error=${encodeURIComponent(runError.message)}`);
+  if (runError || !runRow) {
+    redirect(
+      `/workflows/${workflow.id}?error=${encodeURIComponent(
+        runError?.message ?? "Check run could not be saved.",
+      )}`,
+    );
+  }
+
+  try {
+    await createOrUpdateIssueForCheckRun({
+      supabase,
+      context: {
+        agencyId: workspace.agency.id,
+        clientId: workflow.client_id,
+        workflowId: workflow.id,
+        workflowName: workflow.name,
+        checkId: check.id,
+        checkName: check.name,
+        checkRunId: runRow.id,
+        status: result.status,
+        statusCode: result.statusCode,
+        latencyMs: result.latencyMs,
+        errorMessage: result.errorMessage,
+        assertionResults: result.assertionResults,
+      },
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Issue creation failed.";
+    redirect(`/workflows/${workflow.id}?error=${encodeURIComponent(message)}`);
   }
 
   const { data: recentRuns } = await supabase
@@ -167,6 +201,7 @@ export async function runCheckAction(formData: FormData) {
   revalidatePath("/checks");
   revalidatePath(`/workflows/${workflow.id}`);
   revalidatePath("/workflows");
+  revalidatePath("/issues");
   revalidatePath("/");
   redirect(`/workflows/${workflow.id}`);
 }

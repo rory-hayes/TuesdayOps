@@ -90,6 +90,7 @@ export type Issue = {
   clientId: string;
   workflowId: string;
   checkRunId?: string;
+  ownerUserId?: string;
   severity: IssueSeverity;
   status: IssueStatus;
   title: string;
@@ -97,7 +98,9 @@ export type Issue = {
   suggestedAction: string;
   owner: string;
   reportable: boolean;
+  occurrenceCount: number;
   detectedAt: string;
+  lastSeenAt: string;
   resolvedAt?: string;
   resolutionNote?: string;
 };
