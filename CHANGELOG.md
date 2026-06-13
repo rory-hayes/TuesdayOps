@@ -12,3 +12,5 @@ Track meaningful product and engineering changes here.
 - Added client create/update/archive server actions and searchable client portfolio UI.
 - Added workflow creation, encrypted auth config handling, workflow detail shell, check creation, manual HTTP check runner, assertion engine, and check run history.
 - Added unit coverage for slug generation and endpoint assertion evaluation.
+- Added repo-level Vercel Next.js build configuration and configured preview/production runtime env vars in Vercel.
+- Applied the Milestones 1-3 Supabase migration to the remote project and completed authenticated E2E against remote Supabase.

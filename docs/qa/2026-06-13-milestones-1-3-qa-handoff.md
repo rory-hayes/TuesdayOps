@@ -112,33 +112,40 @@ Covered by automated unit tests:
 
 ## E2E Status
 
-Full authenticated E2E was attempted but not completed.
+Full authenticated E2E has now been completed against the remote Supabase project from the local Next.js app.
 
-Planned E2E path:
+Completed E2E path:
 
-1. Start local Supabase.
-2. Run migration.
-3. Start the Next.js app with local Supabase env vars.
-4. Sign up.
-5. Create agency.
-6. Add client.
-7. Add workflow pointing at a local healthy HTTP endpoint.
-8. Run check.
-9. Verify check history persisted.
+1. Applied the Supabase migration to the remote TuesdayOps project.
+2. Started the local Next.js app with ignored `.env.local` Supabase settings.
+3. Created a confirmed QA user through Supabase admin because public email sign-up hit the project rate limit.
+4. Signed in through the TuesdayOps UI.
+5. Confirmed a signed-in user without membership redirects to `/onboarding`.
+6. Created an agency workspace.
+7. Verified the empty-state dashboard for the new tenant.
+8. Created a client.
+9. Created a workflow endpoint for that client.
+10. Verified the workflow detail shell and default health check.
+11. Ran the manual check against a public 200 endpoint.
+12. Verified the workflow updated to `healthy`, pass rate `100%`, status code `200`, latency was recorded, and run history persisted.
+13. Signed out and confirmed protected routes redirect to `/sign-in`.
+14. Created a second confirmed QA user and second agency.
+15. Verified the second tenant dashboard/client list starts empty.
+16. While signed in as the second tenant, attempted to access the first tenant workflow URL and received a 404.
 
-Blockers encountered:
+Evidence highlights:
 
-- Initial `supabase start` failed because port `54321` was already allocated by another local Supabase project.
-- TuesdayOps local Supabase ports were moved to `55420-55429` in `supabase/config.toml`.
-- Retried `supabase start`; the CLI stalled in schema initialization and had to be interrupted.
-- Retried `supabase db start`; the database container exited with `exit 137`, which usually indicates Docker killed the process under resource pressure.
-- No remote Supabase env values were available in this shell, and no secrets were committed.
+- Remote migration history shows local and remote migration `20260613111357` match.
+- E2E workflow created: `QA Health Endpoint`.
+- E2E healthy run stored status code `200` and latency `382 ms`.
+- Cross-tenant direct workflow access returned the Next.js 404 page while still rendering the second tenant shell.
 
-Conclusion:
+Notes:
 
 - Code-level verification is green.
-- The final migration file could not be validated against a running Supabase database because the local stack never reached a usable status.
-- Full sign-up/onboarding/client/workflow/check browser E2E still needs to be rerun once Supabase is available locally or the remote project environment is configured for the branch.
+- Remote migration push succeeded.
+- `supabase db lint --linked --fail-on error` still failed with a Supabase CLI temporary login role auth error after the migration push succeeded. This is a CLI auth/lint limitation, not an app build failure.
+- Public sign-up hit Supabase email rate limiting during E2E, so confirmed QA users were created through the admin API before using normal app sign-in/onboarding flows.
 
 ## Environment Requirements
 
@@ -171,8 +178,6 @@ Do not expose `SUPABASE_SECRET_KEY`, database passwords, or workflow auth secret
 
 ## Known Gaps Before Next Milestones
 
-- Remote Supabase migration was not applied by Codex in this run.
-- Full browser E2E remains blocked until Supabase is reachable.
 - Scheduled checks are not implemented.
 - Failed checks do not yet create or dedupe issues.
 - Issue resolve/ignore workflow is not implemented.
@@ -195,5 +200,5 @@ Do not expose `SUPABASE_SECRET_KEY`, database passwords, or workflow auth secret
   - timeout
   - response body containing an email/token-like value
   - malformed JSON with JSON-path assertions
-- Confirm Vercel environment variables are configured before deploying protected routes.
+- Confirm Vercel environment variables remain configured before deploying protected routes.
 - Confirm no `.env.local` or secret-bearing files are committed.

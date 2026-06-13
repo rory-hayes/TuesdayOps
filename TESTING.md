@@ -40,8 +40,9 @@ Use Playwright or the in-app browser for:
 Current Milestones 1-3 E2E status:
 
 - Static verification passes with `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`.
-- Full authenticated E2E requires a reachable Supabase Auth/Postgres environment with the migration applied.
-- Local Supabase startup was attempted, but Docker killed the database-only startup with `exit 137`; see the QA handoff report for details.
+- Full authenticated E2E has passed against the remote Supabase project from the local app.
+- Covered flow: sign in, onboarding, client creation, workflow creation, manual check run, persisted run history, sign-out redirect, second-tenant empty state, and cross-tenant workflow 404.
+- Local Supabase startup was attempted first, but Docker killed the database-only startup with `exit 137`; remote Supabase was used for final E2E.
 
 ## Critical test areas
 
