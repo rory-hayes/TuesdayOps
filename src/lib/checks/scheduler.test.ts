@@ -75,4 +75,34 @@ describe("scheduled check selection", () => {
       ).map((check) => check.id),
     ).toEqual(["due"]);
   });
+
+  it("selects a targeted due check before applying the batch limit", () => {
+    expect(
+      selectDueChecks(
+        [
+          {
+            id: "older-due",
+            agencyId: "agency-1",
+            workflowId: "workflow-1",
+            workflowEndpointUrl: "https://example.com/health",
+            workflowFrequencyMinutes: 5,
+            enabled: true,
+            latestCompletedAt: null,
+          },
+          {
+            id: "target",
+            agencyId: "agency-1",
+            workflowId: "workflow-2",
+            workflowEndpointUrl: "https://example.com/health",
+            workflowFrequencyMinutes: 5,
+            enabled: true,
+            latestCompletedAt: null,
+          },
+        ],
+        now,
+        1,
+        { checkId: "target" },
+      ).map((check) => check.id),
+    ).toEqual(["target"]);
+  });
 });

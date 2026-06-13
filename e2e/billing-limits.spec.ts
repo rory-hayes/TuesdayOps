@@ -19,6 +19,8 @@ test("billing settings show limits and starter client limit is enforced", async 
   const agencySlug = `qa-billing-${runId}`;
   const firstClient = `Billing Client ${runId}`;
   const secondClient = `Billing Overflow ${runId}`;
+  const firstWorkflow = `Billing Workflow ${runId}-1`;
+  const fourthWorkflow = `Billing Workflow ${runId}-4`;
 
   await createConfirmedUser({ email, password });
 
@@ -57,6 +59,29 @@ test("billing settings show limits and starter client limit is enforced", async 
   await createClient(page, secondClient, `qa-billing-overflow-${runId}@example.invalid`);
   await expect(page.getByText("Upgrade to add more clients.")).toBeVisible();
   await expect(page.getByText(secondClient)).not.toBeVisible();
+
+  await page.goto("/workflows", { waitUntil: "domcontentloaded" });
+  for (let index = 1; index <= 3; index += 1) {
+    await createWorkflow(page, {
+      appUrl,
+      runId,
+      workflowName: `Billing Workflow ${runId}-${index}`,
+      index,
+    });
+    await expect(page.getByText(`Billing Workflow ${runId}-${index}`)).toBeVisible();
+    await page.goto("/workflows", { waitUntil: "domcontentloaded" });
+  }
+
+  await createWorkflow(page, {
+    appUrl,
+    runId,
+    workflowName: fourthWorkflow,
+    index: 4,
+    expectRedirect: false,
+  });
+  await expect(page.getByText("Upgrade to monitor more workflows.")).toBeVisible();
+  await expect(page.getByText(firstWorkflow)).toBeVisible();
+  await expect(page.getByText(fourthWorkflow)).not.toBeVisible();
 });
 
 async function createClient(page: import("@playwright/test").Page, name: string, email: string) {
@@ -65,6 +90,37 @@ async function createClient(page: import("@playwright/test").Page, name: string,
   await page.getByLabel("Report email").fill(email);
   await page.getByLabel("Notes").fill("Billing limit E2E client.");
   await page.getByRole("button", { name: "Add client" }).click();
+}
+
+async function createWorkflow(
+  page: import("@playwright/test").Page,
+  input: {
+    appUrl: string;
+    runId: number;
+    workflowName: string;
+    index: number;
+    expectRedirect?: boolean;
+  },
+) {
+  await page.getByLabel("Workflow name").fill(input.workflowName);
+  await page.getByLabel("Endpoint URL").fill(
+    `${input.appUrl}/api/e2e-billing-workflow-${input.runId}-${input.index}`,
+  );
+  await page.getByLabel("Frequency minutes").fill("5");
+  await page.getByLabel("Expected status").fill("200");
+  await page.getByLabel("Max latency ms").fill("5000");
+
+  const workflowForm = page.locator("form").filter({ has: page.locator('input[name="endpointUrl"]') });
+
+  if (input.expectRedirect === false) {
+    await workflowForm.getByRole("button", { name: "Add workflow" }).click();
+    return;
+  }
+
+  await Promise.all([
+    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 15_000 }),
+    workflowForm.getByRole("button", { name: "Add workflow" }).click(),
+  ]);
 }
 
 async function createConfirmedUser({ email, password }: { email: string; password: string }) {

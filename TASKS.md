@@ -379,3 +379,39 @@ Acceptance:
 Acceptance:
 
 - limits are enforced without breaking existing data
+
+## Milestone 8 — QA Hardening
+
+### T8.1 Tenant isolation coverage
+
+- [x] Add report download cross-tenant E2E coverage.
+
+Acceptance:
+
+- authenticated users cannot download another agency's report PDF
+
+### T8.2 Scheduler smoke stability
+
+- [x] Add targeted protected scheduler trigger support for QA smoke tests.
+- [x] Update scheduled-check and alert E2E to target their created health check.
+
+Acceptance:
+
+- E2E scheduled checks are not crowded out by older enabled checks in a shared Supabase project
+
+### T8.3 Billing limit coverage
+
+- [x] Add starter workflow limit E2E coverage.
+
+Acceptance:
+
+- starter agencies can create three workflows and are blocked from creating a fourth
+
+### T8.4 Webhook route safety coverage
+
+- [x] Add Stripe webhook route tests for missing signatures, invalid signatures, and duplicate events.
+
+Acceptance:
+
+- invalid webhook requests do not touch billing state
+- duplicate webhook events are acknowledged without duplicate inserts or mutations

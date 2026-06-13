@@ -83,7 +83,15 @@ test("enabled health checks run through the protected scheduled runner", async (
   const workflowId = page.url().split("/").pop();
   expect(workflowId).toBeTruthy();
 
-  const firstScheduler = await triggerScheduler(appUrl);
+  const check = await poll(async () => {
+    const rows = await getRows<CheckRow>(
+      "checks",
+      `workflow_id=eq.${workflowId}&select=id,workflow_id`,
+    );
+    return rows[0] ?? null;
+  }, "created health check");
+
+  const firstScheduler = await triggerScheduler(appUrl, { checkId: check.id });
   expect(firstScheduler.completed).toBeGreaterThanOrEqual(1);
 
   const firstRuns = await poll(async () => {
@@ -112,7 +120,7 @@ test("enabled health checks run through the protected scheduled runner", async (
   expect(["open", "in_review"]).toContain(latestIssue.status);
   expect(latestIssue.occurrence_count).toBe(1);
 
-  await triggerScheduler(appUrl);
+  await triggerScheduler(appUrl, { checkId: check.id });
 
   const secondRuns = await getRows<ScheduledRunRow>(
     "check_runs",
@@ -148,6 +156,11 @@ type ScheduledRunRow = {
   created_at: string;
 };
 
+type CheckRow = {
+  id: string;
+  workflow_id: string;
+};
+
 type IssueRow = {
   id: string;
   status: string;
@@ -177,10 +190,17 @@ async function createConfirmedUser({ email, password }: { email: string; passwor
   });
 }
 
-async function triggerScheduler(appUrl: string): Promise<SchedulerResponse> {
+async function triggerScheduler(
+  appUrl: string,
+  input: { checkId?: string } = {},
+): Promise<SchedulerResponse> {
   const response = await fetch(`${appUrl}/api/scheduler/run-due-checks`, {
     method: "POST",
-    headers: { "x-scheduler-secret": env.SCHEDULER_SECRET ?? "" },
+    headers: {
+      "content-type": "application/json",
+      "x-scheduler-secret": env.SCHEDULER_SECRET ?? "",
+    },
+    body: JSON.stringify(input),
   });
   const body = await response.json();
 

@@ -113,6 +113,17 @@ Current Milestone 7C billing/limits status:
 - Covered flow: confirmed QA user sign-in, agency onboarding, Settings billing usage display, missing Stripe config handled safely, first starter client creation, and second starter client blocked with upgrade copy.
 - Full Playwright suite passed with onboarding/demo, billing limits, scheduled checks, alerts, test packs, and reports: `6 passed`.
 
+Current Milestone 8 QA-hardening status:
+
+- Added route-level Stripe webhook coverage for missing signatures, invalid signatures, and duplicate event idempotency.
+- Added targeted scheduler smoke support so E2E can run the current test's check even when the shared Supabase project contains older enabled health checks.
+- Expanded report E2E coverage so a second authenticated agency receives `404` when requesting the first agency's generated PDF download URL.
+- Expanded billing E2E coverage so a starter agency can create three workflows and is blocked from creating a fourth with upgrade copy.
+- Focused verification passed:
+  - `npm run test -- src/app/api/stripe/webhook/route.test.ts` (`17 passed`, `49 passed`)
+  - `npx vitest run src/lib/checks/scheduler.test.ts src/lib/checks/scheduled-runner.test.ts` verifies targeted scheduler selection
+  - `npm run e2e -- e2e/billing-limits.spec.ts e2e/reports.spec.ts` (`2 passed`)
+
 ## Critical test areas
 
 ### Assertion engine

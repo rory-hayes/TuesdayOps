@@ -10,6 +10,7 @@ const env = {
 };
 
 test("monthly report can be generated, exported as PDF, and sent or safely failed", async ({
+  browser,
   page,
   baseURL,
 }) => {
@@ -21,31 +22,24 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
   const password = `QaReport-${runId}!`;
   const agencyName = `QA Report Agency ${runId}`;
   const agencySlug = `qa-report-${runId}`;
+  const otherEmail = `qa-report-other-${runId}@example.invalid`;
+  const otherPassword = `QaReportOther-${runId}!`;
+  const otherAgencyName = `QA Report Other Agency ${runId}`;
+  const otherAgencySlug = `qa-report-other-${runId}`;
   const clientName = `Report Client ${runId}`;
   const workflowName = `Report Failing Workflow ${runId}`;
   const endpointUrl = `${appUrl}/api/e2e-report-missing-${runId}`;
 
   await createConfirmedUser({ email, password });
+  await createConfirmedUser({ email: otherEmail, password: otherPassword });
 
-  await page.goto("/sign-in", { waitUntil: "domcontentloaded" });
-  await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Password").fill(password);
-  await Promise.all([
-    page.waitForURL((url) => url.pathname === "/" || url.pathname === "/onboarding", {
-      timeout: 15_000,
-    }),
-    page.getByRole("button", { name: "Sign in" }).click(),
-  ]);
-
-  await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
-  if (page.url().includes("/onboarding")) {
-    await page.getByLabel("Agency name").fill(agencyName);
-    await page.getByLabel("Slug").fill(agencySlug);
-    await Promise.all([
-      page.waitForURL(`${appUrl}/`, { timeout: 15_000 }),
-      page.getByRole("button", { name: "Create workspace" }).click(),
-    ]);
-  }
+  await signInAndCreateWorkspace(page, {
+    appUrl,
+    email,
+    password,
+    agencyName,
+    agencySlug,
+  });
 
   await page.goto("/clients", { waitUntil: "domcontentloaded" });
   await page.getByLabel("Client name").fill(clientName);
@@ -127,6 +121,24 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
   expect(pdfResponse.headers()["content-type"]).toContain("application/pdf");
   expect((await pdfResponse.body()).toString("latin1").startsWith("%PDF-1.4")).toBe(true);
 
+  const otherContext = await browser.newContext({ baseURL: appUrl });
+  const otherPage = await otherContext.newPage();
+
+  try {
+    await signInAndCreateWorkspace(otherPage, {
+      appUrl,
+      email: otherEmail,
+      password: otherPassword,
+      agencyName: otherAgencyName,
+      agencySlug: otherAgencySlug,
+    });
+
+    const crossTenantPdfResponse = await otherPage.request.get(`${appUrl}${reportWithPdf.pdf_url}`);
+    expect(crossTenantPdfResponse.status()).toBe(404);
+  } finally {
+    await otherContext.close();
+  }
+
   await page.goto("/reports", { waitUntil: "domcontentloaded" });
   const sendForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Send" }) });
   await sendForm.getByRole("button", { name: "Send" }).click();
@@ -193,6 +205,37 @@ async function createConfirmedUser({ email, password }: { email: string; passwor
       user_metadata: { name: "Report QA" },
     }),
   });
+}
+
+async function signInAndCreateWorkspace(
+  page: import("@playwright/test").Page,
+  input: {
+    appUrl: string;
+    email: string;
+    password: string;
+    agencyName: string;
+    agencySlug: string;
+  },
+) {
+  await page.goto("/sign-in", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Email").fill(input.email);
+  await page.getByLabel("Password").fill(input.password);
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === "/" || url.pathname === "/onboarding", {
+      timeout: 15_000,
+    }),
+    page.getByRole("button", { name: "Sign in" }).click(),
+  ]);
+
+  await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
+  if (page.url().includes("/onboarding")) {
+    await page.getByLabel("Agency name").fill(input.agencyName);
+    await page.getByLabel("Slug").fill(input.agencySlug);
+    await Promise.all([
+      page.waitForURL(`${input.appUrl}/`, { timeout: 15_000 }),
+      page.getByRole("button", { name: "Create workspace" }).click(),
+    ]);
+  }
 }
 
 async function getRows<T>(table: string, query: string): Promise<T[]> {
