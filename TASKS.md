@@ -312,29 +312,32 @@ Acceptance:
 
 - report send action works
 
-## Milestone 7 — Billing, Onboarding, Polish
+## Milestone 7A — Launch Readiness
 
-### T7.1 Stripe billing
+### T7A.1 Deployment readiness
 
-- [ ] Add Stripe checkout.
-- [ ] Add customer portal.
-- [ ] Add subscription state to agency.
-- [ ] Add webhook handler.
-
-Acceptance:
-
-- user can start/manage subscription
-
-### T7.2 Plan limits
-
-- [ ] Enforce client/workflow limits.
-- [ ] Show upgrade prompts.
+- [x] Add production env docs.
+- [x] Add Vercel deployment notes.
+- [x] Add Supabase migration notes.
+- [x] Add smoke test checklist.
 
 Acceptance:
 
-- limits are enforced without breaking existing data
+- project can deploy and be used by design partners
 
-### T7.3 Onboarding wizard
+### T7A.2 Dependency audit hardening
+
+- [x] Clear high-severity Vite/esbuild audit path.
+- [x] Clear moderate Next/PostCSS audit path without force downgrades.
+- [x] Document Node runtime floor.
+
+Acceptance:
+
+- `npm audit --audit-level=moderate` reports zero vulnerabilities
+
+## Milestone 7B — Onboarding and Demo Mode
+
+### T7B.1 Onboarding wizard
 
 - [ ] Add guided onboarding.
 - [ ] Add first client step.
@@ -346,7 +349,7 @@ Acceptance:
 
 - user can reach first check within 10 minutes
 
-### T7.4 Sample data mode
+### T7B.2 Sample data mode
 
 - [ ] Seed demo agency.
 - [ ] Seed clients/workflows/checks/issues/reports.
@@ -355,13 +358,24 @@ Acceptance:
 
 - demo dashboard is useful for sales calls
 
-### T7.5 Deployment readiness
+## Milestone 7C — Billing and Plan Limits
 
-- [ ] Add production env docs.
-- [ ] Add Vercel deployment notes.
-- [ ] Add Supabase migration notes.
-- [ ] Add smoke test checklist.
+### T7C.1 Stripe billing
+
+- [ ] Add Stripe checkout.
+- [ ] Add customer portal.
+- [ ] Add subscription state to agency.
+- [ ] Add webhook handler.
 
 Acceptance:
 
-- project can deploy and be used by design partners
+- user can start/manage subscription
+
+### T7C.2 Plan limits
+
+- [ ] Enforce client/workflow limits.
+- [ ] Show upgrade prompts.
+
+Acceptance:
+
+- limits are enforced without breaking existing data

@@ -98,19 +98,42 @@ Deliverables:
 - report queue
 - email/send action
 
-## Milestone 7 — Billing, Onboarding, and Polish
+## Milestone 7A — Launch Readiness
 
-Goal: MVP is ready for design partners.
+Goal: the existing MVP can be deployed, tested, and reviewed by design partners with clear operational instructions.
+
+Deliverables:
+
+- deployment docs
+- Vercel production checklist
+- Supabase migration checklist
+- smoke test checklist
+- dependency audit hardening
+
+## Milestone 7B — Onboarding and Demo Mode
+
+Goal: a new agency can reach the first useful check quickly and the team can run sales demos with realistic data.
+
+Deliverables:
+
+- guided onboarding
+- first client step
+- first workflow step
+- first check run step
+- sample report step
+- sample data seed action
+
+## Milestone 7C — Billing and Plan Limits
+
+Goal: the MVP has a simple commercial gate for design partners.
 
 Deliverables:
 
 - Stripe checkout/customer portal
-- plan limits
-- onboarding wizard
-- sample data
-- dashboard polish
-- loading/error/empty states
-- deployment docs
+- subscription state
+- webhook handler
+- client/workflow plan limits
+- upgrade prompts
 
 ## Build rule
 
