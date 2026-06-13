@@ -22,3 +22,4 @@ Track meaningful product and engineering changes here.
 - Added Resend-backed high/critical issue alert delivery with redacted email copy, delivery metadata, and E2E coverage for alert attempt recording.
 - Added tenant-scoped synthetic test packs, test cases, manual pack runs, test-run persistence, synthetic failure issue creation, and E2E coverage for the Milestone 5 test-pack loop.
 - Added monthly report generation, report items, report preview, private PDF storage/download, report email send attempts, and E2E coverage for the Milestone 6 reporting loop.
+- Added Milestone 7A launch-readiness hardening: Node runtime floor, Vercel/Supabase/smoke deployment checklist, expanded env templates, Vite 8 test tooling, and a clean moderate-level npm audit.

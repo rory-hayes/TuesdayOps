@@ -85,6 +85,19 @@ Current Milestone 6 report E2E status:
 - Covered flow: confirmed QA user sign-in, onboarding, client creation, workflow creation, manual failed check run, issue creation, monthly report generation, report preview, PDF generation, authenticated PDF download, and Resend send status handling.
 - Full Playwright suite passed with scheduled checks, alerts, test packs, and reports: `4 passed`.
 
+Current Milestone 7A launch-readiness status:
+
+- Updated the test toolchain to Vite 8 and `@vitejs/plugin-react` 6, then pinned Next's nested PostCSS dependency to the patched `8.5.10` line through npm overrides.
+- Added a Node.js runtime floor of `>=20.19.0`; Node 22+ is recommended for Vercel production.
+- Added `DEPLOYMENT.md` with production env docs, Vercel notes, Supabase migration notes, and a post-deploy smoke checklist.
+- `npm audit --audit-level=moderate` now returns `found 0 vulnerabilities`.
+- Full verification passed with Node 25.6.1:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test` (`12 passed`, `37 passed`)
+  - `npm run build`
+  - `npm run e2e` (`4 passed`)
+
 ## Critical test areas
 
 ### Assertion engine

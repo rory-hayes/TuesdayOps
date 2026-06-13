@@ -18,6 +18,14 @@
 | PDF reports | React PDF or Playwright/Puppeteer | Report generation |
 | Icons | Lucide React | Consistent modern icons |
 
+Runtime requirement:
+
+```txt
+Node.js >=20.19.0
+```
+
+Use Node 22 or newer for Vercel production deployments when possible.
+
 ## Build choices
 
 ### Use Supabase Auth initially
@@ -58,6 +66,7 @@ INNGEST_SIGNING_KEY=
 RESEND_API_KEY=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_KEY=

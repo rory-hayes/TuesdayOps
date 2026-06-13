@@ -94,6 +94,8 @@ Install dependencies:
 npm install
 ```
 
+Use Node.js 20.19 or newer. Node 22+ is recommended for production and Vercel.
+
 Create `.env.local` from `.env.example` or `ENV_EXAMPLE.md`.
 
 Required for the authenticated MVP paths:
@@ -106,6 +108,10 @@ WORKFLOW_AUTH_ENCRYPTION_KEY=
 SCHEDULER_SECRET=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+STRIPE_PRICE_ID=
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
@@ -137,9 +143,11 @@ Build for production:
 npm run build
 ```
 
+For production deployment, see `DEPLOYMENT.md`.
+
 ## Current implementation state
 
-The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, and Milestone 6 monthly reports:
+The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, Milestone 6 monthly reports, and Milestone 7A launch-readiness hardening:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
@@ -160,6 +168,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - tenant-scoped synthetic test packs, test cases, test runs, and manual pack execution from the Checks page
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
 - tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts
+- production deployment checklist, Supabase migration checklist, smoke checklist, Node runtime floor, and clean dependency audit
 - domain, assertion, issue-engine, scheduler, synthetic-runner, and Playwright E2E tests
 
-Stripe billing is a later milestone.
+Onboarding/demo mode and Stripe billing remain the next Milestone 7 slices.
