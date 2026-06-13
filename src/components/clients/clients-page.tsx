@@ -1,14 +1,36 @@
-import { BriefcaseBusiness, FileText, Search } from "lucide-react";
+import { Archive, BriefcaseBusiness, FileText, Save, Search } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { seedData } from "@/lib/data/seed";
+import { archiveClientAction, createClientAction, updateClientAction } from "@/lib/clients/service";
 import { getOpenIssues } from "@/lib/domain/summaries";
+import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatRelativeTime } from "@/lib/formatting";
 
-export function ClientsPage() {
-  const openIssues = getOpenIssues(seedData);
+export function ClientsPage({
+  data,
+  error,
+  query,
+}: {
+  data: TuesdayOpsSeedData;
+  error?: string;
+  query?: string;
+}) {
+  const openIssues = getOpenIssues(data);
+  const activeClients = data.clients.filter((client) => !client.archived);
+  const normalizedQuery = query?.trim().toLowerCase() ?? "";
+  const visibleClients = normalizedQuery
+    ? data.clients.filter((client) =>
+        [client.name, client.industry, client.reportRecipientEmail]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedQuery),
+      )
+    : data.clients;
+  const averageHealth = activeClients.length
+    ? Math.round(activeClients.reduce((total, client) => total + client.healthScore, 0) / activeClients.length)
+    : 0;
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -19,10 +41,41 @@ export function ClientsPage() {
       />
 
       <section className="grid gap-4 md:grid-cols-3">
-        <PortfolioTile label="Average health" value="89%" detail="Across active clients" />
-        <PortfolioTile label="Reports this cycle" value="4" detail="2 ready, 2 drafts" />
+        <PortfolioTile label="Average health" value={`${averageHealth}%`} detail="Across active clients" />
+        <PortfolioTile label="Active clients" value={activeClients.length.toString()} detail="Tenant-scoped portfolio" />
         <PortfolioTile label="Open issues" value={openIssues.length.toString()} detail="Reportable queue" />
       </section>
+
+      {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold">Add client</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create a retained client before registering workflows and checks.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form action={createClientAction} className="grid gap-3 md:grid-cols-5">
+            <Input label="Client name" name="name" placeholder="Nova Dental Group" required />
+            <Input label="Slug" name="slug" placeholder="nova-dental" />
+            <Input label="Industry" name="industry" placeholder="Healthcare" required />
+            <Input label="Report email" name="reportRecipientEmail" type="email" placeholder="ops@example.com" required />
+            <label className="block text-sm font-medium">
+              Notes
+              <input
+                name="notes"
+                placeholder="Workflow scope"
+                className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+            </label>
+            <Button type="submit" className="md:col-span-5 md:w-fit">
+              <BriefcaseBusiness size={15} aria-hidden="true" />
+              Add client
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -30,19 +83,24 @@ export function ClientsPage() {
             <h2 className="text-base font-semibold">Clients</h2>
             <p className="mt-1 text-sm text-muted-foreground">Portfolio health and reporting status.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm">
+          <form className="flex flex-col gap-2 sm:flex-row">
+            <label className="relative block">
+              <Search size={15} className="pointer-events-none absolute left-3 top-2.5 text-muted-foreground" aria-hidden="true" />
+              <input
+                name="q"
+                defaultValue={query}
+                placeholder="Search clients"
+                className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary sm:w-60"
+              />
+            </label>
+            <Button variant="secondary" size="sm" type="submit">
               <Search size={15} aria-hidden="true" />
               Filter
             </Button>
-            <Button size="sm">
-              <BriefcaseBusiness size={15} aria-hidden="true" />
-              Add client
-            </Button>
-          </div>
+          </form>
         </CardHeader>
         <CardContent className="overflow-x-auto p-0">
-          <table className="w-full min-w-[820px] border-collapse text-sm">
+          <table className="w-full min-w-[1040px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
                 <th className="px-5 py-3 font-medium">Client</th>
@@ -52,11 +110,12 @@ export function ClientsPage() {
                 <th className="px-5 py-3 font-medium">Report</th>
                 <th className="px-5 py-3 font-medium">Owner</th>
                 <th className="px-5 py-3 font-medium">Last activity</th>
+                <th className="px-5 py-3 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {seedData.clients.map((client) => {
-                const workflows = seedData.workflows.filter((workflow) => workflow.clientId === client.id);
+              {visibleClients.length ? visibleClients.map((client) => {
+                const workflows = data.workflows.filter((workflow) => workflow.clientId === client.id);
                 const clientIssues = openIssues.filter((issue) => issue.clientId === client.id);
 
                 return (
@@ -81,9 +140,62 @@ export function ClientsPage() {
                     <td className="px-5 py-4 text-muted-foreground">
                       {formatRelativeTime(client.lastActivityAt)}
                     </td>
+                    <td className="px-5 py-4">
+                      <details className="min-w-72">
+                        <summary className="cursor-pointer text-sm font-medium text-primary">Edit</summary>
+                        <form action={updateClientAction} className="mt-3 grid gap-2 rounded-lg bg-muted p-3">
+                          <input type="hidden" name="id" value={client.id} />
+                          <input type="hidden" name="slug" value={client.slug} />
+                          <input
+                            name="name"
+                            defaultValue={client.name}
+                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
+                          />
+                          <input
+                            name="industry"
+                            defaultValue={client.industry}
+                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
+                          />
+                          <input
+                            name="reportRecipientEmail"
+                            type="email"
+                            defaultValue={client.reportRecipientEmail}
+                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
+                          />
+                          <input
+                            name="notes"
+                            defaultValue={client.notes}
+                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
+                          />
+                          <div className="flex gap-2">
+                            <Button type="submit" size="sm">
+                              <Save size={14} aria-hidden="true" />
+                              Save
+                            </Button>
+                          </div>
+                        </form>
+                        {!client.archived ? (
+                          <form action={archiveClientAction} className="mt-2">
+                            <input type="hidden" name="id" value={client.id} />
+                            <Button type="submit" variant="secondary" size="sm">
+                              <Archive size={14} aria-hidden="true" />
+                              Archive
+                            </Button>
+                          </form>
+                        ) : null}
+                      </details>
+                    </td>
                   </tr>
                 );
-              })}
+              }) : (
+                <tr>
+                  <td className="px-5 py-8 text-sm text-muted-foreground" colSpan={8}>
+                    {data.clients.length
+                      ? "No clients match this search."
+                      : "Add your first client to start the workflow maintenance loop."}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </CardContent>
@@ -125,5 +237,32 @@ function PortfolioTile({ label, value, detail }: { label: string; value: string;
         <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
       </CardContent>
     </Card>
+  );
+}
+
+function Input({
+  label,
+  name,
+  placeholder,
+  type = "text",
+  required = false,
+}: {
+  label: string;
+  name: string;
+  placeholder: string;
+  type?: string;
+  required?: boolean;
+}) {
+  return (
+    <label className="block text-sm font-medium">
+      {label}
+      <input
+        required={required}
+        name={name}
+        type={type}
+        placeholder={placeholder}
+        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+      />
+    </label>
   );
 }

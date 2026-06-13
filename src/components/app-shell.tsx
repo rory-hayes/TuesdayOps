@@ -8,12 +8,14 @@ import {
   FileText,
   LayoutDashboard,
   LifeBuoy,
+  LogOut,
   Settings,
   UsersRound,
   Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { seedData } from "@/lib/data/seed";
+import { signOutAction } from "@/lib/auth/actions";
+import type { WorkspaceContext } from "@/lib/auth/workspace";
 
 const navigation = [
   { label: "Overview", href: "/", icon: LayoutDashboard },
@@ -27,9 +29,13 @@ const navigation = [
 
 type AppShellProps = {
   children: ReactNode;
+  workspace: WorkspaceContext;
 };
 
-export function AppShell({ children }: AppShellProps) {
+export function AppShell({ children, workspace }: AppShellProps) {
+  const agency = workspace.agency;
+  const userEmail = workspace.user.email;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="grid min-h-screen lg:grid-cols-[264px_1fr]">
@@ -60,8 +66,9 @@ export function AppShell({ children }: AppShellProps) {
 
             <div className="mt-auto rounded-lg border border-border bg-background p-4">
               <p className="text-xs font-medium uppercase text-muted-foreground">Workspace</p>
-              <p className="mt-1 text-sm font-semibold">{seedData.agency.name}</p>
-              <p className="mt-1 text-xs text-muted-foreground">{seedData.agency.plan}</p>
+              <p className="mt-1 text-sm font-semibold">{agency.name}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{agency.plan}</p>
+              {userEmail ? <p className="mt-3 truncate text-xs text-muted-foreground">{userEmail}</p> : null}
             </div>
           </div>
         </aside>
@@ -71,7 +78,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <p className="text-xs font-medium uppercase text-muted-foreground">Workspace</p>
-                <h1 className="truncate text-lg font-semibold">{seedData.agency.name}</h1>
+                <h1 className="truncate text-lg font-semibold">{agency.name}</h1>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center">
                 <Button variant="secondary" size="sm" className="w-full sm:w-auto">
@@ -82,6 +89,12 @@ export function AppShell({ children }: AppShellProps) {
                   <BadgeCheck size={15} aria-hidden="true" />
                   Run check
                 </Button>
+                <form action={signOutAction}>
+                  <Button variant="ghost" size="sm" className="w-full sm:w-auto" type="submit">
+                    <LogOut size={15} aria-hidden="true" />
+                    Sign out
+                  </Button>
+                </form>
               </div>
             </div>
             <nav className="mt-3 flex flex-wrap gap-2 lg:hidden">

@@ -1,6 +1,6 @@
 # TuesdayOps API Spec — MVP
 
-This document outlines the internal API shape. Exact route names may vary depending on framework conventions.
+This document outlines the internal API shape. Milestones 1-3 currently implement these flows with Next.js server actions rather than public JSON API routes. Exact route names may vary as later milestones add route handlers/background jobs.
 
 ## Auth
 
@@ -73,7 +73,7 @@ Updates workflow.
 
 ### `POST /api/workflows/:id/run-check`
 
-Manually triggers a check run.
+Manually triggers a check run. Current server action equivalent: `runCheckAction(checkId)`.
 
 ## Checks
 
@@ -90,12 +90,22 @@ Creates check.
   "name": "Default health check",
   "type": "health",
   "config": {
-    "expectedStatus": 200,
     "timeoutMs": 10000,
-    "assertions": []
+    "assertions": [
+      { "type": "status_code", "expected": 200 },
+      { "type": "latency_under", "maxMs": 5000 }
+    ]
   }
 }
 ```
+
+Supported assertion types in Milestone 3:
+
+- `status_code`
+- `latency_under`
+- `field_exists`
+- `equals`
+- `not_contains`
 
 ## Check runs
 

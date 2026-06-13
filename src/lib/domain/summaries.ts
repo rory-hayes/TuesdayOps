@@ -17,7 +17,9 @@ export function getPortfolioSummary(data: TuesdayOpsSeedData): PortfolioSummary 
     activeClients,
     monitoredWorkflows,
     openIssues,
-    checkPassRate: Math.round(passRateTotal / workflowsWithPassRates.length),
+    checkPassRate: workflowsWithPassRates.length
+      ? Math.round(passRateTotal / workflowsWithPassRates.length)
+      : 0,
   };
 }
 

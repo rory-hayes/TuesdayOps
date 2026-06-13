@@ -50,9 +50,9 @@ Acceptance:
 
 ### T1.1 Supabase setup
 
-- [ ] Add Supabase client.
-- [ ] Add server/client helpers.
-- [ ] Add env variables.
+- [x] Add Supabase client.
+- [x] Add server/client helpers.
+- [x] Add env variables.
 
 Acceptance:
 
@@ -60,10 +60,10 @@ Acceptance:
 
 ### T1.2 Auth pages
 
-- [ ] Sign up page.
-- [ ] Sign in page.
-- [ ] Sign out action.
-- [ ] Protected app routes.
+- [x] Sign up page.
+- [x] Sign in page.
+- [x] Sign out action.
+- [x] Protected app routes.
 
 Acceptance:
 
@@ -71,10 +71,10 @@ Acceptance:
 
 ### T1.3 Agency workspace model
 
-- [ ] Create agencies table.
-- [ ] Create profiles table.
-- [ ] Create memberships table.
-- [ ] Add RLS policies.
+- [x] Create agencies table.
+- [x] Create profiles table.
+- [x] Create memberships table.
+- [x] Add RLS policies.
 
 Acceptance:
 
@@ -83,9 +83,9 @@ Acceptance:
 
 ### T1.4 Agency onboarding
 
-- [ ] Create agency form.
-- [ ] Add default branding fields.
-- [ ] Redirect to dashboard after creation.
+- [x] Create agency form.
+- [x] Add default branding fields.
+- [x] Redirect to dashboard after creation.
 
 Acceptance:
 
@@ -95,9 +95,9 @@ Acceptance:
 
 ### T2.1 Clients schema and service
 
-- [ ] Add clients table.
-- [ ] Add CRUD service.
-- [ ] Add validation schema.
+- [x] Add clients table.
+- [x] Add CRUD service.
+- [x] Add validation schema.
 
 Acceptance:
 
@@ -105,10 +105,10 @@ Acceptance:
 
 ### T2.2 Clients page
 
-- [ ] Build clients page.
-- [ ] Add client table.
-- [ ] Add filters/search.
-- [ ] Add empty state.
+- [x] Build clients page.
+- [x] Add client table.
+- [x] Add filters/search.
+- [x] Add empty state.
 
 Acceptance:
 
@@ -116,10 +116,10 @@ Acceptance:
 
 ### T2.3 Workflows schema and service
 
-- [ ] Add workflows table.
-- [ ] Add encrypted auth config handling.
-- [ ] Add CRUD service.
-- [ ] Add validation schema.
+- [x] Add workflows table.
+- [x] Add encrypted auth config handling.
+- [x] Add CRUD service.
+- [x] Add validation schema.
 
 Acceptance:
 
@@ -127,9 +127,9 @@ Acceptance:
 
 ### T2.4 Workflows page
 
-- [ ] Build workflow list.
-- [ ] Build add workflow form.
-- [ ] Build workflow detail shell.
+- [x] Build workflow list.
+- [x] Build add workflow form.
+- [x] Build workflow detail shell.
 
 Acceptance:
 
@@ -139,9 +139,9 @@ Acceptance:
 
 ### T3.1 Checks schema
 
-- [ ] Add checks table.
-- [ ] Add check_runs table.
-- [ ] Add check config validation.
+- [x] Add checks table.
+- [x] Add check_runs table.
+- [x] Add check config validation.
 
 Acceptance:
 
@@ -149,11 +149,11 @@ Acceptance:
 
 ### T3.2 HTTP check runner
 
-- [ ] Implement HTTP request executor.
-- [ ] Support GET/POST.
-- [ ] Support headers.
-- [ ] Support timeouts.
-- [ ] Return status code and latency.
+- [x] Implement HTTP request executor.
+- [x] Support GET/POST.
+- [x] Support headers.
+- [x] Support timeouts.
+- [x] Return status code and latency.
 
 Acceptance:
 
@@ -161,11 +161,11 @@ Acceptance:
 
 ### T3.3 Assertion engine
 
-- [ ] Implement field_exists assertion.
-- [ ] Implement equals assertion.
-- [ ] Implement not_contains assertion.
-- [ ] Implement status_code assertion.
-- [ ] Implement latency_under assertion.
+- [x] Implement field_exists assertion.
+- [x] Implement equals assertion.
+- [x] Implement not_contains assertion.
+- [x] Implement status_code assertion.
+- [x] Implement latency_under assertion.
 
 Acceptance:
 
@@ -173,9 +173,9 @@ Acceptance:
 
 ### T3.4 Manual run check UI
 
-- [ ] Add Run Check button.
-- [ ] Show latest result.
-- [ ] Show run history.
+- [x] Add Run Check button.
+- [x] Show latest result.
+- [x] Show run history.
 
 Acceptance:
 

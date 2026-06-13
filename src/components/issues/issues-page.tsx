@@ -3,12 +3,12 @@ import { LifeBuoy } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { seedData } from "@/lib/data/seed";
+import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatRelativeTime } from "@/lib/formatting";
 
 const issueStatuses: IssueStatus[] = ["open", "in_review", "resolved", "ignored"];
 
-export function IssuesPage() {
+export function IssuesPage({ data }: { data: TuesdayOpsSeedData }) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <section>
@@ -27,7 +27,7 @@ export function IssuesPage() {
             <CardContent>
               <StatusBadge status={status} />
               <p className="mt-4 text-2xl font-semibold">
-                {seedData.issues.filter((issue) => issue.status === status).length}
+                {data.issues.filter((issue) => issue.status === status).length}
               </p>
             </CardContent>
           </Card>
@@ -43,9 +43,9 @@ export function IssuesPage() {
           <LifeBuoy size={18} className="text-primary" aria-hidden="true" />
         </CardHeader>
         <CardContent className="space-y-3">
-          {seedData.issues.map((issue) => {
-            const client = seedData.clients.find((candidate) => candidate.id === issue.clientId);
-            const workflow = seedData.workflows.find((candidate) => candidate.id === issue.workflowId);
+          {data.issues.length ? data.issues.map((issue) => {
+            const client = data.clients.find((candidate) => candidate.id === issue.clientId);
+            const workflow = data.workflows.find((candidate) => candidate.id === issue.workflowId);
 
             return (
               <article key={issue.id} className="rounded-lg border border-border p-4">
@@ -78,7 +78,11 @@ export function IssuesPage() {
                 </div>
               </article>
             );
-          })}
+          }) : (
+            <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
+              No issues have been created yet. Failed checks will become maintenance work items in the next milestone.
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>

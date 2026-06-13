@@ -2,15 +2,15 @@ import { AlertTriangle, CheckCircle2, Clock3, FileText, UsersRound, Workflow } f
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { seedData } from "@/lib/data/seed";
 import { getOpenIssues, getPortfolioSummary, getWorkflowHealthRows } from "@/lib/domain/summaries";
+import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
 
-export function OverviewDashboard() {
-  const summary = getPortfolioSummary(seedData);
-  const openIssues = getOpenIssues(seedData);
-  const workflowRows = getWorkflowHealthRows(seedData);
-  const scheduledChecks = seedData.checks.filter((check) => check.enabled).slice(0, 4);
+export function OverviewDashboard({ data }: { data: TuesdayOpsSeedData }) {
+  const summary = getPortfolioSummary(data);
+  const openIssues = getOpenIssues(data);
+  const workflowRows = getWorkflowHealthRows(data);
+  const scheduledChecks = data.checks.filter((check) => check.enabled).slice(0, 4);
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -29,7 +29,7 @@ export function OverviewDashboard() {
         <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
           <span className="font-medium text-foreground">June report cycle</span>
           <span className="mx-2 text-border">/</span>
-          2 ready, 2 in draft
+          {data.clients.length} clients, {data.checks.length} checks
         </div>
       </section>
 
@@ -86,21 +86,29 @@ export function OverviewDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {workflowRows.map((workflow) => (
-                  <tr key={workflow.workflowId} className="border-b border-border last:border-0">
-                    <td className="px-5 py-4 font-medium">{workflow.workflowName}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{workflow.clientName}</td>
-                    <td className="px-5 py-4">
-                      <StatusBadge status={workflow.status} />
-                    </td>
-                    <td className="px-5 py-4">{formatPercentage(workflow.passRate)}</td>
-                    <td className="px-5 py-4">{workflow.latencyMs} ms</td>
-                    <td className="px-5 py-4">{workflow.openIssues}</td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {formatRelativeTime(workflow.lastCheckAt)}
+                {workflowRows.length ? (
+                  workflowRows.map((workflow) => (
+                    <tr key={workflow.workflowId} className="border-b border-border last:border-0">
+                      <td className="px-5 py-4 font-medium">{workflow.workflowName}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{workflow.clientName}</td>
+                      <td className="px-5 py-4">
+                        <StatusBadge status={workflow.status} />
+                      </td>
+                      <td className="px-5 py-4">{formatPercentage(workflow.passRate)}</td>
+                      <td className="px-5 py-4">{workflow.latencyMs} ms</td>
+                      <td className="px-5 py-4">{workflow.openIssues}</td>
+                      <td className="px-5 py-4 text-muted-foreground">
+                        {formatRelativeTime(workflow.lastCheckAt)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="px-5 py-8 text-sm text-muted-foreground" colSpan={7}>
+                      Add a client and workflow to start tracking live endpoint health.
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </CardContent>
@@ -113,15 +121,21 @@ export function OverviewDashboard() {
               <p className="mt-1 text-sm text-muted-foreground">Failures and degraded checks to resolve.</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {openIssues.slice(0, 4).map((issue) => (
-                <div key={issue.id} className="rounded-lg border border-border p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="text-sm font-medium">{issue.title}</p>
-                    <StatusBadge status={issue.status} />
+              {openIssues.length ? (
+                openIssues.slice(0, 4).map((issue) => (
+                  <div key={issue.id} className="rounded-lg border border-border p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="text-sm font-medium">{issue.title}</p>
+                      <StatusBadge status={issue.status} />
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">{issue.suggestedAction}</p>
                   </div>
-                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{issue.suggestedAction}</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                  No reportable issues are open.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -131,18 +145,24 @@ export function OverviewDashboard() {
               <p className="mt-1 text-sm text-muted-foreground">Enabled checks due in the current cycle.</p>
             </CardHeader>
             <CardContent className="space-y-3">
-              {scheduledChecks.map((check) => (
-                <div key={check.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{check.name}</p>
-                    <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                      <Clock3 size={13} aria-hidden="true" />
-                      {check.schedule}
-                    </p>
+              {scheduledChecks.length ? (
+                scheduledChecks.map((check) => (
+                  <div key={check.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{check.name}</p>
+                      <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                        <Clock3 size={13} aria-hidden="true" />
+                        {check.schedule}
+                      </p>
+                    </div>
+                    <StatusBadge status={check.latestStatus} />
                   </div>
-                  <StatusBadge status={check.latestStatus} />
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                  No checks are enabled yet.
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -152,9 +172,9 @@ export function OverviewDashboard() {
                 <FileText size={19} aria-hidden="true" />
               </div>
               <div>
-                <p className="text-sm font-semibold">Nova Dental report ready</p>
+                <p className="text-sm font-semibold">Report source data is tenant-scoped</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  1,240 checks, 7 issues caught, 6 resolved.
+                  Client-safe summaries will use stored check runs and issue records.
                 </p>
               </div>
             </CardContent>
