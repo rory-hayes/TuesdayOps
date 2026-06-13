@@ -84,7 +84,7 @@ Acceptance:
 ### T1.4 Agency onboarding
 
 - [x] Create agency form.
-- [x] Add default branding fields.
+- [x] Add default workspace fields.
 - [x] Redirect to dashboard after creation.
 
 Acceptance:

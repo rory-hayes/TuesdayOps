@@ -31,6 +31,7 @@ test("onboarding checklist can seed a useful demo workspace", async ({ page, bas
 
   await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
   if (page.url().includes("/onboarding")) {
+    await expect(page.getByText("Brand color")).not.toBeVisible();
     await page.getByLabel("Agency name").fill(agencyName);
     await page.getByLabel("Slug").fill(agencySlug);
     await Promise.all([

@@ -145,7 +145,6 @@ MVP should support:
 Agency can configure:
 
 - logo
-- primary color
 - footer text
 - report sender name
 - report sender email later

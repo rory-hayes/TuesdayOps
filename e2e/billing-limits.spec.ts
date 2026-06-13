@@ -46,6 +46,8 @@ test("billing settings show limits and starter client limit is enforced", async 
 
   await page.goto("/settings", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Billing", exact: true })).toBeVisible();
+  await expect(page.getByText("Primary color")).not.toBeVisible();
+  await expect(page.getByText("Logo and color fields will sync to PDFs.")).not.toBeVisible();
   await expect(page.getByText("0 / 1")).toBeVisible();
   await expect(page.getByText("0 / 3")).toBeVisible();
   await expect(page.getByRole("button", { name: "Manage billing" })).toBeDisabled();

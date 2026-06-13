@@ -69,7 +69,7 @@ export async function createAgencyAction(formData: FormData) {
   const parsed = agencySchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/onboarding?error=${encodeURIComponent("Add an agency name and a valid brand color.")}`);
+    redirect(`/onboarding?error=${encodeURIComponent("Add an agency name.")}`);
   }
 
   const supabase = await createClient();
