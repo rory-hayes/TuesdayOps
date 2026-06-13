@@ -19,3 +19,23 @@ export function getPublicSupabaseEnv(): PublicSupabaseEnv {
 export function getWorkflowAuthEncryptionKey(): string | undefined {
   return process.env.WORKFLOW_AUTH_ENCRYPTION_KEY;
 }
+
+export function getSupabaseSecretKey(): string {
+  const secretKey = process.env.SUPABASE_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error("Missing SUPABASE_SECRET_KEY. This key is required for server-side background jobs.");
+  }
+
+  return secretKey;
+}
+
+export function getSchedulerSecret(): string {
+  const schedulerSecret = process.env.SCHEDULER_SECRET;
+
+  if (!schedulerSecret) {
+    throw new Error("Missing SCHEDULER_SECRET. This secret is required for protected scheduler triggers.");
+  }
+
+  return schedulerSecret;
+}

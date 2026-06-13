@@ -185,9 +185,9 @@ Acceptance:
 
 ### T4.1 Background job setup
 
-- [ ] Add Inngest or Trigger.dev.
-- [ ] Add scheduled check job.
-- [ ] Add retry behavior.
+- [x] Add Inngest or Trigger.dev.
+- [x] Add scheduled check job.
+- [x] Add retry behavior.
 
 Acceptance:
 

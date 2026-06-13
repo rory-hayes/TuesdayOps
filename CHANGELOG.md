@@ -17,3 +17,5 @@ Track meaningful product and engineering changes here.
 - Added issue fingerprints, last-seen timestamps, and occurrence counts for active issue dedupe.
 - Added failed/degraded check issue creation, severity mapping, repeat-failure updates, and issue queue assign/resolve/ignore actions.
 - Completed authenticated E2E for the Milestone 4 issue-management slice against remote Supabase.
+- Added Inngest scheduled check functions, a protected scheduler trigger route, server-only Supabase admin client wiring, scheduled run metadata, and duplicate scheduled-window protection.
+- Added reusable Playwright E2E coverage for scheduled health checks creating runs and issues without duplicate immediate reruns.

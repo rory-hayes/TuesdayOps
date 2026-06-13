@@ -119,6 +119,38 @@ Lists recent runs.
 
 Retries check run.
 
+### `POST /api/scheduler/run-due-checks`
+
+Protected operational trigger for QA and smoke testing the scheduled runner.
+
+Requires either:
+
+- `Authorization: Bearer <SCHEDULER_SECRET>`
+- `x-scheduler-secret: <SCHEDULER_SECRET>`
+
+The route uses the server-only Supabase secret key, loads enabled due health checks, runs them, persists scheduled `check_runs`, and creates or updates issues through the same service path as manual checks.
+
+Response:
+
+```json
+{
+  "ok": true,
+  "attempted": 1,
+  "completed": 1,
+  "skipped": 0,
+  "failed": 0
+}
+```
+
+### `GET|POST|PUT /api/inngest`
+
+Serves Inngest functions for background jobs.
+
+Current functions:
+
+- `scheduled-check-sweep` cron: every five minutes, queues due checks.
+- `run-scheduled-check` event: runs one scheduled check with retry behavior.
+
 ## Issues
 
 ### `GET /api/issues`

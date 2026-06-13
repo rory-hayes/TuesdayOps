@@ -139,10 +139,14 @@ error_message text
 cost_estimate numeric
 model text
 prompt_version text
+trigger text check in ('manual', 'scheduled') default 'manual'
+scheduled_for timestamptz
 started_at timestamptz
 completed_at timestamptz
 created_at timestamptz default now()
 ```
+
+Milestone 4 scheduled checks add `trigger` and `scheduled_for`. Scheduled runs have a unique database index on `(agency_id, check_id, scheduled_for)` where `trigger = 'scheduled'`, which makes repeated scheduler calls for the same five-minute execution window idempotent.
 
 ## issues
 

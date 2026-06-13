@@ -34,7 +34,11 @@ Browser
 - Manual endpoint checks run synchronously from server actions and persist redacted summaries.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
 - Issue queue actions assign, resolve with a report-safe note, or ignore issues inside the tenant boundary.
-- Scheduled jobs, alerts, report generation, billing, and analytics remain planned later milestones.
+- Inngest serves scheduled check functions from `/api/inngest`.
+- A scheduled sweep runs every five minutes, finds enabled due health checks, and fans out one event per due check.
+- Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
+- A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
+- Alerts, report generation, billing, and analytics remain planned later milestones.
 
 ### Web app
 
@@ -104,6 +108,8 @@ Use Inngest or Trigger.dev for:
 - alert sending
 
 Jobs must be idempotent where practical.
+
+Milestone 4 uses Inngest. The cron sweep queues due check events every five minutes, and the per-check event function has a retry budget of three attempts. The database also prevents duplicate scheduled runs for the same `(agency_id, check_id, scheduled_for)` window.
 
 ## 5. Check execution flow
 
