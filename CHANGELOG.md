@@ -25,3 +25,4 @@ Track meaningful product and engineering changes here.
 - Added Milestone 7A launch-readiness hardening: Node runtime floor, Vercel/Supabase/smoke deployment checklist, expanded env templates, Vite 8 test tooling, and a clean moderate-level npm audit.
 - Added Milestone 7B onboarding/demo mode with an activation checklist, tenant-scoped sample data seeding, sample-data migration, unit coverage, and E2E coverage.
 - Added Milestone 7C billing and plan limits with Stripe Checkout, Customer Portal, webhook handling, billing state fields, plan-limit enforcement, Settings usage UI, unit coverage, and E2E coverage.
+- Added Milestone 8 QA hardening with targeted scheduler smoke support, cross-tenant report download E2E coverage, starter workflow-limit E2E coverage, and Stripe webhook route safety tests.

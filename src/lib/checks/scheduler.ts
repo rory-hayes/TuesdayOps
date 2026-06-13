@@ -39,9 +39,14 @@ export function selectDueChecks(
   checks: SchedulableCheck[],
   now = new Date(),
   limit = 50,
+  options: { checkId?: string } = {},
 ): SchedulableCheck[] {
   return checks
     .filter((check) => {
+      if (options.checkId && check.id !== options.checkId) {
+        return false;
+      }
+
       if (!check.enabled || !check.workflowEndpointUrl) {
         return false;
       }

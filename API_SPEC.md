@@ -130,6 +130,16 @@ Requires either:
 
 The route uses the server-only Supabase secret key, loads enabled due health checks, runs them, persists scheduled `check_runs`, and creates or updates issues through the same service path as manual checks.
 
+Optional JSON body for targeted operational smoke tests:
+
+```json
+{
+  "checkId": "uuid"
+}
+```
+
+When `checkId` is provided, the route only attempts that enabled due health check. Without a body, it runs the normal due-check batch for cron/scheduler usage.
+
 Response:
 
 ```json

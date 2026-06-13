@@ -47,17 +47,24 @@ export async function runDueScheduledChecks({
   supabase,
   now = new Date(),
   limit = 50,
+  checkId,
 }: {
   supabase: SupabaseClient;
   now?: Date;
   limit?: number;
+  checkId?: string;
 }): Promise<ScheduledCheckBatchResult> {
-  const checks = await loadSchedulableChecks({ supabase, limit: Math.max(limit * 3, limit) });
+  const checks = await loadSchedulableChecks({
+    supabase,
+    limit: checkId ? 1 : Math.max(limit * 3, limit),
+    checkId,
+  });
 
   return runScheduledCheckBatch({
     checks,
     now,
     limit,
+    checkId,
     executeCheckRun: ({ agencyId, checkId, scheduledFor, trigger }) =>
       executeCheckRun({ supabase, agencyId, checkId, scheduledFor, trigger }),
   });
@@ -67,15 +74,17 @@ export async function runScheduledCheckBatch({
   checks,
   now = new Date(),
   limit = 50,
+  checkId,
   executeCheckRun,
 }: {
   checks: SchedulableCheck[];
   now?: Date;
   limit?: number;
+  checkId?: string;
   executeCheckRun: ExecuteScheduledCheckRun;
 }): Promise<ScheduledCheckBatchResult> {
   const scheduledFor = getScheduledWindowStart(now).toISOString();
-  const dueChecks = selectDueChecks(checks, now, limit);
+  const dueChecks = selectDueChecks(checks, now, limit, { checkId });
   const summary: ScheduledCheckBatchResult = {
     attempted: dueChecks.length,
     completed: 0,
@@ -108,16 +117,23 @@ export async function runScheduledCheckBatch({
 export async function loadSchedulableChecks({
   supabase,
   limit = 150,
+  checkId,
 }: {
   supabase: SupabaseClient;
   limit?: number;
+  checkId?: string;
 }): Promise<SchedulableCheck[]> {
-  const { data: checks, error: checksError } = await supabase
+  let query = supabase
     .from("checks")
     .select("id, agency_id, enabled, workflow_id, workflows(id, endpoint_url, check_frequency_minutes)")
     .eq("type", "health")
-    .eq("enabled", true)
-    .limit(limit);
+    .eq("enabled", true);
+
+  if (checkId) {
+    query = query.eq("id", checkId);
+  }
+
+  const { data: checks, error: checksError } = await query.limit(limit);
 
   if (checksError) {
     throw new Error(`Unable to load scheduled checks: ${checksError.message}`);

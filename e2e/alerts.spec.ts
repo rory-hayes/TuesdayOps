@@ -68,7 +68,15 @@ test("high-severity scheduled issue records an alert attempt", async ({ page, ba
   const workflowId = page.url().split("/").pop();
   expect(workflowId).toBeTruthy();
 
-  const scheduler = await triggerScheduler(appUrl);
+  const check = await poll(async () => {
+    const rows = await getRows<CheckRow>(
+      "checks",
+      `workflow_id=eq.${workflowId}&select=id,workflow_id`,
+    );
+    return rows[0] ?? null;
+  }, "created health check");
+
+  const scheduler = await triggerScheduler(appUrl, { checkId: check.id });
   expect(scheduler.completed).toBeGreaterThanOrEqual(1);
 
   const issue = await poll(async () => {
@@ -100,6 +108,11 @@ type SchedulerResponse = {
   failed: number;
 };
 
+type CheckRow = {
+  id: string;
+  workflow_id: string;
+};
+
 type IssueRow = {
   id: string;
   status: string;
@@ -124,10 +137,17 @@ async function createConfirmedUser({ email, password }: { email: string; passwor
   });
 }
 
-async function triggerScheduler(appUrl: string): Promise<SchedulerResponse> {
+async function triggerScheduler(
+  appUrl: string,
+  input: { checkId?: string } = {},
+): Promise<SchedulerResponse> {
   const response = await fetch(`${appUrl}/api/scheduler/run-due-checks`, {
     method: "POST",
-    headers: { "x-scheduler-secret": env.SCHEDULER_SECRET ?? "" },
+    headers: {
+      "content-type": "application/json",
+      "x-scheduler-secret": env.SCHEDULER_SECRET ?? "",
+    },
+    body: JSON.stringify(input),
   });
   const body = await response.json();
 
