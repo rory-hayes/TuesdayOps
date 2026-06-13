@@ -1,12 +1,21 @@
 import { AlertTriangle, CheckCircle2, Clock3, FileText, UsersRound, Workflow } from "lucide-react";
 import { MetricCard } from "@/components/metric-card";
 import { StatusBadge } from "@/components/status-badge";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getOpenIssues, getPortfolioSummary, getWorkflowHealthRows } from "@/lib/domain/summaries";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
 
-export function OverviewDashboard({ data }: { data: TuesdayOpsSeedData }) {
+export function OverviewDashboard({
+  data,
+  notice,
+  error,
+}: {
+  data: TuesdayOpsSeedData;
+  notice?: string;
+  error?: string;
+}) {
   const summary = getPortfolioSummary(data);
   const openIssues = getOpenIssues(data);
   const workflowRows = getWorkflowHealthRows(data);
@@ -32,6 +41,8 @@ export function OverviewDashboard({ data }: { data: TuesdayOpsSeedData }) {
           {data.clients.length} clients, {data.checks.length} checks
         </div>
       </section>
+
+      <OnboardingChecklist data={data} notice={notice} error={error} />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard

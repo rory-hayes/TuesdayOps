@@ -98,6 +98,13 @@ Current Milestone 7A launch-readiness status:
   - `npm run build`
   - `npm run e2e` (`4 passed`)
 
+Current Milestone 7B onboarding/demo status:
+
+- Added unit coverage for onboarding progress calculation and deterministic sample data seed row shape.
+- Applied the onboarding demo Supabase migration to the linked remote project.
+- `npm run e2e -- e2e/onboarding-demo.spec.ts` passed against the local app and remote Supabase project.
+- Covered flow: confirmed QA user sign-in, agency onboarding, activation checklist state, tenant-scoped demo seed action, seeded client/workflow/issue/report database rows, Reports page visibility, and Issues page visibility.
+
 ## Critical test areas
 
 ### Assertion engine

@@ -5,13 +5,37 @@ import { requireWorkspace } from "@/lib/auth/workspace";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+type HomeProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
   const workspace = await requireWorkspace();
-  const data = await getOperationalData(workspace.agency);
+  const [data, params] = await Promise.all([getOperationalData(workspace.agency), searchParams]);
 
   return (
     <AppShell workspace={workspace}>
-      <OverviewDashboard data={data} />
+      <OverviewDashboard
+        data={data}
+        notice={readSampleNotice(readParam(params.sample))}
+        error={readParam(params.error)}
+      />
     </AppShell>
   );
+}
+
+function readParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function readSampleNotice(value: string | undefined): string | undefined {
+  if (value === "seeded") {
+    return "Demo data is ready.";
+  }
+
+  if (value === "already") {
+    return "Demo data was already seeded.";
+  }
+
+  return undefined;
 }

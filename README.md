@@ -147,7 +147,7 @@ For production deployment, see `DEPLOYMENT.md`.
 
 ## Current implementation state
 
-The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, Milestone 6 monthly reports, and Milestone 7A launch-readiness hardening:
+The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, Milestone 6 monthly reports, Milestone 7A launch-readiness hardening, and Milestone 7B onboarding/demo mode:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
@@ -169,6 +169,8 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
 - tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts
 - production deployment checklist, Supabase migration checklist, smoke checklist, Node runtime floor, and clean dependency audit
-- domain, assertion, issue-engine, scheduler, synthetic-runner, and Playwright E2E tests
+- overview activation checklist for first client, workflow, check run, and report
+- tenant-scoped sample data action that seeds a demo client/workflow/check/issue/test pack/report
+- domain, assertion, issue-engine, scheduler, onboarding, sample-data, synthetic-runner, and Playwright E2E tests
 
-Onboarding/demo mode and Stripe billing remain the next Milestone 7 slices.
+Stripe billing remains the next Milestone 7 slice.

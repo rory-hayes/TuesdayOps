@@ -339,11 +339,11 @@ Acceptance:
 
 ### T7B.1 Onboarding wizard
 
-- [ ] Add guided onboarding.
-- [ ] Add first client step.
-- [ ] Add first workflow step.
-- [ ] Add first check run step.
-- [ ] Add sample report step.
+- [x] Add guided onboarding.
+- [x] Add first client step.
+- [x] Add first workflow step.
+- [x] Add first check run step.
+- [x] Add sample report step.
 
 Acceptance:
 
@@ -351,8 +351,8 @@ Acceptance:
 
 ### T7B.2 Sample data mode
 
-- [ ] Seed demo agency.
-- [ ] Seed clients/workflows/checks/issues/reports.
+- [x] Seed demo agency.
+- [x] Seed clients/workflows/checks/issues/reports.
 
 Acceptance:
 
