@@ -54,12 +54,11 @@ Secondary CTA:
 Steps:
 
 1. Create agency workspace
-2. Add branding
-3. Add first client
-4. Add first workflow
-5. Configure first check
-6. Run first check
-7. Generate sample report
+2. Add first client
+3. Add first workflow
+4. Configure first check
+5. Run first check
+6. Generate sample report
 
 Success state:
 
@@ -191,7 +190,7 @@ Sections:
 - report queue
 - report preview
 - report modules
-- white-label branding
+- white-label report identity
 - value delivered
 - automation settings
 
@@ -215,7 +214,7 @@ Sections:
 Sections:
 
 - agency profile
-- branding
+- report identity
 - team
 - integrations
 - alert channels

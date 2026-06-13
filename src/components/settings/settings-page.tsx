@@ -1,4 +1,4 @@
-import { CreditCard, KeyRound, Palette, PlugZap, ShieldCheck } from "lucide-react";
+import { CreditCard, FileText, KeyRound, PlugZap, ShieldCheck } from "lucide-react";
 import { createCheckoutSessionAction, createCustomerPortalSessionAction } from "@/lib/billing/service";
 import { formatLimit, getPlanLimits } from "@/lib/billing/limits";
 import { Badge } from "@/components/ui/badge";
@@ -101,20 +101,17 @@ export function SettingsPage({
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <h2 className="text-base font-semibold">Report branding</h2>
-              <p className="mt-1 text-sm text-muted-foreground">White-label report appearance.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Client-ready report identity.</p>
             </div>
-            <Palette size={18} className="text-primary" aria-hidden="true" />
+            <FileText size={18} className="text-primary" aria-hidden="true" />
           </CardHeader>
           <CardContent className="space-y-4">
-            <SettingRow label="Primary color" value={workspace.agency.primaryColor} />
-            <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
-              <div
-                className="size-10 rounded-md border border-border"
-                style={{ backgroundColor: workspace.agency.primaryColor }}
-              />
+            <div className="rounded-lg bg-muted p-3">
               <div>
                 <p className="text-sm font-medium">Client-facing reports</p>
-                <p className="mt-1 text-xs text-muted-foreground">Logo and color fields will sync to PDFs.</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Reports use your agency name and client-safe summaries.
+                </p>
               </div>
             </div>
           </CardContent>

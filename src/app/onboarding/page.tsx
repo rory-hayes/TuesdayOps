@@ -42,8 +42,8 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
 
         {error ? <p className="mt-5 rounded-md bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
 
-        <form action={createAgencyAction} className="mt-6 grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-medium md:col-span-2">
+        <form action={createAgencyAction} className="mt-6 grid gap-4">
+          <label className="block text-sm font-medium">
             Agency name
             <input
               required
@@ -63,19 +63,9 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
               className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
             />
           </label>
-          <label className="block text-sm font-medium">
-            Brand color
-            <input
-              required
-              name="primaryColor"
-              type="color"
-              defaultValue="#7C6CF2"
-              className="mt-2 h-10 w-full rounded-md border border-border bg-background p-1 outline-none transition-colors focus:border-primary"
-            />
-          </label>
           <button
             type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-primary bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-[#6d5ee0] md:col-span-2"
+            className="inline-flex h-10 items-center justify-center rounded-md border border-primary bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-[#6d5ee0]"
           >
             Create workspace
           </button>
