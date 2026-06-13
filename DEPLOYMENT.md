@@ -134,6 +134,9 @@ Run this after the Vercel deployment is ready:
 - Trigger `/api/scheduler/run-due-checks` without a scheduler secret and confirm it returns `401`.
 - Trigger `/api/scheduler/run-due-checks` with the scheduler secret and confirm due checks are processed.
 - Confirm high-severity alert attempts record delivery metadata or a redacted configuration error.
+- Confirm Settings billing shows plan usage.
+- Confirm missing Stripe config returns a clear Settings error in non-billing environments.
+- Confirm Stripe webhook endpoint is configured as `/api/stripe/webhook` in live mode before taking payment.
 - Confirm another agency cannot access the first agency's workflow detail URL or report download route.
 
 ## Release Notes

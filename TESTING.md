@@ -105,6 +105,14 @@ Current Milestone 7B onboarding/demo status:
 - `npm run e2e -- e2e/onboarding-demo.spec.ts` passed against the local app and remote Supabase project.
 - Covered flow: confirmed QA user sign-in, agency onboarding, activation checklist state, tenant-scoped demo seed action, seeded client/workflow/issue/report database rows, Reports page visibility, and Issues page visibility.
 
+Current Milestone 7C billing/limits status:
+
+- Added unit coverage for plan-limit decisions and Stripe webhook mapping helpers.
+- Applied the billing and plan limits Supabase migration to the linked remote project.
+- `npm run e2e -- e2e/billing-limits.spec.ts` passed against the local app and remote Supabase project.
+- Covered flow: confirmed QA user sign-in, agency onboarding, Settings billing usage display, missing Stripe config handled safely, first starter client creation, and second starter client blocked with upgrade copy.
+- Full Playwright suite passed with onboarding/demo, billing limits, scheduled checks, alerts, test packs, and reports: `6 passed`.
+
 ## Critical test areas
 
 ### Assertion engine

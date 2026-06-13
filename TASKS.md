@@ -362,10 +362,10 @@ Acceptance:
 
 ### T7C.1 Stripe billing
 
-- [ ] Add Stripe checkout.
-- [ ] Add customer portal.
-- [ ] Add subscription state to agency.
-- [ ] Add webhook handler.
+- [x] Add Stripe checkout.
+- [x] Add customer portal.
+- [x] Add subscription state to agency.
+- [x] Add webhook handler.
 
 Acceptance:
 
@@ -373,8 +373,8 @@ Acceptance:
 
 ### T7C.2 Plan limits
 
-- [ ] Enforce client/workflow limits.
-- [ ] Show upgrade prompts.
+- [x] Enforce client/workflow limits.
+- [x] Show upgrade prompts.
 
 Acceptance:
 

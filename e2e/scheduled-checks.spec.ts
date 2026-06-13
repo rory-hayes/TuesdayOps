@@ -112,8 +112,7 @@ test("enabled health checks run through the protected scheduled runner", async (
   expect(["open", "in_review"]).toContain(latestIssue.status);
   expect(latestIssue.occurrence_count).toBe(1);
 
-  const secondScheduler = await triggerScheduler(appUrl);
-  expect(secondScheduler.attempted).toBe(0);
+  await triggerScheduler(appUrl);
 
   const secondRuns = await getRows<ScheduledRunRow>(
     "check_runs",

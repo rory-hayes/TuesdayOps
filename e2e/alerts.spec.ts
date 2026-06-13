@@ -76,7 +76,7 @@ test("high-severity scheduled issue records an alert attempt", async ({ page, ba
       "issues",
       `workflow_id=eq.${workflowId}&select=id,status,severity,alert_sent_at,alert_delivery_id,alert_error,alert_last_attempt_at,title&order=created_at.desc`,
     );
-    return rows.find((row) => row.severity === "high") ?? null;
+    return rows.find((row) => row.severity === "high" && row.alert_last_attempt_at) ?? null;
   }, "high-severity issue alert attempt");
 
   expect(issue.status).toBe("open");

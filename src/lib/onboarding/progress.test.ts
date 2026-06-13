@@ -46,6 +46,7 @@ function makeData(
       slug: "northstar",
       primaryColor: "#7C6CF2",
       plan: "starter",
+      billingStatus: "trialing",
     },
     clients: [],
     workflows: [],

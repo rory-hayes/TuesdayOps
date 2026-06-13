@@ -147,7 +147,7 @@ For production deployment, see `DEPLOYMENT.md`.
 
 ## Current implementation state
 
-The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, Milestone 6 monthly reports, Milestone 7A launch-readiness hardening, and Milestone 7B onboarding/demo mode:
+The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, Milestone 6 monthly reports, Milestone 7A launch-readiness hardening, Milestone 7B onboarding/demo mode, and Milestone 7C billing/plan limits:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
@@ -171,6 +171,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - production deployment checklist, Supabase migration checklist, smoke checklist, Node runtime floor, and clean dependency audit
 - overview activation checklist for first client, workflow, check run, and report
 - tenant-scoped sample data action that seeds a demo client/workflow/check/issue/test pack/report
-- domain, assertion, issue-engine, scheduler, onboarding, sample-data, synthetic-runner, and Playwright E2E tests
+- Stripe Checkout, Customer Portal, webhook route, agency billing state, and plan-limit enforcement
+- domain, assertion, billing, issue-engine, scheduler, onboarding, sample-data, synthetic-runner, and Playwright E2E tests
 
-Stripe billing remains the next Milestone 7 slice.
+The core MVP milestone list is now implemented. Live provider behavior still depends on production env vars and provider-side configuration.

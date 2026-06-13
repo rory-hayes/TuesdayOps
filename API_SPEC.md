@@ -331,6 +331,62 @@ The action:
 
 The seeded demo records stay inside the current agency tenant boundary.
 
+## Billing
+
+### `createCheckoutSessionAction()`
+
+Server action used from Settings to start a Stripe Checkout subscription session.
+
+The action:
+
+- requires an authenticated agency workspace
+- requires owner or admin role
+- creates a Stripe customer if the agency does not have one
+- stores `agencies.billing_customer_id`
+- creates a Checkout Session with `mode = subscription`
+- uses `STRIPE_PRICE_ID`
+- redirects to Stripe's hosted Checkout URL
+
+If Stripe env vars are missing, the action redirects back to Settings with a clear billing error.
+
+### `createCustomerPortalSessionAction()`
+
+Server action used from Settings to open the Stripe Customer Portal.
+
+The action:
+
+- requires owner or admin role
+- requires an existing `billing_customer_id`
+- creates a short-lived Stripe customer portal session
+- redirects to Stripe's hosted portal URL
+
+### `POST /api/stripe/webhook`
+
+Receives Stripe webhook events.
+
+Security and behavior:
+
+- verifies the raw request body with `STRIPE_WEBHOOK_SECRET`
+- stores processed event IDs in `billing_events`
+- handles `checkout.session.completed`
+- handles `customer.subscription.created`
+- handles `customer.subscription.updated`
+- handles `customer.subscription.deleted`
+- updates agency subscription/customer/price/status fields through the Supabase service role
+
+### Plan limits
+
+Client and workflow creation server actions enforce plan limits before inserting new records.
+
+Starter limits:
+
+```txt
+clients: 1
+workflows: 3
+```
+
+Design partner workspaces are unrestricted. Existing rows above a limit are preserved; only new create actions are blocked.
+
 ## Public/manual logging API — later MVP extension
 
 ### `POST /api/public/run-log`

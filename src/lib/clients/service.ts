@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
+import { canCreateClient } from "@/lib/billing/limits";
 import { createSlug } from "@/lib/domain/slug";
 import { createClient } from "@/lib/supabase/server";
 
@@ -28,6 +29,26 @@ export async function createClientAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
+  const { count, error: countError } = await supabase
+    .from("clients")
+    .select("id", { count: "exact", head: true })
+    .eq("agency_id", workspace.agency.id)
+    .is("archived_at", null);
+
+  if (countError) {
+    redirect(`/clients?error=${encodeURIComponent(countError.message)}`);
+  }
+
+  const limitDecision = canCreateClient({
+    plan: workspace.agency.plan,
+    billingStatus: workspace.agency.billingStatus,
+    activeClients: count ?? 0,
+  });
+
+  if (!limitDecision.allowed) {
+    redirect(`/clients?error=${encodeURIComponent(limitDecision.upgradeMessage ?? "Upgrade required.")}`);
+  }
+
   const slug = createSlug(parsed.data.slug || parsed.data.name, "client");
   const { error } = await supabase.from("clients").insert({
     agency_id: workspace.agency.id,
