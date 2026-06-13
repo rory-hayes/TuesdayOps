@@ -11,6 +11,12 @@ export type WorkspaceContext = {
     primaryColor: string;
     plan: string;
     sampleDataSeededAt?: string;
+    billingCustomerId?: string;
+    billingSubscriptionId?: string;
+    billingStatus: string;
+    billingPriceId?: string;
+    billingCurrentPeriodEnd?: string;
+    trialEndsAt?: string;
   };
   role: "owner" | "admin" | "member" | "viewer";
 };
@@ -25,6 +31,12 @@ type MembershipRow = {
         primary_color: string;
         plan: string;
         sample_data_seeded_at: string | null;
+        billing_customer_id: string | null;
+        billing_subscription_id: string | null;
+        billing_status: string;
+        billing_price_id: string | null;
+        billing_current_period_end: string | null;
+        trial_ends_at: string | null;
       }
     | {
         id: string;
@@ -33,6 +45,12 @@ type MembershipRow = {
         primary_color: string;
         plan: string;
         sample_data_seeded_at: string | null;
+        billing_customer_id: string | null;
+        billing_subscription_id: string | null;
+        billing_status: string;
+        billing_price_id: string | null;
+        billing_current_period_end: string | null;
+        trial_ends_at: string | null;
       }[];
 };
 
@@ -51,7 +69,9 @@ export async function getWorkspaceContext(): Promise<{
 
   const { data, error } = await supabase
     .from("memberships")
-    .select("role, agencies(id, name, slug, primary_color, plan, sample_data_seeded_at)")
+    .select(
+      "role, agencies(id, name, slug, primary_color, plan, sample_data_seeded_at, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at)",
+    )
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -85,6 +105,12 @@ export async function getWorkspaceContext(): Promise<{
         primaryColor: agency.primary_color,
         plan: agency.plan,
         sampleDataSeededAt: agency.sample_data_seeded_at ?? undefined,
+        billingCustomerId: agency.billing_customer_id ?? undefined,
+        billingSubscriptionId: agency.billing_subscription_id ?? undefined,
+        billingStatus: agency.billing_status ?? "trialing",
+        billingPriceId: agency.billing_price_id ?? undefined,
+        billingCurrentPeriodEnd: agency.billing_current_period_end ?? undefined,
+        trialEndsAt: agency.trial_ends_at ?? undefined,
       },
     },
   };

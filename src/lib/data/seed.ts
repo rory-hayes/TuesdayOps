@@ -9,6 +9,7 @@ export const seedData: TuesdayOpsSeedData = {
     slug: "tuesdayops-studio",
     primaryColor: "#7C6CF2",
     plan: "Design Partner",
+    billingStatus: "active",
   },
   clients: [
     {

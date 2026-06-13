@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
+import { canCreateWorkflow } from "@/lib/billing/limits";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import type { WorkflowAuthConfig } from "@/lib/checks/runner";
 import { encryptJsonPayload } from "@/lib/security/secrets";
@@ -65,6 +66,25 @@ export async function createWorkflowAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
+  const { count, error: countError } = await supabase
+    .from("workflows")
+    .select("id", { count: "exact", head: true })
+    .eq("agency_id", workspace.agency.id);
+
+  if (countError) {
+    redirect(`/workflows?error=${encodeURIComponent(countError.message)}`);
+  }
+
+  const limitDecision = canCreateWorkflow({
+    plan: workspace.agency.plan,
+    billingStatus: workspace.agency.billingStatus,
+    workflows: count ?? 0,
+  });
+
+  if (!limitDecision.allowed) {
+    redirect(`/workflows?error=${encodeURIComponent(limitDecision.upgradeMessage ?? "Upgrade required.")}`);
+  }
+
   const authConfig = buildAuthConfig(parsed.data);
   let encryptedAuthConfig = null;
 

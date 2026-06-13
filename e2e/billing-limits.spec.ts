@@ -1,0 +1,121 @@
+import fs from "node:fs";
+import { expect, test } from "@playwright/test";
+
+const localEnv = loadLocalEnv();
+const env = {
+  NEXT_PUBLIC_SUPABASE_URL:
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? localEnv.NEXT_PUBLIC_SUPABASE_URL,
+  SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
+};
+
+test("billing settings show limits and starter client limit is enforced", async ({ page, baseURL }) => {
+  test.skip(!hasRequiredEnv(), "Billing E2E requires Supabase service credentials.");
+
+  const appUrl = baseURL ?? "http://localhost:3000";
+  const runId = Date.now();
+  const email = `qa-billing-${runId}@example.invalid`;
+  const password = `QaBilling-${runId}!`;
+  const agencyName = `QA Billing Agency ${runId}`;
+  const agencySlug = `qa-billing-${runId}`;
+  const firstClient = `Billing Client ${runId}`;
+  const secondClient = `Billing Overflow ${runId}`;
+
+  await createConfirmedUser({ email, password });
+
+  await page.goto("/sign-in", { waitUntil: "domcontentloaded" });
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === "/" || url.pathname === "/onboarding", {
+      timeout: 15_000,
+    }),
+    page.getByRole("button", { name: "Sign in" }).click(),
+  ]);
+
+  await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
+  if (page.url().includes("/onboarding")) {
+    await page.getByLabel("Agency name").fill(agencyName);
+    await page.getByLabel("Slug").fill(agencySlug);
+    await Promise.all([
+      page.waitForURL(`${appUrl}/`, { timeout: 15_000 }),
+      page.getByRole("button", { name: "Create workspace" }).click(),
+    ]);
+  }
+
+  await page.goto("/settings", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Billing", exact: true })).toBeVisible();
+  await expect(page.getByText("0 / 1")).toBeVisible();
+  await expect(page.getByText("0 / 3")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Manage billing" })).toBeDisabled();
+  await page.getByRole("button", { name: "Upgrade" }).click();
+  await expect(page.getByText("Missing STRIPE_SECRET_KEY")).toBeVisible();
+
+  await page.goto("/clients", { waitUntil: "domcontentloaded" });
+  await createClient(page, firstClient, `qa-billing-${runId}@example.invalid`);
+  await expect(page.getByText(firstClient)).toBeVisible();
+
+  await createClient(page, secondClient, `qa-billing-overflow-${runId}@example.invalid`);
+  await expect(page.getByText("Upgrade to add more clients.")).toBeVisible();
+  await expect(page.getByText(secondClient)).not.toBeVisible();
+});
+
+async function createClient(page: import("@playwright/test").Page, name: string, email: string) {
+  await page.getByLabel("Client name").fill(name);
+  await page.getByLabel("Industry").fill("QA Automation");
+  await page.getByLabel("Report email").fill(email);
+  await page.getByLabel("Notes").fill("Billing limit E2E client.");
+  await page.getByRole("button", { name: "Add client" }).click();
+}
+
+async function createConfirmedUser({ email, password }: { email: string; password: string }) {
+  await supabaseFetch("/auth/v1/admin/users", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { name: "Billing QA" },
+    }),
+  });
+}
+
+async function supabaseFetch(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${env.NEXT_PUBLIC_SUPABASE_URL}${path}`, {
+    ...options,
+    headers: {
+      apikey: env.SUPABASE_SECRET_KEY ?? "",
+      Authorization: `Bearer ${env.SUPABASE_SECRET_KEY ?? ""}`,
+      ...(options.headers ?? {}),
+    },
+  });
+  const text = await response.text();
+  const body = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new Error(`Supabase request failed ${response.status}: ${JSON.stringify(body)}`);
+  }
+
+  return body;
+}
+
+function hasRequiredEnv() {
+  return Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SECRET_KEY);
+}
+
+function loadLocalEnv(): Record<string, string> {
+  if (!fs.existsSync(".env.local")) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    fs
+      .readFileSync(".env.local", "utf8")
+      .split(/\r?\n/)
+      .filter((line) => line && !line.startsWith("#") && line.includes("="))
+      .map((line) => {
+        const index = line.indexOf("=");
+        return [line.slice(0, index), line.slice(index + 1)];
+      }),
+  );
+}

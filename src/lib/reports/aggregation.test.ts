@@ -9,6 +9,7 @@ const baseData: TuesdayOpsSeedData = {
     slug: "agency-one",
     primaryColor: "#7C6CF2",
     plan: "starter",
+    billingStatus: "trialing",
   },
   clients: [
     {

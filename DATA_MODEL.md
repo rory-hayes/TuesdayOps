@@ -14,6 +14,11 @@ logo_url text
 primary_color text default '#7C6CF2'
 plan text default 'starter'
 billing_customer_id text
+billing_subscription_id text
+billing_status text default 'trialing'
+billing_price_id text
+billing_current_period_end timestamptz
+trial_ends_at timestamptz
 sample_data_seeded_at timestamptz
 created_at timestamptz default now()
 updated_at timestamptz default now()
@@ -297,3 +302,17 @@ entity_id uuid
 metadata_json jsonb
 created_at timestamptz default now()
 ```
+
+## billing_events
+
+Records processed Stripe webhook event IDs so billing webhooks are idempotent.
+
+```txt
+id text primary key -- Stripe event id
+agency_id uuid references agencies(id)
+type text not null
+processed_at timestamptz default now()
+created_at timestamptz default now()
+```
+
+`billing_events` has RLS enabled and is only granted to `service_role`; users do not read webhook event records through the app.

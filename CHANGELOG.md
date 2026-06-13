@@ -24,3 +24,4 @@ Track meaningful product and engineering changes here.
 - Added monthly report generation, report items, report preview, private PDF storage/download, report email send attempts, and E2E coverage for the Milestone 6 reporting loop.
 - Added Milestone 7A launch-readiness hardening: Node runtime floor, Vercel/Supabase/smoke deployment checklist, expanded env templates, Vite 8 test tooling, and a clean moderate-level npm audit.
 - Added Milestone 7B onboarding/demo mode with an activation checklist, tenant-scoped sample data seeding, sample-data migration, unit coverage, and E2E coverage.
+- Added Milestone 7C billing and plan limits with Stripe Checkout, Customer Portal, webhook handling, billing state fields, plan-limit enforcement, Settings usage UI, unit coverage, and E2E coverage.

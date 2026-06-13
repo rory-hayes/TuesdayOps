@@ -63,3 +63,33 @@ export function getResendFromEmail(): string {
 
   return fromEmail;
 }
+
+export function getStripeSecretKey(): string {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+
+  if (!secretKey) {
+    throw new Error("Missing STRIPE_SECRET_KEY. This key is required for billing.");
+  }
+
+  return secretKey;
+}
+
+export function getStripeWebhookSecret(): string {
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    throw new Error("Missing STRIPE_WEBHOOK_SECRET. This secret is required for Stripe webhooks.");
+  }
+
+  return webhookSecret;
+}
+
+export function getStripePriceId(): string {
+  const priceId = process.env.STRIPE_PRICE_ID;
+
+  if (!priceId) {
+    throw new Error("Missing STRIPE_PRICE_ID. This price is required for subscription checkout.");
+  }
+
+  return priceId;
+}
