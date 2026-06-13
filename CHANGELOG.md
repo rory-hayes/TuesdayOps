@@ -14,3 +14,6 @@ Track meaningful product and engineering changes here.
 - Added unit coverage for slug generation and endpoint assertion evaluation.
 - Added repo-level Vercel Next.js build configuration and configured preview/production runtime env vars in Vercel.
 - Applied the Milestones 1-3 Supabase migration to the remote project and completed authenticated E2E against remote Supabase.
+- Added issue fingerprints, last-seen timestamps, and occurrence counts for active issue dedupe.
+- Added failed/degraded check issue creation, severity mapping, repeat-failure updates, and issue queue assign/resolve/ignore actions.
+- Completed authenticated E2E for the Milestone 4 issue-management slice against remote Supabase.

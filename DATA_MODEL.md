@@ -154,6 +154,7 @@ agency_id uuid references agencies(id)
 client_id uuid references clients(id)
 workflow_id uuid references workflows(id)
 check_run_id uuid references check_runs(id)
+fingerprint text
 severity text check in ('low', 'medium', 'high', 'critical')
 status text check in ('open', 'in_review', 'resolved', 'ignored') default 'open'
 title text not null
@@ -161,11 +162,15 @@ description text
 suggested_action text
 owner_user_id uuid references profiles(id)
 reportable boolean default true
+last_seen_at timestamptz default now()
+occurrence_count integer default 1
 resolved_at timestamptz
 resolution_note text
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
+
+Milestone 4 adds `fingerprint`, `last_seen_at`, and `occurrence_count` to dedupe repeated active failures. The active issue fingerprint is unique per agency/workflow while issue status is `open` or `in_review`; a materially different failure can create a separate issue.
 
 ## test_packs
 

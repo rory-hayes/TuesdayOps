@@ -75,6 +75,8 @@ Updates workflow.
 
 Manually triggers a check run. Current server action equivalent: `runCheckAction(checkId)`.
 
+If the run is failed or degraded, the current implementation creates or updates one active issue for the material failure fingerprint.
+
 ## Checks
 
 ### `GET /api/workflows/:workflowId/checks`
@@ -134,6 +136,8 @@ Optional query params:
 
 Updates issue fields.
 
+Current server action equivalent for assignment: `assignIssueToMeAction(issueId)`.
+
 ### `POST /api/issues/:id/resolve`
 
 Resolves issue.
@@ -144,9 +148,13 @@ Resolves issue.
 }
 ```
 
+Current server action equivalent: `resolveIssueAction(issueId, resolutionNote)`.
+
 ### `POST /api/issues/:id/ignore`
 
 Marks issue ignored.
+
+Current server action equivalent: `ignoreIssueAction(issueId)`.
 
 ## Test packs
 
