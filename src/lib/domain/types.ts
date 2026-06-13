@@ -13,6 +13,7 @@ export type WorkflowType =
 export type CheckType = "health" | "synthetic" | "schema" | "latency" | "cost" | "ai_judge";
 export type CheckRunStatus = "healthy" | "degraded" | "failed" | "skipped";
 export type ReportStatus = "draft" | "ready_to_send" | "sent" | "failed";
+export type TestRunStatus = "passed" | "failed" | "skipped";
 
 export type Agency = {
   id: string;
@@ -90,6 +91,7 @@ export type Issue = {
   clientId: string;
   workflowId: string;
   checkRunId?: string;
+  testRunId?: string;
   ownerUserId?: string;
   severity: IssueSeverity;
   status: IssueStatus;
@@ -115,6 +117,32 @@ export type TestPack = {
   caseCount: number;
   passRate: number;
   lastRunAt: string;
+};
+
+export type TestCase = {
+  id: string;
+  agencyId: string;
+  workflowId: string;
+  testPackId: string;
+  name: string;
+  inputJson: unknown;
+  assertionsJson: unknown;
+  createdAt: string;
+  latestStatus: TestRunStatus | "not_run";
+};
+
+export type TestRun = {
+  id: string;
+  agencyId: string;
+  workflowId: string;
+  testPackId: string;
+  testCaseId: string;
+  status: TestRunStatus;
+  statusCode?: number;
+  latencyMs: number;
+  responseSummary: string;
+  errorMessage?: string;
+  createdAt: string;
 };
 
 export type ReportSummary = {
@@ -143,6 +171,8 @@ export type TuesdayOpsSeedData = {
   checkRuns: CheckRun[];
   issues: Issue[];
   testPacks: TestPack[];
+  testCases: TestCase[];
+  testRuns: TestRun[];
   reports: ReportSummary[];
 };
 

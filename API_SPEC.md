@@ -206,13 +206,57 @@ Lists test packs.
 
 Creates test pack.
 
+Current server action equivalent: `createTestPackAction(workflowId, name, description)`.
+
+The created row is scoped by `agency_id` and references the workflow through a tenant-matched foreign key.
+
+```json
+{
+  "workflowId": "uuid",
+  "name": "Lead intake regression pack",
+  "description": "Happy-path and required-field guardrail checks"
+}
+```
+
 ### `POST /api/test-packs/:id/run`
 
 Runs all test cases.
 
+Current server action equivalent: `runTestPackAction(testPackId)`.
+
+The runner:
+
+- loads the tenant-scoped pack, workflow, and cases
+- reuses the workflow endpoint/auth configuration
+- sends each case `input_json` through the HTTP check runner
+- stores one `test_runs` row per case
+- creates or updates a reportable issue linked to `test_run_id` when a case fails
+
 ### `POST /api/test-packs/:id/test-cases`
 
 Creates test case.
+
+Current server action equivalent: `createTestCaseAction(testPackId, name, inputJson, expectedStatus, maxLatencyMs, fieldExistsPath, notContainsValue)`.
+
+The MVP assertion builder supports:
+
+- required status code
+- latency threshold
+- optional JSON field existence path
+- optional forbidden response text
+
+```json
+{
+  "name": "Required result field",
+  "inputJson": { "leadId": "qa-001" },
+  "assertions": [
+    { "type": "status_code", "expected": 200 },
+    { "type": "latency_under", "maxMs": 5000 },
+    { "type": "field_exists", "path": "result.id" },
+    { "type": "not_contains", "value": "fatal" }
+  ]
+}
+```
 
 ## Reports
 

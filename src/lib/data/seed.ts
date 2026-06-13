@@ -454,6 +454,8 @@ export const seedData: TuesdayOpsSeedData = {
       lastRunAt: "2026-06-11T13:32:00.000Z",
     },
   ],
+  testCases: [],
+  testRuns: [],
   reports: [
     {
       id: "report-nova-2026-06",
