@@ -39,3 +39,27 @@ export function getSchedulerSecret(): string {
 
   return schedulerSecret;
 }
+
+export function getAppUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+}
+
+export function getResendApiKey(): string {
+  const apiKey = process.env.RESEND_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("Missing RESEND_API_KEY. This key is required for email alerts.");
+  }
+
+  return apiKey;
+}
+
+export function getResendFromEmail(): string {
+  const fromEmail = process.env.RESEND_FROM_EMAIL;
+
+  if (!fromEmail) {
+    throw new Error("Missing RESEND_FROM_EMAIL. This sender is required for email alerts.");
+  }
+
+  return fromEmail;
+}

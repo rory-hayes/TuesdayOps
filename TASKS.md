@@ -218,9 +218,9 @@ Acceptance:
 
 ### T4.4 Alerts
 
-- [ ] Add Resend integration.
-- [ ] Send email for high-severity issue.
-- [ ] Add alert-safe copy.
+- [x] Add Resend integration.
+- [x] Send email for high-severity issue.
+- [x] Add alert-safe copy.
 
 Acceptance:
 

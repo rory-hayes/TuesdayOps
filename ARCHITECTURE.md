@@ -38,7 +38,8 @@ Browser
 - A scheduled sweep runs every five minutes, finds enabled due health checks, and fans out one event per due check.
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
-- Alerts, report generation, billing, and analytics remain planned later milestones.
+- Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
+- Report generation, billing, and analytics remain planned later milestones.
 
 ### Web app
 
@@ -124,7 +125,7 @@ Scheduler fires
   -> store check_run
   -> calculate run status
   -> create/update issue if needed
-  -> send alert if severity threshold met
+  -> send alert if a new high/critical issue was created
   -> update workflow health summary
 ```
 

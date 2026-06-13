@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sendIssueAlertForNewIssue } from "@/lib/alerts/service";
 import type { AssertionResult } from "@/lib/checks/assertions";
 import type { CheckRunStatus } from "@/lib/domain/types";
 import {
@@ -80,6 +81,16 @@ async function upsertActiveIssue({
 
   if (inserted.errorMessage) {
     throw new Error(`Unable to create issue: ${inserted.errorMessage}`);
+  }
+
+  if (inserted.id) {
+    await sendIssueAlertForNewIssue({
+      supabase,
+      issueId: inserted.id,
+      created: true,
+      draft,
+      context,
+    });
   }
 
   return { id: inserted.id, created: true };
