@@ -101,11 +101,15 @@ Required for the authenticated MVP paths:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+SUPABASE_SECRET_KEY=
 WORKFLOW_AUTH_ENCRYPTION_KEY=
+SCHEDULER_SECRET=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-`SUPABASE_SECRET_KEY` is reserved for future server-side/admin operations and must never be exposed to the browser.
+`SUPABASE_SECRET_KEY` and `SCHEDULER_SECRET` are server-only values. They must never be exposed to browser code or committed to the repo.
+
+Inngest is wired at `/api/inngest` for scheduled checks. Local Inngest development can use `INNGEST_DEV=1`. Production scheduling requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` configuration.
 
 Local Supabase uses the repo `supabase/config.toml` port range `55420-55429` to avoid clashes with other local Supabase projects.
 
@@ -121,6 +125,7 @@ Verify the app:
 npm run lint
 npm run typecheck
 npm run test
+npm run e2e
 ```
 
 Build for production:
@@ -131,7 +136,7 @@ npm run build
 
 ## Current implementation state
 
-The repository now contains the foundation, Milestones 1-3, and the issue-management slice of Milestone 4:
+The repository now contains the foundation, Milestones 1-3, the issue-management slice of Milestone 4, and the scheduled-check runner for Milestone 4:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
@@ -145,6 +150,9 @@ The repository now contains the foundation, Milestones 1-3, and the issue-manage
 - endpoint health check creation, manual run execution, assertion evaluation, and check run persistence
 - failed/degraded manual checks create deduped issues with severity mapping
 - issue queue filters, expandable details, assignment, resolution notes, and ignore actions
-- domain, assertion, and issue-engine tests
+- Inngest scheduled check functions served from `/api/inngest`
+- protected scheduler trigger at `/api/scheduler/run-due-checks`
+- scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
+- domain, assertion, issue-engine, scheduler, and Playwright E2E tests
 
-Scheduled checks, alerts, test packs, report PDF generation, and Stripe billing are later milestones.
+Alerts, test packs, report PDF generation, and Stripe billing are later milestones.

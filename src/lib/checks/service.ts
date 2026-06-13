@@ -5,9 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { checkConfigSchema } from "@/lib/checks/assertions";
-import { runHttpCheck, type WorkflowAuthConfig } from "@/lib/checks/runner";
-import { createOrUpdateIssueForCheckRun } from "@/lib/issues/service";
-import { decryptJsonPayload, type EncryptedJsonPayload } from "@/lib/security/secrets";
+import { executeCheckRun } from "@/lib/checks/execution";
 import { createClient } from "@/lib/supabase/server";
 
 const createCheckFormSchema = z.object({
@@ -21,26 +19,6 @@ const createCheckFormSchema = z.object({
 const runCheckFormSchema = z.object({
   checkId: z.string().uuid(),
 });
-
-type CheckRunWorkflowRow = {
-  id: string;
-  agency_id: string;
-  client_id: string;
-  name: string;
-  endpoint_url: string;
-  method: "GET" | "POST" | "PUT" | "PATCH";
-  auth_type: "none" | "bearer" | "api_key_header" | "basic";
-  encrypted_auth_config: EncryptedJsonPayload | null;
-};
-
-type CheckRunCheckRow = {
-  id: string;
-  agency_id: string;
-  workflow_id: string;
-  name: string;
-  config_json: unknown;
-  workflows: CheckRunWorkflowRow | CheckRunWorkflowRow[];
-};
 
 export async function createCheckAction(formData: FormData) {
   const parsed = createCheckFormSchema.safeParse(Object.fromEntries(formData));
@@ -86,122 +64,29 @@ export async function runCheckAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("checks")
-    .select(
-      "id, agency_id, workflow_id, name, config_json, workflows(id, agency_id, client_id, name, endpoint_url, method, auth_type, encrypted_auth_config)",
-    )
-    .eq("agency_id", workspace.agency.id)
-    .eq("id", parsed.data.checkId)
-    .single();
-
-  if (error || !data) {
-    redirect(`/checks?error=${encodeURIComponent(error?.message ?? "Check could not be found.")}`);
-  }
-
-  const check = data as CheckRunCheckRow;
-  const workflow = Array.isArray(check.workflows) ? check.workflows[0] : check.workflows;
-
-  if (!workflow) {
-    redirect(`/checks?error=${encodeURIComponent("Workflow could not be loaded for this check.")}`);
-  }
-
-  const authConfig = workflow.encrypted_auth_config
-    ? decryptJsonPayload<WorkflowAuthConfig>(workflow.encrypted_auth_config)
-    : { type: "none" as const };
-  const result = await runHttpCheck({
-    workflow: {
-      endpointUrl: workflow.endpoint_url,
-      method: workflow.method,
-      authType: workflow.auth_type,
-    },
-    check: {
-      configJson: check.config_json,
-    },
-    authConfig,
-  });
-
-  const { data: runRow, error: runError } = await supabase
-    .from("check_runs")
-    .insert({
-      agency_id: workspace.agency.id,
-      client_id: workflow.client_id,
-      workflow_id: workflow.id,
-      check_id: check.id,
-      status: result.status,
-      status_code: result.statusCode,
-      latency_ms: result.latencyMs,
-      response_summary: result.responseSummary,
-      assertion_results_json: result.assertionResults,
-      error_message: result.errorMessage,
-      started_at: result.startedAt,
-      completed_at: result.completedAt,
-    })
-    .select("id")
-    .single();
-
-  if (runError || !runRow) {
-    redirect(
-      `/workflows/${workflow.id}?error=${encodeURIComponent(
-        runError?.message ?? "Check run could not be saved.",
-      )}`,
-    );
-  }
-
+  let workflowId: string | undefined;
   try {
-    await createOrUpdateIssueForCheckRun({
+    const result = await executeCheckRun({
       supabase,
-      context: {
-        agencyId: workspace.agency.id,
-        clientId: workflow.client_id,
-        workflowId: workflow.id,
-        workflowName: workflow.name,
-        checkId: check.id,
-        checkName: check.name,
-        checkRunId: runRow.id,
-        status: result.status,
-        statusCode: result.statusCode,
-        latencyMs: result.latencyMs,
-        errorMessage: result.errorMessage,
-        assertionResults: result.assertionResults,
-      },
+      agencyId: workspace.agency.id,
+      checkId: parsed.data.checkId,
+      trigger: "manual",
     });
+
+    workflowId = result.workflowId;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Issue creation failed.";
-    redirect(`/workflows/${workflow.id}?error=${encodeURIComponent(message)}`);
+    const message = error instanceof Error ? error.message : "Check run failed.";
+    redirect(`/checks?error=${encodeURIComponent(message)}`);
   }
 
-  const { data: recentRuns } = await supabase
-    .from("check_runs")
-    .select("status, latency_ms")
-    .eq("agency_id", workspace.agency.id)
-    .eq("workflow_id", workflow.id)
-    .order("created_at", { ascending: false })
-    .limit(20);
-
-  const passRate = recentRuns?.length
-    ? Math.round(
-        (recentRuns.filter((run) => run.status === "healthy").length / recentRuns.length) * 100,
-      )
-    : result.status === "healthy"
-      ? 100
-      : 0;
-
-  await supabase
-    .from("workflows")
-    .update({
-      status: result.status,
-      pass_rate: passRate,
-      latency_ms: result.latencyMs,
-      last_check_at: result.completedAt,
-    })
-    .eq("agency_id", workspace.agency.id)
-    .eq("id", workflow.id);
+  if (!workflowId) {
+    redirect(`/checks?error=${encodeURIComponent("Check run did not return a workflow.")}`);
+  }
 
   revalidatePath("/checks");
-  revalidatePath(`/workflows/${workflow.id}`);
+  revalidatePath(`/workflows/${workflowId}`);
   revalidatePath("/workflows");
   revalidatePath("/issues");
   revalidatePath("/");
-  redirect(`/workflows/${workflow.id}`);
+  redirect(`/workflows/${workflowId}`);
 }

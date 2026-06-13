@@ -52,6 +52,15 @@ Current Milestone 4 issue-management E2E status:
 - Covered flow: confirmed QA user sign-in, onboarding, client creation, failing workflow creation, manual failed check run, issue creation, repeated failed check dedupe, occurrence count update, assignment, resolution note, resolved-status filter, sign-out redirect, and protected `/issues` redirect.
 - Public sign-up currently creates unconfirmed users in this Supabase project; E2E used a disposable confirmed QA user created through the Supabase Admin API with a service-role key captured only in process memory.
 
+Current Milestone 4 scheduled-check E2E status:
+
+- Static verification passes with `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`.
+- Applied the scheduled-check Supabase migration to the linked remote project.
+- `npm run e2e -- e2e/scheduled-checks.spec.ts` passed against the local app and remote Supabase project.
+- Covered flow: confirmed QA user sign-in, onboarding, client creation, workflow creation, protected scheduler trigger, scheduled `check_runs` insert with `trigger = scheduled` and `scheduled_for`, issue creation from the scheduled failed run, second immediate scheduler trigger without duplicate run creation, and unauthorized scheduler trigger returning `401`.
+- Browser plugin DOM/log smoke check passed for the sign-in route, but screenshot capture timed out through the in-app browser. Playwright CLI fallback captured the final workflow and issue screenshots.
+- Production scheduling through Inngest requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values. The shared runner is verified through the protected scheduler route.
+
 ## Critical test areas
 
 ### Assertion engine
@@ -113,7 +122,7 @@ Add these scripts if missing:
   "scripts": {
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run src",
     "test:watch": "vitest",
     "e2e": "playwright test"
   }
