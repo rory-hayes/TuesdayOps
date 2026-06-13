@@ -314,6 +314,23 @@ Current server action equivalent: `sendReportAction(reportId)`.
 
 The send action ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error` and mark the report `failed` without exposing raw report data or secrets.
 
+## Onboarding and sample data
+
+### `seedSampleDataAction()`
+
+Server action used from the Overview activation checklist.
+
+The action:
+
+- requires an authenticated agency workspace
+- uses deterministic tenant-scoped UUIDs for demo rows
+- upserts one demo client, workflow, check, issue, test pack, test case, test run, report, and report items
+- stores no workflow auth secrets
+- marks `agencies.sample_data_seeded_at`
+- redirects back to Overview with a sample-data status
+
+The seeded demo records stay inside the current agency tenant boundary.
+
 ## Public/manual logging API — later MVP extension
 
 ### `POST /api/public/run-log`

@@ -10,6 +10,7 @@ export type WorkspaceContext = {
     slug: string;
     primaryColor: string;
     plan: string;
+    sampleDataSeededAt?: string;
   };
   role: "owner" | "admin" | "member" | "viewer";
 };
@@ -23,6 +24,7 @@ type MembershipRow = {
         slug: string;
         primary_color: string;
         plan: string;
+        sample_data_seeded_at: string | null;
       }
     | {
         id: string;
@@ -30,6 +32,7 @@ type MembershipRow = {
         slug: string;
         primary_color: string;
         plan: string;
+        sample_data_seeded_at: string | null;
       }[];
 };
 
@@ -48,7 +51,7 @@ export async function getWorkspaceContext(): Promise<{
 
   const { data, error } = await supabase
     .from("memberships")
-    .select("role, agencies(id, name, slug, primary_color, plan)")
+    .select("role, agencies(id, name, slug, primary_color, plan, sample_data_seeded_at)")
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
@@ -81,6 +84,7 @@ export async function getWorkspaceContext(): Promise<{
         slug: agency.slug,
         primaryColor: agency.primary_color,
         plan: agency.plan,
+        sampleDataSeededAt: agency.sample_data_seeded_at ?? undefined,
       },
     },
   };

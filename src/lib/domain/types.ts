@@ -28,6 +28,7 @@ export type Agency = {
   logoUrl?: string;
   primaryColor: string;
   plan: string;
+  sampleDataSeededAt?: string;
 };
 
 export type Client = {

@@ -14,6 +14,7 @@ logo_url text
 primary_color text default '#7C6CF2'
 plan text default 'starter'
 billing_customer_id text
+sample_data_seeded_at timestamptz
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
