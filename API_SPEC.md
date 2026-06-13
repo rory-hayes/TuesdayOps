@@ -188,6 +188,14 @@ Marks issue ignored.
 
 Current server action equivalent: `ignoreIssueAction(issueId)`.
 
+High/critical issue alerts:
+
+- Newly created high or critical issues attempt a Resend email alert.
+- Repeat deduped failures do not resend email.
+- Alert emails use allowlisted issue/client/workflow/check fields and redacted copy only.
+- Delivery metadata is stored on the issue in `alert_sent_at`, `alert_delivery_id`, `alert_error`, and `alert_last_attempt_at`.
+- Missing Resend configuration records `alert_error` but does not fail check execution or issue creation.
+
 ## Test packs
 
 ### `GET /api/workflows/:workflowId/test-packs`

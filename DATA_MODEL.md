@@ -168,6 +168,10 @@ owner_user_id uuid references profiles(id)
 reportable boolean default true
 last_seen_at timestamptz default now()
 occurrence_count integer default 1
+alert_sent_at timestamptz
+alert_delivery_id text
+alert_error text
+alert_last_attempt_at timestamptz
 resolved_at timestamptz
 resolution_note text
 created_at timestamptz default now()
@@ -175,6 +179,8 @@ updated_at timestamptz default now()
 ```
 
 Milestone 4 adds `fingerprint`, `last_seen_at`, and `occurrence_count` to dedupe repeated active failures. The active issue fingerprint is unique per agency/workflow while issue status is `open` or `in_review`; a materially different failure can create a separate issue.
+
+Milestone 4 alerts add `alert_sent_at`, `alert_delivery_id`, `alert_error`, and `alert_last_attempt_at`. These fields track high/critical issue email delivery without storing email bodies or raw payload data.
 
 ## test_packs
 

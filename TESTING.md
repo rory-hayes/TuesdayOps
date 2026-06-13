@@ -61,6 +61,13 @@ Current Milestone 4 scheduled-check E2E status:
 - Browser plugin DOM/log smoke check passed for the sign-in route, but screenshot capture timed out through the in-app browser. Playwright CLI fallback captured the final workflow and issue screenshots.
 - Production scheduling through Inngest requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values. The shared runner is verified through the protected scheduler route.
 
+Current Milestone 4 alert E2E status:
+
+- Alert policy/unit coverage passes for high/critical send rules, repeat-dedupe suppression, and redacted email copy.
+- `npm run e2e -- e2e/alerts.spec.ts` passed against the local app and remote Supabase project.
+- Covered flow: confirmed QA user sign-in, onboarding, client creation, high-severity scheduled workflow failure, issue creation, alert attempt recording, and missing Resend config recorded on the issue without breaking the check runner.
+- Live Resend delivery was not executed because `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are not configured locally or in Vercel yet.
+
 ## Critical test areas
 
 ### Assertion engine

@@ -104,10 +104,13 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 WORKFLOW_AUTH_ENCRYPTION_KEY=
 SCHEDULER_SECRET=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 `SUPABASE_SECRET_KEY` and `SCHEDULER_SECRET` are server-only values. They must never be exposed to browser code or committed to the repo.
+`RESEND_API_KEY` and `RESEND_FROM_EMAIL` are required for live email alerts.
 
 Inngest is wired at `/api/inngest` for scheduled checks. Local Inngest development can use `INNGEST_DEV=1`. Production scheduling requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` configuration.
 
@@ -153,6 +156,7 @@ The repository now contains the foundation, Milestones 1-3, the issue-management
 - Inngest scheduled check functions served from `/api/inngest`
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
 - scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
+- high/critical issue email alert service with Resend delivery and alert-safe redacted copy
 - domain, assertion, issue-engine, scheduler, and Playwright E2E tests
 
-Alerts, test packs, report PDF generation, and Stripe billing are later milestones.
+Test packs, report PDF generation, and Stripe billing are later milestones.
