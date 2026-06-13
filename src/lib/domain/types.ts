@@ -14,6 +14,12 @@ export type CheckType = "health" | "synthetic" | "schema" | "latency" | "cost" |
 export type CheckRunStatus = "healthy" | "degraded" | "failed" | "skipped";
 export type ReportStatus = "draft" | "ready_to_send" | "sent" | "failed";
 export type TestRunStatus = "passed" | "failed" | "skipped";
+export type ReportItemCategory =
+  | "workflow_health"
+  | "issues_caught"
+  | "issues_resolved"
+  | "qa_checks"
+  | "recommendation";
 
 export type Agency = {
   id: string;
@@ -160,7 +166,43 @@ export type ReportSummary = {
   passRate: number;
   summary: string;
   recommendations: string[];
+  pdfUrl?: string;
+  sendError?: string;
+  sentAt?: string;
   generatedAt?: string;
+};
+
+export type ReportMetrics = {
+  workflowsMonitored: number;
+  checksRun: number;
+  issuesCaught: number;
+  issuesResolved: number;
+  testRuns: number;
+  testFailures: number;
+  passRate: number;
+};
+
+export type ReportItem = {
+  id: string;
+  agencyId: string;
+  reportId: string;
+  category: ReportItemCategory;
+  title: string;
+  body: string;
+  sortOrder: number;
+};
+
+export type ReportDraft = {
+  clientId: string;
+  clientName: string;
+  period: string;
+  periodLabel: string;
+  periodStart: string;
+  periodEnd: string;
+  summary: string;
+  metrics: ReportMetrics;
+  recommendations: string[];
+  items: Array<Omit<ReportItem, "id" | "agencyId" | "reportId">>;
 };
 
 export type TuesdayOpsSeedData = {
@@ -174,6 +216,7 @@ export type TuesdayOpsSeedData = {
   testCases: TestCase[];
   testRuns: TestRun[];
   reports: ReportSummary[];
+  reportItems: ReportItem[];
 };
 
 export type PortfolioSummary = {

@@ -249,13 +249,38 @@ client_id uuid references clients(id)
 period_start date not null
 period_end date not null
 status text check in ('draft', 'ready_to_send', 'sent', 'failed') default 'draft'
+period text not null
+period_label text not null
 summary text
+metrics_json jsonb
+recommendations_json jsonb
 pdf_url text
+pdf_storage_path text
+email_delivery_id text
+send_error text
 generated_at timestamptz
 sent_at timestamptz
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
+
+## report_items
+
+Represents stored, report-safe modules rendered in the preview and PDF.
+
+```txt
+id uuid primary key
+agency_id uuid references agencies(id)
+report_id uuid references reports(id)
+category text check in ('workflow_health', 'issues_caught', 'issues_resolved', 'qa_checks', 'recommendation')
+title text not null
+body text not null
+metadata_json jsonb
+sort_order integer
+created_at timestamptz default now()
+```
+
+Milestone 6 creates a private Supabase Storage bucket named `reports`. Generated PDF files are stored under `agency_id/report_id.pdf` and downloaded through an authenticated app route rather than a public bucket URL.
 
 ## audit_events
 

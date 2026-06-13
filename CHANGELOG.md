@@ -21,3 +21,4 @@ Track meaningful product and engineering changes here.
 - Added reusable Playwright E2E coverage for scheduled health checks creating runs and issues without duplicate immediate reruns.
 - Added Resend-backed high/critical issue alert delivery with redacted email copy, delivery metadata, and E2E coverage for alert attempt recording.
 - Added tenant-scoped synthetic test packs, test cases, manual pack runs, test-run persistence, synthetic failure issue creation, and E2E coverage for the Milestone 5 test-pack loop.
+- Added monthly report generation, report items, report preview, private PDF storage/download, report email send attempts, and E2E coverage for the Milestone 6 reporting loop.

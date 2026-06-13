@@ -276,6 +276,18 @@ Generates report draft.
 }
 ```
 
+Current server action equivalent: `generateReportAction(clientId, period)`.
+
+The generated report stores:
+
+- client-safe executive summary
+- metrics JSON
+- recommendations JSON
+- report item modules
+- status `draft`
+
+Source data includes workflow health, check runs, reportable issues, resolutions, and synthetic test runs.
+
 ### `GET /api/reports/:id`
 
 Returns report details.
@@ -284,9 +296,23 @@ Returns report details.
 
 Generates PDF.
 
+Current server action equivalent: `generateReportPdfAction(reportId)`.
+
+The PDF is rendered server-side from stored report data, uploaded to the private Supabase Storage `reports` bucket, and exposed through:
+
+```txt
+GET /api/reports/:id/download
+```
+
+The download route requires an authenticated agency member and streams the private PDF with `content-type: application/pdf`.
+
 ### `POST /api/reports/:id/send`
 
 Sends report to configured recipient.
+
+Current server action equivalent: `sendReportAction(reportId)`.
+
+The send action ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error` and mark the report `failed` without exposing raw report data or secrets.
 
 ## Public/manual logging API — later MVP extension
 

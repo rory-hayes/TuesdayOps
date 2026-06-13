@@ -500,4 +500,5 @@ export const seedData: TuesdayOpsSeedData = {
       ],
     },
   ],
+  reportItems: [],
 };
