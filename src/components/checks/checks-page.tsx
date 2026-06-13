@@ -6,7 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
-import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
+import {
+  createTestCaseAction,
+  createTestPackAction,
+  runTestPackAction,
+} from "@/lib/test-packs/service";
+import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/formatting";
 
 export function ChecksPage({
   data,
@@ -125,31 +130,141 @@ export function ChecksPage({
             <Beaker size={18} className="text-primary" aria-hidden="true" />
           </CardHeader>
           <CardContent className="space-y-4">
+            {data.workflows.length ? (
+              <form action={createTestPackAction} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-2">
+                <label className="block text-sm font-medium">
+                  Workflow
+                  <select
+                    required
+                    name="workflowId"
+                    className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                  >
+                    {data.workflows.map((workflow) => (
+                      <option key={workflow.id} value={workflow.id}>
+                        {workflow.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <Input label="Pack name" name="name" placeholder="Regression pack" required />
+                <TextArea
+                  className="md:col-span-2"
+                  label="Description"
+                  name="description"
+                  placeholder="Core happy-path and guardrail checks"
+                />
+                <Button type="submit" className="md:col-span-2 md:w-fit">
+                  <Plus size={15} aria-hidden="true" />
+                  Add test pack
+                </Button>
+              </form>
+            ) : null}
+
             {data.testPacks.length ? (
               data.testPacks.map((pack) => {
                 const workflow = data.workflows.find((candidate) => candidate.id === pack.workflowId);
+                const cases = data.testCases.filter((testCase) => testCase.testPackId === pack.id);
+                const runs = data.testRuns.filter((run) => run.testPackId === pack.id);
 
                 return (
-                  <div key={pack.id} className="rounded-lg bg-muted p-4">
-                    <div className="flex items-start justify-between gap-3">
+                  <div key={pack.id} className="rounded-lg border border-border p-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                       <div>
                         <p className="font-medium">{pack.name}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">{workflow?.name}</p>
+                        <Link href={`/workflows/${workflow?.id}`} className="mt-1 block text-sm text-primary">
+                          {workflow?.name}
+                        </Link>
                       </div>
-                      <Badge variant={pack.passRate >= 90 ? "success" : "warning"}>
-                        {formatPercentage(pack.passRate)}
-                      </Badge>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={runs.length ? (pack.passRate >= 90 ? "success" : "warning") : "muted"}>
+                          {runs.length ? formatPercentage(pack.passRate) : "not run"}
+                        </Badge>
+                        <form action={runTestPackAction}>
+                          <input type="hidden" name="testPackId" value={pack.id} />
+                          <Button type="submit" size="sm" disabled={!cases.length}>
+                            <Play size={14} aria-hidden="true" />
+                            Run pack
+                          </Button>
+                        </form>
+                      </div>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">{pack.description}</p>
-                    <p className="mt-3 text-xs text-muted-foreground">
-                      {pack.caseCount} cases / last run {formatRelativeTime(pack.lastRunAt)}
-                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <Badge variant="muted">{pack.caseCount} cases</Badge>
+                      <Badge variant="muted">last run {formatRelativeTime(pack.lastRunAt)}</Badge>
+                    </div>
+
+                    <form action={createTestCaseAction} className="mt-4 grid gap-3 rounded-lg bg-muted p-3 md:grid-cols-2">
+                      <input type="hidden" name="testPackId" value={pack.id} />
+                      <Input label="Case name" name="name" placeholder="Happy path lead intake" required />
+                      <TextArea
+                        label="Input JSON"
+                        name="inputJson"
+                        placeholder='{"leadId":"qa-001","intent":"book"}'
+                      />
+                      <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
+                      <Input label="Max latency ms" name="maxLatencyMs" placeholder="10000" type="number" required />
+                      <Input label="Required field" name="fieldExistsPath" placeholder="result.id" />
+                      <Input label="Must not contain" name="notContainsValue" placeholder="error" />
+                      <Button type="submit" size="sm" className="md:col-span-2 md:w-fit">
+                        <Plus size={14} aria-hidden="true" />
+                        Add case
+                      </Button>
+                    </form>
+
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                      <div>
+                        <p className="text-xs font-medium uppercase text-muted-foreground">Cases</p>
+                        <div className="mt-2 space-y-2">
+                          {cases.length ? (
+                            cases.map((testCase) => (
+                              <div key={testCase.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
+                                <p className="min-w-0 truncate text-sm font-medium">{testCase.name}</p>
+                                <StatusBadge status={testCase.latestStatus} />
+                              </div>
+                            ))
+                          ) : (
+                            <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+                              Add the first test case before running this pack.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium uppercase text-muted-foreground">Recent runs</p>
+                        <div className="mt-2 space-y-2">
+                          {runs.length ? (
+                            runs.slice(0, 3).map((run) => {
+                              const testCase = cases.find((candidate) => candidate.id === run.testCaseId);
+
+                              return (
+                                <div key={run.id} className="rounded-lg bg-muted px-3 py-2">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="min-w-0 truncate text-sm font-medium">
+                                      {testCase?.name ?? "Test case"}
+                                    </p>
+                                    <StatusBadge status={run.status} />
+                                  </div>
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {run.statusCode ?? "-"} / {run.latencyMs} ms / {formatDateTime(run.createdAt)}
+                                  </p>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+                              No synthetic runs recorded yet.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               })
             ) : (
               <p className="rounded-lg bg-muted p-4 text-sm leading-6 text-muted-foreground">
-                Synthetic test packs start in the next milestone after endpoint checks are reliable.
+                Create a test pack to start storing synthetic workflow cases.
               </p>
             )}
           </CardContent>
@@ -181,6 +296,30 @@ function Input({
         type={type}
         placeholder={placeholder}
         className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+      />
+    </label>
+  );
+}
+
+function TextArea({
+  label,
+  name,
+  placeholder,
+  className = "",
+}: {
+  label: string;
+  name: string;
+  placeholder: string;
+  className?: string;
+}) {
+  return (
+    <label className={`block text-sm font-medium ${className}`}>
+      {label}
+      <textarea
+        name={name}
+        placeholder={placeholder}
+        rows={3}
+        className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
       />
     </label>
   );

@@ -25,11 +25,11 @@ Browser
 
 ## 2. Core services
 
-### Current Milestones 1-4 implementation slice
+### Current Milestones 1-5 implementation slice
 
 - Next.js App Router server components and server actions handle authenticated UI flows.
 - Supabase Auth manages identity through SSR cookie clients and route protection.
-- Supabase Postgres stores profiles, agencies, memberships, clients, workflows, checks, check runs, and issues.
+- Supabase Postgres stores profiles, agencies, memberships, clients, workflows, checks, check runs, issues, test packs, test cases, and test runs.
 - Supabase RLS enforces `agency_id` membership boundaries for tenant-owned records.
 - Manual endpoint checks run synchronously from server actions and persist redacted summaries.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
@@ -39,6 +39,7 @@ Browser
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
+- Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
 - Report generation, billing, and analytics remain planned later milestones.
 
 ### Web app
@@ -138,8 +139,8 @@ User creates test pack
   -> runner sends input to workflow endpoint
   -> evaluates output
   -> stores result
-  -> updates test pack pass rate
-  -> creates issue if failure threshold exceeded
+  -> derives test pack pass rate from stored test runs
+  -> creates or updates a reportable issue when a test case fails
 ```
 
 ## 7. Report generation flow

@@ -68,6 +68,14 @@ Current Milestone 4 alert E2E status:
 - Covered flow: confirmed QA user sign-in, onboarding, client creation, high-severity scheduled workflow failure, issue creation, alert attempt recording, and missing Resend config recorded on the issue without breaking the check runner.
 - Live Resend delivery was not executed because `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are not configured locally or in Vercel yet.
 
+Current Milestone 5 test-pack E2E status:
+
+- Synthetic runner unit coverage passes for test-case assertion construction, runnable config creation, test-run insert shaping, synthetic issue repeat updates, and test-pack pass-rate summaries.
+- Applied the test-pack Supabase migration to the linked remote project.
+- `npm run e2e -- e2e/test-packs.spec.ts` passed against the local app and remote Supabase project.
+- Covered flow: confirmed QA user sign-in, onboarding, client creation, workflow creation, test pack creation, test case creation, manual pack run, persisted failed `test_runs` row, issue creation linked to `test_run_id`, Checks page failed state, and issue visibility in the issue queue.
+- Browser plugin DOM smoke check confirmed the rendered `/checks` page includes the synthetic pack panel, add-pack/add-case controls, run-pack control, and failed run state. Screenshot capture timed out through the in-app browser, but Playwright CLI E2E captured the run state successfully.
+
 ## Critical test areas
 
 ### Assertion engine

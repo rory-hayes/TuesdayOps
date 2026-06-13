@@ -158,6 +158,7 @@ agency_id uuid references agencies(id)
 client_id uuid references clients(id)
 workflow_id uuid references workflows(id)
 check_run_id uuid references check_runs(id)
+test_run_id uuid nullable -- composite fk (test_run_id, agency_id) -> test_runs(id, agency_id)
 fingerprint text
 severity text check in ('low', 'medium', 'high', 'critical')
 status text check in ('open', 'in_review', 'resolved', 'ignored') default 'open'
@@ -182,6 +183,8 @@ Milestone 4 adds `fingerprint`, `last_seen_at`, and `occurrence_count` to dedupe
 
 Milestone 4 alerts add `alert_sent_at`, `alert_delivery_id`, `alert_error`, and `alert_last_attempt_at`. These fields track high/critical issue email delivery without storing email bodies or raw payload data.
 
+Milestone 5 adds nullable `test_run_id` for issues created by synthetic test failures. The foreign key includes `agency_id` so an issue cannot point at another tenant's test run.
+
 ## test_packs
 
 Represents a group of synthetic tests for a workflow.
@@ -203,6 +206,8 @@ Represents one synthetic test case.
 
 ```txt
 id uuid primary key
+agency_id uuid references agencies(id)
+workflow_id uuid references workflows(id)
 test_pack_id uuid references test_packs(id)
 name text not null
 input_json jsonb not null
@@ -223,11 +228,15 @@ workflow_id uuid references workflows(id)
 test_pack_id uuid references test_packs(id)
 test_case_id uuid references test_cases(id)
 status text check in ('passed', 'failed', 'skipped')
+status_code integer
 latency_ms integer
+response_summary text
 assertion_results_json jsonb
 error_message text
 created_at timestamptz default now()
 ```
+
+Milestone 5 test-pack tables use RLS plus composite tenant foreign keys for `(workflow_id, agency_id)`, `(test_pack_id, agency_id)`, and `(test_case_id, agency_id)`. The Checks page derives pack case counts, pass rate, and latest run time from stored `test_cases` and `test_runs`.
 
 ## reports
 

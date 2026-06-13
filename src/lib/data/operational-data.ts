@@ -4,12 +4,17 @@ import type {
   CheckRunStatus,
   Client,
   Issue,
+  TestCase,
+  TestPack,
+  TestRun,
+  TestRunStatus,
   TuesdayOpsSeedData,
   Workflow,
   WorkflowStatus,
 } from "@/lib/domain/types";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import { createClient } from "@/lib/supabase/server";
+import { buildTestPackSummary } from "@/lib/test-packs/runner";
 
 type ClientRow = {
   id: string;
@@ -80,6 +85,7 @@ type IssueRow = {
   client_id: string;
   workflow_id: string;
   check_run_id: string | null;
+  test_run_id: string | null;
   owner_user_id: string | null;
   severity: Issue["severity"];
   status: Issue["status"];
@@ -94,13 +100,58 @@ type IssueRow = {
   last_seen_at: string | null;
 };
 
+type TestPackRow = {
+  id: string;
+  agency_id: string;
+  workflow_id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+type TestCaseRow = {
+  id: string;
+  agency_id: string;
+  workflow_id: string;
+  test_pack_id: string;
+  name: string;
+  input_json: unknown;
+  assertions_json: unknown;
+  created_at: string;
+};
+
+type TestRunRow = {
+  id: string;
+  agency_id: string;
+  workflow_id: string;
+  test_pack_id: string;
+  test_case_id: string;
+  status: TestRunStatus;
+  status_code: number | null;
+  latency_ms: number;
+  response_summary: string;
+  error_message: string | null;
+  created_at: string;
+};
+
 type AgencySnapshot = TuesdayOpsSeedData["agency"];
 
 export async function getOperationalData(
   agency: AgencySnapshot,
 ): Promise<TuesdayOpsSeedData> {
   const supabase = await createClient();
-  const [clientsResult, workflowsResult, checksResult, runsResult, issuesResult] = await Promise.all([
+  const [
+    clientsResult,
+    workflowsResult,
+    checksResult,
+    runsResult,
+    issuesResult,
+    testPacksResult,
+    testCasesResult,
+    testRunsResult,
+  ] = await Promise.all([
     supabase
       .from("clients")
       .select("*")
@@ -127,6 +178,22 @@ export async function getOperationalData(
       .select("*")
       .eq("agency_id", agency.id)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("test_packs")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("test_cases")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("test_runs")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .order("created_at", { ascending: false })
+      .limit(150),
   ]);
 
   const error =
@@ -134,7 +201,10 @@ export async function getOperationalData(
     workflowsResult.error ??
     checksResult.error ??
     runsResult.error ??
-    issuesResult.error;
+    issuesResult.error ??
+    testPacksResult.error ??
+    testCasesResult.error ??
+    testRunsResult.error;
 
   if (error) {
     throw new Error(`Unable to load operational data: ${error.message}`);
@@ -145,12 +215,18 @@ export async function getOperationalData(
   const checkRows = (checksResult.data ?? []) as CheckRow[];
   const runRows = (runsResult.data ?? []) as CheckRunRow[];
   const issueRows = (issuesResult.data ?? []) as IssueRow[];
+  const testPackRows = (testPacksResult.data ?? []) as TestPackRow[];
+  const testCaseRows = (testCasesResult.data ?? []) as TestCaseRow[];
+  const testRunRows = (testRunsResult.data ?? []) as TestRunRow[];
 
   const workflows = workflowRows.map((row) => mapWorkflow(row, runRows));
   const clients = clientRows.map((row) => mapClient(row, workflows));
   const checks = checkRows.map((row) => mapCheck(row, runRows));
   const checkRuns = runRows.map(mapCheckRun);
   const issues = issueRows.map(mapIssue);
+  const testPacks = testPackRows.map((row) => mapTestPack(row, testCaseRows, testRunRows));
+  const testCases = testCaseRows.map((row) => mapTestCase(row, testRunRows));
+  const testRuns = testRunRows.map(mapTestRun);
 
   return {
     agency,
@@ -159,7 +235,9 @@ export async function getOperationalData(
     checks,
     checkRuns,
     issues,
-    testPacks: [],
+    testPacks,
+    testCases,
+    testRuns,
     reports: [],
   };
 }
@@ -276,6 +354,7 @@ function mapIssue(row: IssueRow): Issue {
     clientId: row.client_id,
     workflowId: row.workflow_id,
     checkRunId: row.check_run_id ?? undefined,
+    testRunId: row.test_run_id ?? undefined,
     ownerUserId: row.owner_user_id ?? undefined,
     severity: row.severity,
     status: row.status,
@@ -289,5 +368,65 @@ function mapIssue(row: IssueRow): Issue {
     lastSeenAt: row.last_seen_at ?? row.created_at,
     resolvedAt: row.resolved_at ?? undefined,
     resolutionNote: row.resolution_note ?? undefined,
+  };
+}
+
+function mapTestPack(
+  row: TestPackRow,
+  testCaseRows: TestCaseRow[],
+  testRunRows: TestRunRow[],
+): TestPack {
+  const packCases = testCaseRows.filter((testCase) => testCase.test_pack_id === row.id);
+  const packRuns = testRunRows.filter((run) => run.test_pack_id === row.id);
+  const summary = buildTestPackSummary({
+    caseCount: packCases.length,
+    runs: packRuns.map((run) => ({
+      status: run.status,
+      createdAt: run.created_at,
+    })),
+  });
+
+  return {
+    id: row.id,
+    agencyId: row.agency_id,
+    workflowId: row.workflow_id,
+    name: row.name,
+    description: row.description,
+    enabled: row.enabled,
+    caseCount: summary.caseCount,
+    passRate: summary.passRate,
+    lastRunAt: packRuns.length ? summary.lastRunAt : row.updated_at,
+  };
+}
+
+function mapTestCase(row: TestCaseRow, testRunRows: TestRunRow[]): TestCase {
+  const latestRun = testRunRows.find((run) => run.test_case_id === row.id);
+
+  return {
+    id: row.id,
+    agencyId: row.agency_id,
+    workflowId: row.workflow_id,
+    testPackId: row.test_pack_id,
+    name: row.name,
+    inputJson: row.input_json,
+    assertionsJson: row.assertions_json,
+    createdAt: row.created_at,
+    latestStatus: latestRun?.status ?? "not_run",
+  };
+}
+
+function mapTestRun(row: TestRunRow): TestRun {
+  return {
+    id: row.id,
+    agencyId: row.agency_id,
+    workflowId: row.workflow_id,
+    testPackId: row.test_pack_id,
+    testCaseId: row.test_case_id,
+    status: row.status,
+    statusCode: row.status_code ?? undefined,
+    latencyMs: row.latency_ms,
+    responseSummary: row.response_summary,
+    errorMessage: row.error_message ?? undefined,
+    createdAt: row.created_at,
   };
 }

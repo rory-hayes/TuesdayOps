@@ -139,7 +139,7 @@ npm run build
 
 ## Current implementation state
 
-The repository now contains the foundation, Milestones 1-3, the issue-management slice of Milestone 4, and the scheduled-check runner for Milestone 4:
+The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, and Milestone 5 synthetic test packs:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
@@ -157,6 +157,8 @@ The repository now contains the foundation, Milestones 1-3, the issue-management
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
 - scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
 - high/critical issue email alert service with Resend delivery and alert-safe redacted copy
-- domain, assertion, issue-engine, scheduler, and Playwright E2E tests
+- tenant-scoped synthetic test packs, test cases, test runs, and manual pack execution from the Checks page
+- failed synthetic test cases create deduped reportable issues linked to `test_run_id`
+- domain, assertion, issue-engine, scheduler, synthetic-runner, and Playwright E2E tests
 
-Test packs, report PDF generation, and Stripe billing are later milestones.
+Report PDF generation and Stripe billing are later milestones.

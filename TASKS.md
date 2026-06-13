@@ -230,9 +230,9 @@ Acceptance:
 
 ### T5.1 Test pack schema
 
-- [ ] Add test_packs table.
-- [ ] Add test_cases table.
-- [ ] Add test_runs table.
+- [x] Add test_packs table.
+- [x] Add test_cases table.
+- [x] Add test_runs table.
 
 Acceptance:
 
@@ -240,9 +240,9 @@ Acceptance:
 
 ### T5.2 Test pack builder UI
 
-- [ ] Add test pack page.
-- [ ] Add create test case form.
-- [ ] Add assertion builder.
+- [x] Add test pack page.
+- [x] Add create test case form.
+- [x] Add assertion builder.
 
 Acceptance:
 
@@ -250,10 +250,10 @@ Acceptance:
 
 ### T5.3 Synthetic test runner
 
-- [ ] Execute test cases against workflow endpoint.
-- [ ] Store pass/fail results.
-- [ ] Update pass rate.
-- [ ] Create issue if failure threshold met.
+- [x] Execute test cases against workflow endpoint.
+- [x] Store pass/fail results.
+- [x] Update pass rate.
+- [x] Create issue if failure threshold met.
 
 Acceptance:
 
