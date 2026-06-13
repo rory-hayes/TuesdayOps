@@ -1,5 +1,8 @@
 import { SettingsPage } from "@/components/settings/settings-page";
+import { requireWorkspace } from "@/lib/auth/workspace";
 
-export default function SettingsRoute() {
-  return <SettingsPage />;
+export default async function SettingsRoute() {
+  const workspace = await requireWorkspace();
+
+  return <SettingsPage workspace={workspace} />;
 }

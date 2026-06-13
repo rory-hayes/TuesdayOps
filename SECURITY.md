@@ -35,6 +35,13 @@ Storage requirements:
 - never log raw values
 - allow rotation/deletion
 
+Milestones 1-3 implementation:
+
+- Workflow auth config is accepted only in server actions.
+- Non-empty workflow auth config is encrypted with AES-256-GCM before persistence.
+- `WORKFLOW_AUTH_ENCRYPTION_KEY` is required before storing bearer/API/basic auth secrets.
+- Encrypted workflow auth config is used only by the server-side check runner and is not returned to protected UI components.
+
 ## Check response storage
 
 Default behavior:
@@ -44,6 +51,8 @@ Default behavior:
 - store assertion results
 - store short response summary
 - store redacted error message
+
+The current HTTP check runner stores a short response summary and redacts emails, bearer tokens, and common secret-like JSON fields before persistence.
 
 Avoid storing full raw bodies unless user explicitly enables debug mode.
 

@@ -28,7 +28,7 @@ Use for:
 
 ### E2E/smoke tests
 
-Use Playwright later for:
+Use Playwright or the in-app browser for:
 
 - sign up/login
 - create client
@@ -36,6 +36,12 @@ Use Playwright later for:
 - run check
 - create issue
 - generate report
+
+Current Milestones 1-3 E2E status:
+
+- Static verification passes with `npm run lint`, `npm run typecheck`, `npm run test`, and `npm run build`.
+- Full authenticated E2E requires a reachable Supabase Auth/Postgres environment with the migration applied.
+- Local Supabase startup was attempted, but Docker killed the database-only startup with `exit 137`; see the QA handoff report for details.
 
 ## Critical test areas
 

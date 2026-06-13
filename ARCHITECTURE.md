@@ -25,6 +25,15 @@ Browser
 
 ## 2. Core services
 
+### Current Milestones 1-3 implementation
+
+- Next.js App Router server components and server actions handle authenticated UI flows.
+- Supabase Auth manages identity through SSR cookie clients and route protection.
+- Supabase Postgres stores profiles, agencies, memberships, clients, workflows, checks, check runs, and issues.
+- Supabase RLS enforces `agency_id` membership boundaries for tenant-owned records.
+- Manual endpoint checks run synchronously from server actions and persist redacted summaries.
+- Scheduled jobs, alerts, report generation, billing, and analytics remain planned later milestones.
+
 ### Web app
 
 Responsibilities:

@@ -2,7 +2,7 @@ import { CreditCard, KeyRound, Palette, PlugZap, ShieldCheck } from "lucide-reac
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { seedData } from "@/lib/data/seed";
+import type { WorkspaceContext } from "@/lib/auth/workspace";
 
 const integrations = [
   { name: "Supabase", status: "planned", detail: "Auth, Postgres, Storage" },
@@ -11,7 +11,7 @@ const integrations = [
   { name: "Stripe", status: "planned", detail: "Billing gate and customer portal" },
 ];
 
-export function SettingsPage() {
+export function SettingsPage({ workspace }: { workspace: WorkspaceContext }) {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <section>
@@ -34,9 +34,9 @@ export function SettingsPage() {
             <ShieldCheck size={18} className="text-primary" aria-hidden="true" />
           </CardHeader>
           <CardContent className="space-y-4">
-            <SettingRow label="Agency" value={seedData.agency.name} />
-            <SettingRow label="Slug" value={seedData.agency.slug} />
-            <SettingRow label="Plan" value={seedData.agency.plan} />
+            <SettingRow label="Agency" value={workspace.agency.name} />
+            <SettingRow label="Slug" value={workspace.agency.slug} />
+            <SettingRow label="Plan" value={workspace.agency.plan} />
             <Button variant="secondary" size="sm">
               <CreditCard size={15} aria-hidden="true" />
               Manage billing
@@ -53,11 +53,11 @@ export function SettingsPage() {
             <Palette size={18} className="text-primary" aria-hidden="true" />
           </CardHeader>
           <CardContent className="space-y-4">
-            <SettingRow label="Primary color" value={seedData.agency.primaryColor} />
+            <SettingRow label="Primary color" value={workspace.agency.primaryColor} />
             <div className="flex items-center gap-3 rounded-lg bg-muted p-3">
               <div
                 className="size-10 rounded-md border border-border"
-                style={{ backgroundColor: seedData.agency.primaryColor }}
+                style={{ backgroundColor: workspace.agency.primaryColor }}
               />
               <div>
                 <p className="text-sm font-medium">Client-facing reports</p>

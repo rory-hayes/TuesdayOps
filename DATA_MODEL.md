@@ -11,7 +11,7 @@ id uuid primary key
 name text not null
 slug text unique not null
 logo_url text
-primary_color text default '#6C5CE7'
+primary_color text default '#7C6CF2'
 plan text default 'starter'
 billing_customer_id text
 created_at timestamptz default now()
@@ -28,6 +28,7 @@ name text
 email text not null
 avatar_url text
 created_at timestamptz default now()
+updated_at timestamptz default now()
 ```
 
 ## memberships
@@ -57,6 +58,7 @@ owner_user_id uuid references profiles(id)
 report_recipient_email text
 report_cadence text default 'monthly'
 notes text
+archived_at timestamptz
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
@@ -78,10 +80,28 @@ auth_type text check in ('none', 'bearer', 'api_key_header', 'basic') default 'n
 encrypted_auth_config jsonb
 check_frequency_minutes integer default 60
 status text check in ('healthy', 'degraded', 'failed', 'unknown') default 'unknown'
+pass_rate numeric default 0
+latency_ms integer default 0
+monthly_cost numeric default 0
+last_check_at timestamptz
 included_in_reports boolean default true
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
+
+## RLS and onboarding helpers
+
+Milestones 1-3 add Supabase RLS to tenant-owned tables and helper functions:
+
+```txt
+is_agency_member(target_agency_id uuid)
+has_agency_role(target_agency_id uuid, allowed_roles text[])
+create_agency_for_current_user(agency_name text, agency_slug text, agency_primary_color text)
+```
+
+`create_agency_for_current_user` creates the agency and first owner membership atomically so direct membership inserts are not opened to unauthenticated or unrelated users.
+
+Tenant-owned child records also use composite foreign keys with `agency_id` where practical. For example, a workflow references `(client_id, agency_id) -> clients(id, agency_id)`, and check runs reference tenant-matched client, workflow, and check rows. This prevents a row in one agency from pointing at another agency's object by UUID.
 
 ## checks
 

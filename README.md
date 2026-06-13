@@ -94,13 +94,28 @@ Install dependencies:
 npm install
 ```
 
+Create `.env.local` from `.env.example` or `ENV_EXAMPLE.md`.
+
+Required for the authenticated MVP paths:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+WORKFLOW_AUTH_ENCRYPTION_KEY=
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+`SUPABASE_SECRET_KEY` is reserved for future server-side/admin operations and must never be exposed to the browser.
+
+Local Supabase uses the repo `supabase/config.toml` port range `55420-55429` to avoid clashes with other local Supabase projects.
+
 Run the app:
 
 ```bash
 npm run dev
 ```
 
-Verify the foundation:
+Verify the app:
 
 ```bash
 npm run lint
@@ -116,14 +131,18 @@ npm run build
 
 ## Current implementation state
 
-The repository now contains the first MVP foundation slice:
+The repository now contains the foundation plus Milestones 1-3 implementation:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
 - TuesdayOps app shell
-- seeded operational domain data
-- overview dashboard
-- clients, workflows, checks, issues, reports, and settings screens
-- domain summary tests
+- Supabase SSR auth clients and protected app routes
+- agency onboarding through a tenant-safe Supabase RPC
+- Supabase migration for profiles, agencies, memberships, clients, workflows, checks, check runs, and issues
+- tenant-scoped overview, clients, workflows, checks, issues, reports, and settings screens
+- client create/update/archive server actions
+- workflow creation with encrypted auth config handling
+- endpoint health check creation, manual run execution, assertion evaluation, and check run persistence
+- domain and assertion tests
 
-The app currently uses seeded data. Real Supabase auth, tenant-scoped persistence, scheduled check jobs, alerts, report PDF generation, and Stripe billing are the next implementation milestones.
+Scheduled checks, issue creation/deduplication, alerts, test packs, report PDF generation, and Stripe billing are later milestones.
