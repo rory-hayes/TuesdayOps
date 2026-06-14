@@ -38,3 +38,4 @@ Track meaningful product and engineering changes here.
 - Validated production app URL readiness and surfaced Stripe billing setup errors without crashing Settings.
 - Began the Catalyst UI migration with Inter/zinc design tokens, Catalyst-style shared button/card/badge primitives, sidebar and auth layouts, a sidebar Clients section with New Client modal, Catalyst-style overview stats, and client detail drill-down pages.
 - Continued the Catalyst/Tailwind Plus UI pass with a Headless UI Add Workflow onboarding modal, hydration-safe client/workflow triggers, user-facing Settings cleanup, and stabilized server-action E2E waits.
+- Removed the user-facing demo seeding option, added issue and report detail drill-down pages, improved server-action pending/success feedback, fixed report PDF download anchors, and made plan-limit upgrade prompts route to billing.

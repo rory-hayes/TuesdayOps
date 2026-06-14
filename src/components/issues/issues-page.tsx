@@ -1,10 +1,13 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import type { IssueSeverity, IssueStatus } from "@/lib/domain/types";
 import { CheckCircle2, Filter, LifeBuoy, UserPlus, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import {
   assignIssueToMeAction,
   ignoreIssueAction,
@@ -22,6 +25,7 @@ export type IssueFilters = {
   clientId?: string;
   workflowId?: string;
   error?: string;
+  notice?: string;
 };
 
 export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; filters?: IssueFilters }) {
@@ -57,7 +61,7 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
         </p>
       </section>
 
-      {filters.error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{filters.error}</p> : null}
+      <PageFeedback notice={filters.notice} error={filters.error} />
 
       <section className="grid gap-4 md:grid-cols-4">
         {issueStatuses.map((status) => (
@@ -121,12 +125,12 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
               </Button>
             </div>
             <div className="flex items-end">
-              <a
+              <Link
                 href="/issues"
                 className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground shadow-sm transition-colors hover:border-[#d7d0ca] hover:bg-muted"
               >
                 Reset
-              </a>
+              </Link>
             </div>
           </form>
         </CardContent>
@@ -165,7 +169,11 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                       </Badge>
                       <StatusBadge status={issue.status} />
                     </div>
-                    <h3 className="mt-3 font-semibold">{issue.title}</h3>
+                    <h3 className="mt-3 font-semibold">
+                      <Link href={`/issues/${issue.id}`} className="hover:text-primary hover:underline">
+                        {issue.title}
+                      </Link>
+                    </h3>
                     <p className="mt-2 text-sm leading-6 text-muted-foreground">{issue.description}</p>
                   </div>
                   <p className="text-sm text-muted-foreground">{formatRelativeTime(issue.lastSeenAt)}</p>
@@ -197,17 +205,17 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                     <div className="mt-4 grid gap-3 lg:grid-cols-[auto_auto_minmax(260px,1fr)]">
                       <form action={assignIssueToMeAction}>
                         <input type="hidden" name="issueId" value={issue.id} />
-                        <Button type="submit" size="sm" variant="secondary">
+                        <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Assigning...">
                           <UserPlus size={14} aria-hidden="true" />
                           Assign
-                        </Button>
+                        </FormSubmitButton>
                       </form>
                       <form action={ignoreIssueAction}>
                         <input type="hidden" name="issueId" value={issue.id} />
-                        <Button type="submit" size="sm" variant="ghost">
+                        <FormSubmitButton type="submit" size="sm" variant="ghost" pendingLabel="Ignoring...">
                           <XCircle size={14} aria-hidden="true" />
                           Ignore
-                        </Button>
+                        </FormSubmitButton>
                       </form>
                       <form action={resolveIssueAction} className="grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
                         <input type="hidden" name="issueId" value={issue.id} />
@@ -221,11 +229,11 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                             required
                           />
                         </label>
-                        <div className="flex items-end">
-                          <Button type="submit" size="sm">
+                        <div className="flex items-center">
+                          <FormSubmitButton type="submit" size="sm" pendingLabel="Resolving...">
                             <CheckCircle2 size={14} aria-hidden="true" />
                             Resolve
-                          </Button>
+                          </FormSubmitButton>
                         </div>
                       </form>
                     </div>

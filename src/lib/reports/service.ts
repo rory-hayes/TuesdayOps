@@ -69,9 +69,10 @@ export async function generateReportAction(formData: FormData) {
     periodStart: period.periodStart,
     periodEnd: period.periodEnd,
   });
+  let reportId: string;
 
   try {
-    const reportId = await saveReportDraft({
+    reportId = await saveReportDraft({
       supabase,
       agencyId: workspace.agency.id,
       draft,
@@ -92,7 +93,7 @@ export async function generateReportAction(formData: FormData) {
   }
 
   revalidatePath("/reports");
-  redirect("/reports");
+  redirect(`/reports/${reportId}?notice=${encodeURIComponent("Report generated.")}`);
 }
 
 export async function generateReportPdfAction(formData: FormData) {
@@ -126,7 +127,8 @@ export async function generateReportPdfAction(formData: FormData) {
   }
 
   revalidatePath("/reports");
-  redirect("/reports");
+  revalidatePath(`/reports/${parsed.data.reportId}`);
+  redirect(`/reports/${parsed.data.reportId}?notice=${encodeURIComponent("PDF is ready to download.")}`);
 }
 
 export async function sendReportAction(formData: FormData) {
@@ -208,7 +210,8 @@ export async function sendReportAction(formData: FormData) {
   }
 
   revalidatePath("/reports");
-  redirect("/reports");
+  revalidatePath(`/reports/${parsed.data.reportId}`);
+  redirect(`/reports/${parsed.data.reportId}?notice=${encodeURIComponent("Report email attempt recorded.")}`);
 }
 
 async function saveReportDraft({

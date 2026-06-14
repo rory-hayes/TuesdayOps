@@ -23,7 +23,6 @@ export default async function Home({ searchParams }: HomeProps) {
     >
       <OverviewDashboard
         data={data}
-        notice={readSampleNotice(readParam(params.sample))}
         error={readParam(params.error)}
       />
     </AppShell>
@@ -32,16 +31,4 @@ export default async function Home({ searchParams }: HomeProps) {
 
 function readParam(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function readSampleNotice(value: string | undefined): string | undefined {
-  if (value === "seeded") {
-    return "Demo data is ready.";
-  }
-
-  if (value === "already") {
-    return "Demo data was already seeded.";
-  }
-
-  return undefined;
 }

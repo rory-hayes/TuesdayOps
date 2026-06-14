@@ -42,6 +42,7 @@ export async function GET(_request: Request, { params }: ReportDownloadRouteProp
     headers: {
       "content-type": "application/pdf",
       "content-disposition": `attachment; filename="tuesdayops-report-${reportId}.pdf"`,
+      "cache-control": "private, no-store",
     },
   });
 }

@@ -81,7 +81,7 @@ test("workflow can be imported from a cURL command", async ({ page, baseURL }) =
   await expect(importForm.getByRole("button", { name: "Import workflow" })).toBeEnabled();
 
   await Promise.all([
-    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 30_000, waitUntil: "commit" }),
+    page.waitForURL(/\/workflows\/[0-9a-f-]+(?:\?.*)?$/, { timeout: 30_000, waitUntil: "commit" }),
     importForm.getByRole("button", { name: "Import workflow" }).click(),
   ]);
 

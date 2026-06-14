@@ -2,8 +2,9 @@ import Link from "next/link";
 import { ArrowLeft, LockKeyhole, Play, Plus } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
 import { updateWorkflowAction } from "@/lib/workflows/service";
@@ -12,10 +13,12 @@ import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/form
 export function WorkflowDetailPage({
   data,
   workflow,
+  notice,
   error,
 }: {
   data: TuesdayOpsSeedData;
   workflow: Workflow;
+  notice?: string;
   error?: string;
 }) {
   const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
@@ -38,7 +41,7 @@ export function WorkflowDetailPage({
         <StatusBadge status={workflow.status} />
       </section>
 
-      {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
+      <PageFeedback notice={notice} error={error} />
 
       <section className="grid gap-4 md:grid-cols-4">
         <Stat label="Pass rate" value={formatPercentage(workflow.passRate)} />
@@ -47,8 +50,8 @@ export function WorkflowDetailPage({
         <Stat label="Last check" value={formatRelativeTime(workflow.lastCheckAt)} />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <div className="grid gap-6">
+      <section className="grid items-start gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <div className="grid content-start gap-6">
           <Card>
             <CardHeader>
               <h2 className="text-base font-semibold">Endpoint</h2>
@@ -142,9 +145,9 @@ export function WorkflowDetailPage({
                   />
                   Include in reports
                 </label>
-                <Button type="submit" className="w-fit">
+                <FormSubmitButton type="submit" className="w-fit" pendingLabel="Saving...">
                   Save workflow
-                </Button>
+                </FormSubmitButton>
               </form>
             </CardContent>
           </Card>
@@ -163,16 +166,16 @@ export function WorkflowDetailPage({
                   <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required />
                   <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required />
                 </div>
-                <Button type="submit" className="w-fit">
+                <FormSubmitButton type="submit" className="w-fit" pendingLabel="Adding...">
                   <Plus size={15} aria-hidden="true" />
                   Add check
-                </Button>
+                </FormSubmitButton>
               </form>
             </CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-6">
+        <div className="grid content-start gap-6">
           <Card>
             <CardHeader>
               <h2 className="text-base font-semibold">Checks</h2>
@@ -194,10 +197,10 @@ export function WorkflowDetailPage({
                         <StatusBadge status={check.latestStatus} />
                         <form action={runCheckAction}>
                           <input type="hidden" name="checkId" value={check.id} />
-                          <Button type="submit" size="sm">
+                          <FormSubmitButton type="submit" size="sm" pendingLabel="Running...">
                             <Play size={14} aria-hidden="true" />
                             Run
-                          </Button>
+                          </FormSubmitButton>
                         </form>
                       </div>
                     </div>

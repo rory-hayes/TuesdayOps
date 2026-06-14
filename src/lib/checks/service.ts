@@ -54,7 +54,7 @@ export async function createCheckAction(formData: FormData) {
 
   revalidatePath("/checks");
   revalidatePath(`/workflows/${parsed.data.workflowId}`);
-  redirect(`/workflows/${parsed.data.workflowId}`);
+  redirect(`/workflows/${parsed.data.workflowId}?notice=${encodeURIComponent("Check added.")}`);
 }
 
 export async function runCheckAction(formData: FormData) {
@@ -97,7 +97,7 @@ export async function runCheckAction(formData: FormData) {
   revalidatePath("/workflows");
   revalidatePath("/issues");
   revalidatePath("/");
-  redirect(`/workflows/${workflowId}`);
+  redirect(`/workflows/${workflowId}?notice=${encodeURIComponent("Check run completed and history was updated.")}`);
 }
 
 async function recordCheckRunAuditEvent({

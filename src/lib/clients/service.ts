@@ -65,7 +65,7 @@ export async function createClientAction(formData: FormData) {
 
   revalidatePath("/clients");
   revalidatePath("/");
-  redirect("/clients");
+  redirect(`/clients?notice=${encodeURIComponent("Client added.")}`);
 }
 
 export async function updateClientAction(formData: FormData) {
@@ -100,7 +100,7 @@ export async function updateClientAction(formData: FormData) {
 
   revalidatePath("/clients");
   revalidatePath("/");
-  redirect("/clients");
+  redirect(`/clients?notice=${encodeURIComponent("Client saved.")}`);
 }
 
 export async function archiveClientAction(formData: FormData) {
@@ -124,5 +124,5 @@ export async function archiveClientAction(formData: FormData) {
 
   revalidatePath("/clients");
   revalidatePath("/");
-  redirect("/clients");
+  redirect(`/clients?notice=${encodeURIComponent("Client archived.")}`);
 }

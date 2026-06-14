@@ -96,7 +96,7 @@ export async function createWorkflowAction(formData: FormData) {
   revalidatePath("/workflows");
   revalidatePath("/checks");
   revalidatePath("/");
-  redirect(`/workflows/${workflowId}`);
+  redirect(`/workflows/${workflowId}?notice=${encodeURIComponent("Workflow added. Run its first check when ready.")}`);
 }
 
 const importWorkflowFormSchema = z.object({
@@ -162,7 +162,7 @@ export async function createWorkflowFromImportAction(formData: FormData) {
   revalidatePath("/workflows");
   revalidatePath("/checks");
   revalidatePath("/");
-  redirect(`/workflows/${workflowId}`);
+  redirect(`/workflows/${workflowId}?notice=${encodeURIComponent("Workflow imported and health check created.")}`);
 }
 
 const workflowUpdateFormSchema = workflowBaseFormSchema
@@ -233,7 +233,7 @@ export async function updateWorkflowAction(formData: FormData) {
   revalidatePath("/workflows");
   revalidatePath(`/workflows/${parsed.data.id}`);
   revalidatePath("/");
-  redirect(`/workflows/${parsed.data.id}`);
+  redirect(`/workflows/${parsed.data.id}?notice=${encodeURIComponent("Workflow saved.")}`);
 }
 
 type WorkflowCreateInput = {

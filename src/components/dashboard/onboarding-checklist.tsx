@@ -1,20 +1,15 @@
 import Link from "next/link";
-import { CheckCircle2, Circle, Database, PlayCircle } from "lucide-react";
-import { seedSampleDataAction } from "@/lib/sample-data/service";
+import { CheckCircle2, Circle } from "lucide-react";
 import { buildOnboardingProgress } from "@/lib/onboarding/progress";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 type OnboardingChecklistProps = {
   data: TuesdayOpsSeedData;
-  notice?: string;
-  error?: string;
 };
 
-export function OnboardingChecklist({ data, notice, error }: OnboardingChecklistProps) {
+export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
   const progress = buildOnboardingProgress(data);
-  const sampleDataSeeded = Boolean(data.agency.sampleDataSeededAt);
 
   return (
     <Card>
@@ -36,7 +31,7 @@ export function OnboardingChecklist({ data, notice, error }: OnboardingChecklist
           </div>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+      <CardContent>
         <div className="grid gap-3 md:grid-cols-5">
           {progress.steps.map((step) => {
             const Icon = step.complete ? CheckCircle2 : Circle;
@@ -59,39 +54,6 @@ export function OnboardingChecklist({ data, notice, error }: OnboardingChecklist
               </Link>
             );
           })}
-        </div>
-
-        <div className="rounded-lg border border-border bg-muted p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-              <Database size={17} aria-hidden="true" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold">Demo data</p>
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Seed a client, workflow, check runs, issue, test pack, and report.
-              </p>
-            </div>
-          </div>
-
-          {notice ? <p className="mt-3 rounded-md bg-success-background p-2 text-xs text-success">{notice}</p> : null}
-          {error ? <p className="mt-3 rounded-md bg-danger-background p-2 text-xs text-danger">{error}</p> : null}
-
-          <form action={seedSampleDataAction} className="mt-4">
-            <Button type="submit" size="sm" variant={sampleDataSeeded ? "secondary" : "primary"} disabled={sampleDataSeeded}>
-              <PlayCircle size={15} aria-hidden="true" />
-              {sampleDataSeeded ? "Demo seeded" : "Seed demo data"}
-            </Button>
-          </form>
-
-          {progress.nextStep ? (
-            <Link
-              href={progress.nextStep.href}
-              className="mt-3 inline-flex text-xs font-medium text-primary hover:underline"
-            >
-              Continue: {progress.nextStep.label}
-            </Link>
-          ) : null}
         </div>
       </CardContent>
     </Card>

@@ -10,6 +10,7 @@ export default async function ReportsRoute({ searchParams }: ReportsRouteProps) 
   const [workspace, params] = await Promise.all([requireWorkspace(), searchParams]);
   const data = await getOperationalData(workspace.agency);
   const error = Array.isArray(params.error) ? params.error[0] : params.error;
+  const notice = Array.isArray(params.notice) ? params.notice[0] : params.notice;
 
-  return <ReportsPage data={data} error={error} />;
+  return <ReportsPage data={data} notice={notice} error={error} />;
 }

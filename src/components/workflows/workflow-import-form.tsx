@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, LockKeyhole, Plus, Timer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   WORKFLOW_ONBOARDING_TEMPLATES,
   parseWorkflowImport,
@@ -188,10 +188,10 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
         </div>
 
         <ImportPreview preview={preview} displayName={displayName} />
-        <Button type="submit" disabled={!canSubmit} className="lg:col-start-1 lg:w-fit">
+        <FormSubmitButton type="submit" disabled={!canSubmit} className="lg:col-start-1 lg:w-fit" pendingLabel="Importing...">
           <Plus size={15} aria-hidden="true" />
           Import workflow
-        </Button>
+        </FormSubmitButton>
       </form>
     </div>
   );

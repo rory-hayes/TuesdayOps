@@ -5,6 +5,9 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
+import { createCheckoutSessionAction } from "@/lib/billing/service";
 import { archiveClientAction, createClientAction, updateClientAction } from "@/lib/clients/service";
 import { getOpenIssues } from "@/lib/domain/summaries";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
@@ -12,10 +15,12 @@ import { formatRelativeTime } from "@/lib/formatting";
 
 export function ClientsPage({
   data,
+  notice,
   error,
   query,
 }: {
   data: TuesdayOpsSeedData;
+  notice?: string;
   error?: string;
   query?: string;
 }) {
@@ -48,7 +53,14 @@ export function ClientsPage({
         <PortfolioTile label="Open issues" value={openIssues.length.toString()} detail="Reportable queue" />
       </section>
 
-      {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
+      <PageFeedback notice={notice} error={error} />
+      {error?.toLowerCase().includes("upgrade") ? (
+        <form action={createCheckoutSessionAction} className="-mt-3">
+          <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Opening billing...">
+            Click here to upgrade
+          </FormSubmitButton>
+        </form>
+      ) : null}
 
       <Card>
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -143,19 +155,19 @@ export function ClientsPage({
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <div className="flex gap-2">
-                            <Button type="submit" size="sm">
+                            <FormSubmitButton type="submit" size="sm" pendingLabel="Saving...">
                               <Save size={14} aria-hidden="true" />
                               Save
-                            </Button>
+                            </FormSubmitButton>
                           </div>
                         </form>
                         {!client.archived ? (
                           <form action={archiveClientAction} className="mt-2">
                             <input type="hidden" name="id" value={client.id} />
-                            <Button type="submit" variant="secondary" size="sm">
+                            <FormSubmitButton type="submit" variant="secondary" size="sm" pendingLabel="Archiving...">
                               <Archive size={14} aria-hidden="true" />
                               Archive
-                            </Button>
+                            </FormSubmitButton>
                           </form>
                         ) : null}
                       </details>

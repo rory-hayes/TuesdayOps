@@ -8,7 +8,7 @@ const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
 };
 
-test("onboarding checklist can seed a useful demo workspace", async ({ page, baseURL }) => {
+test("onboarding checklist does not expose demo seeding", async ({ page, baseURL }) => {
   test.skip(!hasRequiredEnv(), "Onboarding demo E2E requires Supabase service credentials.");
 
   const appUrl = baseURL ?? "http://localhost:3000";
@@ -42,21 +42,8 @@ test("onboarding checklist can seed a useful demo workspace", async ({ page, bas
 
   await expect(page.getByText("Activation path")).toBeVisible();
   await expect(page.getByText("1 of 5")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Seed demo data" })).toBeVisible();
-
-  await Promise.all([
-    page.waitForURL((url) => url.pathname === "/" && url.searchParams.get("sample") === "seeded", {
-      timeout: 15_000,
-      waitUntil: "commit",
-    }),
-    page.getByRole("button", { name: "Seed demo data" }).click(),
-  ]);
-
-  await expect(page.getByText("Demo data is ready.")).toBeVisible();
-  await expect(page.getByText("5 of 5")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Demo seeded" })).toBeDisabled();
-  await expect(page.getByRole("cell", { name: "Lead Intake Assistant" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "Acme AI Support" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Seed demo data" })).not.toBeVisible();
+  await expect(page.getByText("Demo data")).not.toBeVisible();
 
   const membership = await poll(async () => {
     const rows = await getRows<MembershipRow>(
@@ -70,42 +57,7 @@ test("onboarding checklist can seed a useful demo workspace", async ({ page, bas
     "clients",
     `agency_id=eq.${membership.agency_id}&slug=eq.acme-ai-support-demo&select=id,name`,
   );
-  expect(clients).toHaveLength(1);
-
-  const workflows = await getRows<WorkflowRow>(
-    "workflows",
-    `agency_id=eq.${membership.agency_id}&client_id=eq.${clients[0].id}&select=id,name,auth_type`,
-  );
-  expect(workflows).toEqual([
-    expect.objectContaining({ name: "Lead Intake Assistant", auth_type: "none" }),
-  ]);
-
-  const issues = await getRows<IssueRow>(
-    "issues",
-    `agency_id=eq.${membership.agency_id}&workflow_id=eq.${workflows[0].id}&select=id,title,status,reportable`,
-  );
-  expect(issues).toEqual([
-    expect.objectContaining({
-      title: "Lead intake assistant returned 500 errors",
-      status: "open",
-      reportable: true,
-    }),
-  ]);
-
-  const reports = await getRows<ReportRow>(
-    "reports",
-    `agency_id=eq.${membership.agency_id}&client_id=eq.${clients[0].id}&select=id,status,summary`,
-  );
-  expect(reports).toEqual([
-    expect.objectContaining({
-      status: "ready_to_send",
-    }),
-  ]);
-
-  await page.goto("/reports", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: /Acme AI Support June/ })).toBeVisible();
-  await page.goto("/issues", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Lead intake assistant returned 500 errors" })).toBeVisible();
+  expect(clients).toHaveLength(0);
 });
 
 type UserRow = {
@@ -119,25 +71,6 @@ type MembershipRow = {
 type ClientRow = {
   id: string;
   name: string;
-};
-
-type WorkflowRow = {
-  id: string;
-  name: string;
-  auth_type: string;
-};
-
-type IssueRow = {
-  id: string;
-  title: string;
-  status: string;
-  reportable: boolean;
-};
-
-type ReportRow = {
-  id: string;
-  status: string;
-  summary: string;
 };
 
 async function createConfirmedUser({ email, password }: { email: string; password: string }) {

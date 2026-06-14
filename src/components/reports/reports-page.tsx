@@ -4,6 +4,8 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { getOpenIssues, getPortfolioSummary } from "@/lib/domain/summaries";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatDateTime, formatPercentage } from "@/lib/formatting";
@@ -17,9 +19,11 @@ import { cn } from "@/lib/utils";
 
 export function ReportsPage({
   data,
+  notice,
   error,
 }: {
   data: TuesdayOpsSeedData;
+  notice?: string;
   error?: string;
 }) {
   const summary = getPortfolioSummary(data);
@@ -45,7 +49,7 @@ export function ReportsPage({
           </p>
         </div>
 
-        {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
+        <PageFeedback notice={notice} error={error} />
 
         <Card>
           <CardHeader>
@@ -83,10 +87,10 @@ export function ReportsPage({
                     className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
                   />
                 </label>
-                <Button type="submit" className="self-end">
+                <FormSubmitButton type="submit" className="self-end" pendingLabel="Generating...">
                   <FileText size={15} aria-hidden="true" />
                   Generate
-                </Button>
+                </FormSubmitButton>
               </form>
             ) : (
               <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
@@ -103,7 +107,11 @@ export function ReportsPage({
           <CardContent className="space-y-3">
             {data.reports.length ? (
               data.reports.map((item) => (
-                <div key={item.id} className="rounded-lg border border-border p-4">
+                <Link
+                  key={item.id}
+                  href={`/reports/${item.id}`}
+                  className="block rounded-lg border border-border p-4 transition-colors hover:border-primary/40 hover:bg-muted"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium">{item.clientName}</p>
@@ -121,7 +129,7 @@ export function ReportsPage({
                       {item.sendError}
                     </p>
                   ) : null}
-                </div>
+                </Link>
               ))
             ) : (
               <p className="rounded-lg bg-muted p-4 text-sm leading-6 text-muted-foreground">
@@ -145,22 +153,23 @@ export function ReportsPage({
           </div>
           <div className="flex gap-2">
             {activeReport?.pdfUrl ? (
-              <Link
+              <a
                 href={activeReport.pdfUrl}
+                download
                 className={cn(
                   "inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border bg-card px-3 text-xs font-medium text-foreground shadow-sm transition-colors hover:border-[#d7d0ca] hover:bg-muted",
                 )}
               >
                 <Download size={15} aria-hidden="true" />
                 PDF
-              </Link>
+              </a>
             ) : activeReport ? (
               <form action={generateReportPdfAction}>
                 <input type="hidden" name="reportId" value={activeReport.id} />
-                <Button variant="secondary" size="sm" type="submit">
+                <FormSubmitButton variant="secondary" size="sm" type="submit" pendingLabel="Preparing...">
                   <Download size={15} aria-hidden="true" />
                   PDF
-                </Button>
+                </FormSubmitButton>
               </form>
             ) : (
               <Button variant="secondary" size="sm" disabled>
@@ -171,10 +180,10 @@ export function ReportsPage({
             {activeReport ? (
               <form action={sendReportAction}>
                 <input type="hidden" name="reportId" value={activeReport.id} />
-                <Button size="sm" type="submit">
+                <FormSubmitButton size="sm" type="submit" pendingLabel="Sending...">
                   <Send size={15} aria-hidden="true" />
                   Send
-                </Button>
+                </FormSubmitButton>
               </form>
             ) : (
               <Button size="sm" disabled>

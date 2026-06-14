@@ -20,10 +20,11 @@ export default async function WorkflowDetailRoute({
   const data = await getOperationalData(workspace.agency);
   const workflow = data.workflows.find((candidate) => candidate.id === routeParams.workflowId);
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
+  const notice = Array.isArray(query.notice) ? query.notice[0] : query.notice;
 
   if (!workflow) {
     notFound();
   }
 
-  return <WorkflowDetailPage data={data} workflow={workflow} error={error} />;
+  return <WorkflowDetailPage data={data} workflow={workflow} notice={notice} error={error} />;
 }

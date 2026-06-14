@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { cn } from "@/lib/utils";
 
 type NewClientDialogProps = {
@@ -93,10 +94,10 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
                 <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit">
+                <FormSubmitButton type="submit" pendingLabel="Adding...">
                   <PlusIcon aria-hidden="true" />
                   Add client
-                </Button>
+                </FormSubmitButton>
               </div>
             </form>
           </DialogPanel>

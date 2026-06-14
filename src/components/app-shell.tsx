@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   ArrowRightStartOnRectangleIcon,
-  BellIcon,
   ChartBarSquareIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
@@ -75,18 +74,6 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
               )}
             </SidebarSection>
 
-            <div className="mt-auto">
-              <SidebarSection>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <BellIcon aria-hidden="true" />
-                  Alerts
-                </Button>
-                <Button variant="ghost" size="sm" className="w-full justify-start">
-                  <ShieldCheckIcon aria-hidden="true" />
-                  Run check
-                </Button>
-              </SidebarSection>
-            </div>
           </nav>
 
           <div className="border-t border-zinc-950/5 p-3">

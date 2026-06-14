@@ -33,6 +33,7 @@ function parseFilters(params: Record<string, string | string[] | undefined>): Is
     clientId: firstParam(params.clientId),
     workflowId: firstParam(params.workflowId),
     error: firstParam(params.error),
+    notice: firstParam(params.notice),
   };
 }
 

@@ -4,15 +4,20 @@ import { StatusBadge } from "@/components/status-badge";
 import { AddWorkflowDialog } from "@/components/workflows/add-workflow-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
+import { createCheckoutSessionAction } from "@/lib/billing/service";
 import { createWorkflowAction, createWorkflowFromImportAction } from "@/lib/workflows/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatCurrency, formatPercentage, formatRelativeTime } from "@/lib/formatting";
 
 export function WorkflowsPage({
   data,
+  notice,
   error,
 }: {
   data: TuesdayOpsSeedData;
+  notice?: string;
   error?: string;
 }) {
   const activeClients = data.clients
@@ -38,7 +43,14 @@ export function WorkflowsPage({
         />
       </section>
 
-      {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
+      <PageFeedback notice={notice} error={error} />
+      {error?.toLowerCase().includes("upgrade") ? (
+        <form action={createCheckoutSessionAction} className="-mt-3">
+          <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Opening billing...">
+            Click here to upgrade
+          </FormSubmitButton>
+        </form>
+      ) : null}
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">

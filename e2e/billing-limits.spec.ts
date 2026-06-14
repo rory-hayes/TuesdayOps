@@ -134,7 +134,7 @@ async function createWorkflow(
   }
 
   await Promise.all([
-    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 30_000, waitUntil: "commit" }),
+    page.waitForURL(/\/workflows\/[0-9a-f-]+(?:\?.*)?$/, { timeout: 30_000, waitUntil: "commit" }),
     workflowForm.getByRole("button", { name: "Create workflow" }).click(),
   ]);
 }

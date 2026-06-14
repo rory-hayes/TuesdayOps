@@ -3,6 +3,7 @@ import { Clock3, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { getOpenIssues, getPortfolioSummary, getWorkflowHealthRows } from "@/lib/domain/summaries";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
@@ -43,7 +44,9 @@ export function OverviewDashboard({
         </label>
       </section>
 
-      <OnboardingChecklist data={data} notice={notice} error={error} />
+      <PageFeedback notice={notice} error={error} />
+
+      <OnboardingChecklist data={data} />
 
       <section className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
         <OverviewStat label="Active clients" value={summary.activeClients.toString()} detail="retainers under monitoring" tone="positive" />
@@ -110,13 +113,17 @@ export function OverviewDashboard({
             <CardContent className="space-y-4">
               {openIssues.length ? (
                 openIssues.slice(0, 4).map((issue) => (
-                  <div key={issue.id} className="rounded-lg border border-border p-3">
+                  <Link
+                    key={issue.id}
+                    href={`/issues/${issue.id}`}
+                    className="block rounded-lg border border-border p-3 transition-colors hover:border-primary/40 hover:bg-muted"
+                  >
                     <div className="flex items-start justify-between gap-3">
                       <p className="text-sm font-medium">{issue.title}</p>
                       <StatusBadge status={issue.status} />
                     </div>
                     <p className="mt-2 text-xs leading-5 text-muted-foreground">{issue.suggestedAction}</p>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">

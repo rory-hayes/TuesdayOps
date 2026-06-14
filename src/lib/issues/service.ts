@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 
 const issueIdSchema = z.object({
   issueId: z.string().uuid(),
+  returnTo: z.string().trim().optional(),
 });
 
 const resolveIssueSchema = issueIdSchema.extend({
@@ -44,7 +45,7 @@ export async function assignIssueToMeAction(formData: FormData) {
 
   revalidatePath("/issues");
   revalidatePath("/");
-  redirect("/issues?status=in_review");
+  redirect(buildIssueRedirect(parsed.data.returnTo, "/issues?status=in_review", "Issue assigned."));
 }
 
 export async function resolveIssueAction(formData: FormData) {
@@ -79,7 +80,7 @@ export async function resolveIssueAction(formData: FormData) {
 
   revalidatePath("/issues");
   revalidatePath("/");
-  redirect("/issues?status=resolved");
+  redirect(buildIssueRedirect(parsed.data.returnTo, "/issues?status=resolved", "Issue resolved."));
 }
 
 export async function ignoreIssueAction(formData: FormData) {
@@ -115,7 +116,16 @@ export async function ignoreIssueAction(formData: FormData) {
 
   revalidatePath("/issues");
   revalidatePath("/");
-  redirect("/issues?status=ignored");
+  redirect(buildIssueRedirect(parsed.data.returnTo, "/issues?status=ignored", "Issue ignored."));
+}
+
+function buildIssueRedirect(returnTo: string | undefined, fallback: string, notice: string) {
+  if (returnTo?.startsWith("/issues/")) {
+    return `${returnTo}?notice=${encodeURIComponent(notice)}`;
+  }
+
+  const separator = fallback.includes("?") ? "&" : "?";
+  return `${fallback}${separator}notice=${encodeURIComponent(notice)}`;
 }
 
 async function recordIssueAuditEvent({

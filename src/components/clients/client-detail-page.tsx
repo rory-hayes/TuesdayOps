@@ -34,7 +34,7 @@ export function ClientDetailPage({
           </div>
           <Link
             href="/workflows"
-            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-zinc-900 px-3.5 text-sm/6 font-semibold text-white shadow-sm hover:bg-zinc-800"
+            className="inline-flex h-9 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-zinc-950/10 bg-white px-3.5 text-sm/6 font-semibold text-zinc-950 shadow-sm hover:bg-zinc-50"
           >
             <PlusIcon className="size-4" aria-hidden="true" />
             Add workflow
@@ -68,9 +68,9 @@ export function ClientDetailPage({
               <tbody>
                 {workflows.length ? (
                   workflows.map((workflow) => (
-                    <tr key={workflow.id} className="border-b border-zinc-950/5 last:border-0">
+                    <tr key={workflow.id} className="group border-b border-zinc-950/5 transition-colors hover:bg-zinc-50 last:border-0">
                       <td className="px-5 py-4">
-                        <Link href={`/workflows/${workflow.id}`} className="font-medium text-zinc-950 hover:text-zinc-700">
+                        <Link href={`/workflows/${workflow.id}`} className="font-medium text-zinc-950 group-hover:text-primary group-hover:underline">
                           {workflow.name}
                         </Link>
                         <p className="mt-1 max-w-[24rem] truncate text-xs/5 text-zinc-500">
@@ -123,12 +123,16 @@ export function ClientDetailPage({
             <CardContent className="grid gap-3">
               {reports.length ? (
                 reports.slice(0, 3).map((report) => (
-                  <div key={report.id} className="rounded-lg border border-zinc-950/10 p-3">
+                  <Link
+                    key={report.id}
+                    href={`/reports/${report.id}`}
+                    className="block rounded-lg border border-zinc-950/10 p-3 transition-colors hover:border-primary/40 hover:bg-zinc-50"
+                  >
                     <p className="text-sm/6 font-medium text-zinc-950">{report.periodLabel}</p>
                     <p className="mt-1 text-xs/5 text-zinc-500">
                       {report.checksRun} checks, {formatPercentage(report.passRate)} pass rate
                     </p>
-                  </div>
+                  </Link>
                 ))
               ) : (
                 <p className="text-sm/6 text-zinc-500">No reports generated yet.</p>

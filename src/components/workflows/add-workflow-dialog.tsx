@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { WorkflowImportForm } from "@/components/workflows/workflow-import-form";
 
 type ClientOption = {
@@ -275,10 +276,10 @@ function ManualWorkflowForm({
             className="mt-2 w-full rounded-lg border border-zinc-950/10 bg-white px-3 py-2 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
           />
         </label>
-        <Button type="submit" className="md:col-span-4 md:w-fit">
+        <FormSubmitButton type="submit" className="md:col-span-4 md:w-fit" pendingLabel="Creating...">
           <Plus size={15} aria-hidden="true" />
           Create workflow
-        </Button>
+        </FormSubmitButton>
       </form>
     </div>
   );

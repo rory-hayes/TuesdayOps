@@ -74,11 +74,11 @@ test("high-severity scheduled issue records an alert attempt", async ({ page, ba
   await page.getByLabel("Max latency ms").fill("5000");
   const workflowForm = page.locator("form").filter({ has: page.locator('input[name="endpointUrl"]') });
   await Promise.all([
-    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 30_000, waitUntil: "commit" }),
+    page.waitForURL(/\/workflows\/[0-9a-f-]+(?:\?.*)?$/, { timeout: 30_000, waitUntil: "commit" }),
     workflowForm.getByRole("button", { name: "Create workflow" }).click(),
   ]);
 
-  const workflowId = page.url().split("/").pop();
+  const workflowId = new URL(page.url()).pathname.split("/").pop();
   expect(workflowId).toBeTruthy();
 
   const check = await poll(async () => {
