@@ -33,12 +33,14 @@ Browser
 - Supabase RLS enforces `agency_id` membership boundaries for tenant-owned records.
 - Manual endpoint checks run synchronously from server actions and persist redacted summaries.
 - Workflow endpoint URLs are validated before storage and again before runner execution to reduce SSRF/private-network risk.
+- Workflow check execution does not follow redirects, caps retained response reads, and stores only redacted summaries.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
 - Issue queue actions assign, resolve with a report-safe note, or ignore issues inside the tenant boundary.
 - Inngest serves scheduled check functions from `/api/inngest`.
 - A scheduled sweep runs every five minutes, finds enabled due health checks, and fans out one event per due check.
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
+- The scheduler trigger route is protected by `SCHEDULER_SECRET` and an in-memory fixed-window limiter to reduce abuse before provider-side firewalling is configured.
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
 - Monthly reports aggregate stored workflow, check, issue, and synthetic run data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts.
@@ -47,6 +49,8 @@ Browser
 - Operational reliability checks flag missing enabled checks, stale workflow data, high-risk open issues, and report queue gaps.
 - Report quality checks score source data, report sections, recommendations, and open high-risk issues before send/export.
 - Stripe billing and plan limits are implemented. Sentry/PostHog are represented in production readiness and still require provider-side configuration before public launch.
+- Service-only audit events record key workflow, check, issue, report, and billing lifecycle actions without storing raw auth material.
+- Additional database indexes support due-check selection, workflow health summaries, issue queues, report lookups, audit history, and old check-run retention jobs.
 
 ### Web app
 
@@ -172,7 +176,9 @@ User selects client + month
 - All tenant-owned rows protected by RLS or service-layer authorization.
 - Auth headers and API keys encrypted at rest.
 - Raw responses redacted by default.
+- Workflow check responses are bounded before summarization to avoid retaining or buffering large payloads.
 - Report-safe data allowlisted.
+- Audit metadata is recursively redacted before persistence.
 - Background jobs run with service role but enforce agency boundaries manually.
 
 ## 9. Future architecture considerations

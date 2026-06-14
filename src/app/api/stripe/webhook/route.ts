@@ -1,5 +1,6 @@
 import type Stripe from "stripe";
 import { NextResponse } from "next/server";
+import { recordAuditEventSafely } from "@/lib/audit/events";
 import { buildAgencyBillingUpdate, getAgencyIdFromCheckoutSession, isSubscriptionEvent } from "@/lib/billing/webhook";
 import { getStripeClient } from "@/lib/billing/stripe";
 import { getStripeWebhookSecret } from "@/lib/env";
@@ -66,6 +67,18 @@ export async function POST(request: Request) {
 
   if (insertEventError) {
     return NextResponse.json({ error: insertEventError.message }, { status: 500 });
+  }
+
+  if (agencyId) {
+    await recordAuditEventSafely({
+      supabase,
+      agencyId,
+      actorUserId: null,
+      action: "billing.webhook_processed",
+      targetType: "billing_event",
+      targetId: event.id,
+      metadata: { eventType: event.type },
+    });
   }
 
   return NextResponse.json({ received: true });

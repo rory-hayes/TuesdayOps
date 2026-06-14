@@ -37,6 +37,10 @@ export type HttpCheckResult = {
   completedAt: string;
 };
 
+const maxResponseBodyBytes = 64_000;
+const maxResponseSummaryChars = 600;
+const redirectBlockedMessage = "Workflow endpoint returned a redirect. Redirects are blocked for check safety.";
+
 export async function runHttpCheck({
   workflow,
   check,
@@ -56,6 +60,7 @@ export async function runHttpCheck({
     method: workflow.method,
     headers,
     signal: controller.signal,
+    redirect: "manual",
   };
 
   if (workflow.method !== "GET" && config.requestBody) {
@@ -70,8 +75,26 @@ export async function runHttpCheck({
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
     const response = await fetch(endpointUrl, requestInit);
-    const bodyText = await response.text();
     const latencyMs = Date.now() - startedAtDate.getTime();
+
+    if (isRedirectResponse(response)) {
+      return {
+        status: "failed",
+        statusCode: response.status,
+        latencyMs,
+        responseSummary: "Redirect blocked for workflow check safety.",
+        assertionResults: config.assertions.map((assertion) => ({
+          type: assertion.type,
+          passed: false,
+          message: redirectBlockedMessage,
+        })),
+        errorMessage: redirectBlockedMessage,
+        startedAt,
+        completedAt: new Date().toISOString(),
+      };
+    }
+
+    const { text: bodyText, truncated } = await readResponseTextWithLimit(response);
     const bodyJson = parseJson(bodyText);
     const assertionResults = evaluateAssertions(config.assertions, {
       statusCode: response.status,
@@ -87,7 +110,7 @@ export async function runHttpCheck({
       status,
       statusCode: response.status,
       latencyMs,
-      responseSummary: summarizeResponse(bodyText),
+      responseSummary: summarizeResponse(bodyText, { truncated }),
       assertionResults,
       startedAt,
       completedAt: new Date().toISOString(),
@@ -151,10 +174,60 @@ function parseJson(value: string): unknown {
   }
 }
 
-function summarizeResponse(value: string): string {
-  return value
-    .slice(0, 600)
+async function readResponseTextWithLimit(
+  response: Response,
+  limitBytes = maxResponseBodyBytes,
+): Promise<{ text: string; truncated: boolean }> {
+  if (!response.body) {
+    return { text: "", truncated: false };
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let bytesRead = 0;
+  let text = "";
+  let truncated = false;
+
+  while (true) {
+    const { done, value } = await reader.read();
+
+    if (done) {
+      text += decoder.decode();
+      break;
+    }
+
+    const remaining = limitBytes - bytesRead;
+
+    if (value.byteLength > remaining) {
+      text += decoder.decode(value.slice(0, Math.max(remaining, 0)), { stream: true });
+      truncated = true;
+      await reader.cancel();
+      text += decoder.decode();
+      break;
+    }
+
+    bytesRead += value.byteLength;
+    text += decoder.decode(value, { stream: true });
+  }
+
+  return { text, truncated };
+}
+
+function isRedirectResponse(response: Response): boolean {
+  return response.status >= 300 && response.status <= 399;
+}
+
+function summarizeResponse(value: string, options: { truncated?: boolean } = {}): string {
+  const summary = value
+    .slice(0, maxResponseSummaryChars)
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
     .replace(/"?(api[_-]?key|token|secret|password)"?\s*[:=]\s*"[^"]+"/gi, '"$1":"[redacted]"');
+
+  if (!options.truncated) {
+    return summary;
+  }
+
+  const marker = " [truncated]";
+  return `${summary.slice(0, maxResponseSummaryChars - marker.length)}${marker}`;
 }

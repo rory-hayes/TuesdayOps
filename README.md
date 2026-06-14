@@ -169,14 +169,18 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - Inngest scheduled check functions served from `/api/inngest`
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
 - scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
+- bounded workflow check response reads, blocked redirect following, and fixed-window protection on the scheduler trigger route
 - high/critical issue email alert service with Resend delivery and alert-safe redacted copy
 - tenant-scoped synthetic test packs, test cases, test runs, and manual pack execution from the Checks page
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
 - tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts
 - production deployment checklist, Supabase migration checklist, smoke checklist, Node runtime floor, and clean dependency audit
+- GitHub Actions CI plus a production smoke workflow that checks public app/Supabase health without requiring provider secrets
 - overview activation checklist for first client, workflow, check run, and report
 - tenant-scoped sample data action that seeds a demo client/workflow/check/issue/test pack/report
 - Stripe Checkout, Customer Portal, webhook route, agency billing state, and plan-limit enforcement
+- service-only audit event foundations for workflow, check, issue, report, and billing lifecycle events
+- scalability indexes for workflow health, due checks, check history, issue queues, reports, test runs, and audit history
 - cross-tenant report download E2E coverage, starter workflow-limit E2E coverage, and Stripe webhook route safety tests
 - domain, assertion, billing, issue-engine, scheduler, onboarding, sample-data, synthetic-runner, and Playwright E2E tests
 

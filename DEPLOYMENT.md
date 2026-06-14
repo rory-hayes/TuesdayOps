@@ -93,6 +93,13 @@ supabase db lint --linked --fail-on error
 supabase db push --dry-run --linked
 ```
 
+The code hardening migration adds `audit_events`, additional query indexes, and the service-role-only `delete_old_check_runs(older_than, max_delete)` retention helper. After applying it, confirm:
+
+- `audit_events` has RLS enabled.
+- `authenticated` can only `select` tenant-scoped audit rows.
+- `service_role` can insert audit rows and execute `delete_old_check_runs`.
+- No `security definer` helper is exposed for this retention path.
+
 Supabase projects created after April 28, 2026 may not expose new public tables to the Data API automatically. For each new public table, migrations must include:
 
 - RLS enabled.
@@ -137,6 +144,7 @@ Run this after the Vercel deployment is ready:
 - Trigger `/api/scheduler/run-due-checks` without a scheduler secret and confirm it returns `401`.
 - Trigger `/api/scheduler/run-due-checks` with the scheduler secret and confirm due checks are processed.
 - Confirm high-severity alert attempts record delivery metadata or a redacted configuration error.
+- Confirm scheduler trigger abuse protection returns `429` after repeated calls from the same source.
 - Confirm Settings billing shows plan usage.
 - Confirm missing Stripe config returns a clear Settings error in non-billing environments.
 - Confirm Stripe webhook endpoint is configured as `/api/stripe/webhook` in live mode before taking payment.
@@ -145,7 +153,17 @@ Run this after the Vercel deployment is ready:
 - Confirm Settings shows Operational reliability as `ready` or that remaining attention items are accepted for the design partner.
 - Import a workflow from a cURL command and confirm it creates a normal workflow plus first health check.
 - Attempt to add a localhost/private endpoint in production and confirm it is blocked.
+- Attempt a workflow endpoint that returns a redirect and confirm the check run fails without following the redirect.
 - Confirm another agency cannot access the first agency's workflow detail URL or report download route.
+
+## Automated Smoke
+
+The repository includes:
+
+- `.github/workflows/ci.yml` for lint, typecheck, unit tests, and production build.
+- `.github/workflows/production-smoke.yml` for scheduled/manual checks of `/api/health`.
+
+The production smoke workflow intentionally checks only public app/Supabase readiness until scheduler, email, billing, and observability provider keys are configured.
 
 ## Release Notes
 

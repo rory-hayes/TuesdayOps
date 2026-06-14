@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import { executeCheckRun } from "@/lib/checks/execution";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const createCheckFormSchema = z.object({
@@ -74,6 +76,13 @@ export async function runCheckAction(formData: FormData) {
     });
 
     workflowId = result.workflowId;
+    await recordCheckRunAuditEvent({
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      checkId: parsed.data.checkId,
+      checkRunId: result.status === "completed" ? result.checkRunId : null,
+      runStatus: result.status === "completed" ? result.runStatus : result.status,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Check run failed.";
     redirect(`/checks?error=${encodeURIComponent(message)}`);
@@ -89,4 +98,36 @@ export async function runCheckAction(formData: FormData) {
   revalidatePath("/issues");
   revalidatePath("/");
   redirect(`/workflows/${workflowId}`);
+}
+
+async function recordCheckRunAuditEvent({
+  agencyId,
+  actorUserId,
+  checkId,
+  checkRunId,
+  runStatus,
+}: {
+  agencyId: string;
+  actorUserId: string;
+  checkId: string;
+  checkRunId: string | null;
+  runStatus: string;
+}) {
+  try {
+    await recordAuditEvent({
+      supabase: createAdminClient(),
+      agencyId,
+      actorUserId,
+      action: "check.run",
+      targetType: "check",
+      targetId: checkId,
+      metadata: {
+        trigger: "manual",
+        checkRunId,
+        runStatus,
+      },
+    });
+  } catch {
+    // Audit logging must not block check execution.
+  }
 }

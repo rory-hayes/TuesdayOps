@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const issueIdSchema = z.object({
@@ -32,6 +34,13 @@ export async function assignIssueToMeAction(formData: FormData) {
   if (error) {
     redirect(`/issues?error=${encodeURIComponent(error.message)}`);
   }
+  await recordIssueAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    issueId: parsed.data.issueId,
+    action: "issue.assigned",
+    metadata: { status: "in_review" },
+  });
 
   revalidatePath("/issues");
   revalidatePath("/");
@@ -60,6 +69,13 @@ export async function resolveIssueAction(formData: FormData) {
   if (error) {
     redirect(`/issues?error=${encodeURIComponent(error.message)}`);
   }
+  await recordIssueAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    issueId: parsed.data.issueId,
+    action: "issue.resolved",
+    metadata: { status: "resolved" },
+  });
 
   revalidatePath("/issues");
   revalidatePath("/");
@@ -89,8 +105,43 @@ export async function ignoreIssueAction(formData: FormData) {
   if (error) {
     redirect(`/issues?error=${encodeURIComponent(error.message)}`);
   }
+  await recordIssueAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    issueId: parsed.data.issueId,
+    action: "issue.ignored",
+    metadata: { status: "ignored", reportable: false },
+  });
 
   revalidatePath("/issues");
   revalidatePath("/");
   redirect("/issues?status=ignored");
+}
+
+async function recordIssueAuditEvent({
+  agencyId,
+  actorUserId,
+  issueId,
+  action,
+  metadata,
+}: {
+  agencyId: string;
+  actorUserId: string;
+  issueId: string;
+  action: "issue.assigned" | "issue.resolved" | "issue.ignored";
+  metadata: Record<string, unknown>;
+}) {
+  try {
+    await recordAuditEvent({
+      supabase: createAdminClient(),
+      agencyId,
+      actorUserId,
+      action,
+      targetType: "issue",
+      targetId: issueId,
+      metadata,
+    });
+  } catch {
+    // Audit logging must not block issue queue actions.
+  }
 }

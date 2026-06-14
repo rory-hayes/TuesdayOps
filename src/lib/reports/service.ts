@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { sendResendEmail } from "@/lib/alerts/resend";
+import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { getOperationalData } from "@/lib/data/operational-data";
 import type { ReportDraft, ReportItemCategory } from "@/lib/domain/types";
@@ -70,10 +71,20 @@ export async function generateReportAction(formData: FormData) {
   });
 
   try {
-    await saveReportDraft({
+    const reportId = await saveReportDraft({
       supabase,
       agencyId: workspace.agency.id,
       draft,
+    });
+    await recordReportAuditEvent({
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      action: "report.generated",
+      reportId,
+      metadata: {
+        clientId: parsed.data.clientId,
+        period: parsed.data.period,
+      },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Report could not be generated.";
@@ -101,6 +112,13 @@ export async function generateReportPdfAction(formData: FormData) {
       admin,
       agencyId: workspace.agency.id,
       reportId: parsed.data.reportId,
+    });
+    await recordReportAuditEvent({
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      action: "report.pdf_generated",
+      reportId: parsed.data.reportId,
+      metadata: {},
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Report PDF could not be generated.";
@@ -165,6 +183,13 @@ export async function sendReportAction(formData: FormData) {
     if (updateError) {
       throw new Error(`Report send status could not be saved: ${updateError.message}`);
     }
+    await recordReportAuditEvent({
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      action: "report.send_attempted",
+      reportId: parsed.data.reportId,
+      metadata: { status: "sent" },
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Report email could not be sent.";
     await recordReportSendFailure({
@@ -172,6 +197,13 @@ export async function sendReportAction(formData: FormData) {
       agencyId: workspace.agency.id,
       reportId: parsed.data.reportId,
       error: message,
+    });
+    await recordReportAuditEvent({
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      action: "report.send_attempted",
+      reportId: parsed.data.reportId,
+      metadata: { status: "failed", error: sanitizeReportError(message) },
     });
   }
 
@@ -407,4 +439,32 @@ function sanitizeReportError(value: string) {
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
     .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
     .slice(0, 600);
+}
+
+async function recordReportAuditEvent({
+  agencyId,
+  actorUserId,
+  action,
+  reportId,
+  metadata,
+}: {
+  agencyId: string;
+  actorUserId: string;
+  action: "report.generated" | "report.pdf_generated" | "report.send_attempted";
+  reportId: string;
+  metadata: Record<string, unknown>;
+}) {
+  try {
+    await recordAuditEvent({
+      supabase: createAdminClient(),
+      agencyId,
+      actorUserId,
+      action,
+      targetType: "report",
+      targetId: reportId,
+      metadata,
+    });
+  } catch {
+    // Audit logging must not block report generation or delivery attempts.
+  }
 }

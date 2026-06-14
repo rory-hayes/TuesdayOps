@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import { canCreateWorkflow } from "@/lib/billing/limits";
@@ -14,6 +15,7 @@ import {
   shouldAllowPrivateWorkflowEndpoints,
 } from "@/lib/security/endpoint-url";
 import { encryptJsonPayload } from "@/lib/security/secrets";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { parseWorkflowImport } from "@/lib/workflows/onboarding";
 
@@ -79,6 +81,17 @@ export async function createWorkflowAction(formData: FormData) {
     supabase,
     input: parsed.data,
   });
+  await recordWorkflowAuditEvent({
+    workspace,
+    action: "workflow.created",
+    targetId: workflowId,
+    metadata: {
+      source: "manual",
+      workflowType: parsed.data.type,
+      method: parsed.data.method,
+      environment: parsed.data.environment,
+    },
+  });
 
   revalidatePath("/workflows");
   revalidatePath("/checks");
@@ -131,6 +144,18 @@ export async function createWorkflowFromImportAction(formData: FormData) {
       expectedStatus: plan.expectedStatus,
       maxLatencyMs: plan.maxLatencyMs,
       requestBody: plan.requestBody,
+    },
+  });
+  await recordWorkflowAuditEvent({
+    workspace,
+    action: "workflow.created",
+    targetId: workflowId,
+    metadata: {
+      source: "import",
+      importSource: parsed.data.importSource,
+      workflowType: plan.type,
+      method: plan.method,
+      authType: plan.authType,
     },
   });
 
@@ -193,6 +218,17 @@ export async function updateWorkflowAction(formData: FormData) {
   if (error) {
     redirect(`/workflows/${parsed.data.id}?error=${encodeURIComponent(error.message)}`);
   }
+  await recordWorkflowAuditEvent({
+    workspace,
+    action: "workflow.updated",
+    targetId: parsed.data.id,
+    metadata: {
+      workflowType: parsed.data.type,
+      method: parsed.data.method,
+      environment: parsed.data.environment,
+      includedInReports: parsed.data.includedInReports === "on",
+    },
+  });
 
   revalidatePath("/workflows");
   revalidatePath(`/workflows/${parsed.data.id}`);
@@ -349,4 +385,30 @@ function buildAuthConfig(input: WorkflowCreateInput): WorkflowAuthConfig | null 
     username: input.basicUsername,
     password: input.authSecret,
   };
+}
+
+async function recordWorkflowAuditEvent({
+  workspace,
+  action,
+  targetId,
+  metadata,
+}: {
+  workspace: WorkspaceContext;
+  action: "workflow.created" | "workflow.updated";
+  targetId: string;
+  metadata: Record<string, unknown>;
+}) {
+  try {
+    await recordAuditEvent({
+      supabase: createAdminClient(),
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      action,
+      targetType: "workflow",
+      targetId,
+      metadata,
+    });
+  } catch {
+    // Audit logging must not block workflow onboarding or updates.
+  }
 }
