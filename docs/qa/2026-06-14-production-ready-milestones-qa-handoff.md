@@ -99,6 +99,7 @@ Results:
 - `npm run build`: passed with Next.js 16.2.9.
 - `npm run e2e`: 7 Playwright specs passed.
 - `npm audit --audit-level=moderate`: found 0 vulnerabilities.
+- `NEXT_PUBLIC_APP_URL=https://tuesday-ops.vercel.app npm run e2e`: 7 Playwright specs passed against the Vercel production URL and remote Supabase.
 
 ## QA Test Priorities
 
