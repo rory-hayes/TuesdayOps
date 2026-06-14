@@ -32,3 +32,4 @@ Track meaningful product and engineering changes here.
 - Hardened workflow import hydration so early user input is reflected in the preview once the client component becomes interactive.
 - Added code-only production hardening: capped workflow check response reads, blocked redirect following, scheduler trigger rate limiting, service-only audit events, scalability indexes, check-run retention helper, and GitHub Actions CI/production smoke workflows.
 - Replaced Inngest production scheduling with Supabase Cron/Vault calling the protected due-check scheduler route, and removed the Inngest app dependency.
+- Removed the internal Production readiness launch-gate panel from user-facing Settings while keeping `/api/health` for operator checks.

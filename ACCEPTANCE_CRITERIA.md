@@ -91,7 +91,7 @@ Every feature must satisfy:
 ## Production readiness
 
 - `/api/health` returns provider readiness without exposing secret values.
-- Settings shows launch-blocking provider configuration.
+- Launch-blocking provider configuration stays in operator-only health/deployment checks, not user-facing Settings.
 - Settings shows operational reliability status from enabled checks, stale workflow data, high-risk open issues, and report queue state.
 - Reports show ready/review/blocked quality state before send/export.
 
