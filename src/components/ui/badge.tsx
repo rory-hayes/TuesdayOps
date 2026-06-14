@@ -8,18 +8,18 @@ type BadgeProps = HTMLAttributes<HTMLSpanElement> & {
 };
 
 const variants: Record<BadgeVariant, string> = {
-  default: "border-primary/20 bg-primary/10 text-primary",
-  success: "border-success/20 bg-success-background text-success",
-  warning: "border-warning/20 bg-warning-background text-warning",
-  danger: "border-danger/20 bg-danger-background text-danger",
-  muted: "border-border bg-muted text-muted-foreground",
+  default: "border-zinc-950/10 bg-zinc-950/5 text-zinc-700",
+  success: "border-lime-500/20 bg-lime-400/20 text-lime-700",
+  warning: "border-amber-500/20 bg-amber-400/20 text-amber-700",
+  danger: "border-red-500/20 bg-red-400/20 text-red-700",
+  muted: "border-zinc-950/10 bg-zinc-950/5 text-zinc-500",
 };
 
 export function Badge({ className, variant = "default", ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex h-6 items-center rounded-full border px-2.5 text-xs font-medium",
+        "inline-flex h-6 items-center rounded-md border px-2 text-xs/5 font-medium",
         variants[variant],
         className,
       )}

@@ -11,18 +11,18 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "border-primary bg-primary text-primary-foreground shadow-sm hover:bg-[#6d5ee0]",
+    "border-transparent bg-zinc-900 text-white shadow-sm hover:bg-zinc-800 data-[active]:bg-zinc-800",
   secondary:
-    "border-border bg-card text-foreground shadow-sm hover:border-[#d7d0ca] hover:bg-muted",
-  ghost: "border-transparent bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
+    "border-zinc-950/10 bg-white text-zinc-950 shadow-sm hover:bg-zinc-50 data-[active]:bg-zinc-50",
+  ghost: "border-transparent bg-transparent text-zinc-600 hover:bg-zinc-950/5 hover:text-zinc-950",
   danger:
-    "border-danger bg-danger text-white shadow-sm hover:bg-[#9f1f16]",
+    "border-transparent bg-red-600 text-white shadow-sm hover:bg-red-500",
 };
 
 const sizes: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-10 px-4 text-sm",
-  lg: "h-11 px-5 text-sm",
+  sm: "h-8 px-3 text-sm/6",
+  md: "h-9 px-3.5 text-sm/6",
+  lg: "h-10 px-4 text-sm/6",
 };
 
 export function Button({
@@ -36,7 +36,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border font-medium transition-colors disabled:pointer-events-none disabled:opacity-50",
+        "relative isolate inline-flex items-center justify-center gap-x-2 whitespace-nowrap rounded-lg border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-zinc-950/10 disabled:pointer-events-none disabled:opacity-50 [&>svg]:-mx-0.5 [&>svg]:size-4 [&>svg]:shrink-0",
         variants[variant],
         sizes[size],
         className,

@@ -43,18 +43,24 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
     await page.getByLabel("Agency name").fill(agencyName);
     await page.getByLabel("Slug").fill(agencySlug);
     await Promise.all([
-      page.waitForURL(`${appUrl}/`, { timeout: 15_000 }),
+      page.waitForURL(`${appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),
     ]);
   }
 
   await page.goto("/clients", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
+  await page.getByRole("button", { name: "New client" }).click();
+  await expect(page.getByRole("heading", { name: "New client" })).toBeVisible();
   await page.getByLabel("Client name").fill(clientName);
   await page.getByLabel("Industry").fill("QA Automation");
   await page.getByLabel("Report email").fill(`qa-pack-${runId}@example.invalid`);
   await page.getByLabel("Notes").fill("Synthetic test pack E2E client.");
   await page.getByRole("button", { name: "Add client" }).click();
-  await expect(page.getByText(clientName)).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "New client" })).toBeHidden({ timeout: 30_000 });
+  await expect(page.getByRole("table").getByRole("link", { name: clientName })).toBeVisible({
+    timeout: 30_000,
+  });
 
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Add workflow" }).click();
@@ -70,7 +76,7 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
   await page.getByLabel("Max latency ms").fill("5000");
   const workflowForm = page.locator("form").filter({ has: page.locator('input[name="endpointUrl"]') });
   await Promise.all([
-    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 15_000 }),
+    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 30_000, waitUntil: "commit" }),
     workflowForm.getByRole("button", { name: "Create workflow" }).click(),
   ]);
   const workflowId = page.url().split("/").pop();

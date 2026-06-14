@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { Activity } from "lucide-react";
+import { AuthLayout } from "@/components/auth/auth-layout";
+import { Button } from "@/components/ui/button";
 import { createAgencyAction } from "@/lib/auth/actions";
 import { getWorkspaceContext } from "@/lib/auth/workspace";
 
@@ -20,58 +21,42 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
-      <section className="w-full max-w-xl rounded-lg border border-border bg-card p-6 shadow-[var(--shadow-soft)]">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Activity size={20} aria-hidden="true" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">TuesdayOps</p>
-            <p className="text-xs text-muted-foreground">Workspace setup</p>
-          </div>
-        </div>
+    <AuthLayout className="max-w-xl">
+      <div>
+        <h1 className="text-2xl/8 font-semibold text-zinc-950">Create your agency</h1>
+        <p className="mt-2 text-sm/6 text-zinc-500">
+          This workspace becomes the tenant boundary for clients, workflows, checks, runs, and issues.
+        </p>
+      </div>
 
-        <div className="mt-8">
-          <p className="text-sm font-medium text-primary">Agency workspace</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-normal">Create your agency</h1>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            This workspace becomes the tenant boundary for clients, workflows, checks, runs, and issues.
-          </p>
-        </div>
+      {error ? <p className="rounded-lg bg-red-50 p-3 text-sm/6 text-red-700">{error}</p> : null}
 
-        {error ? <p className="mt-5 rounded-md bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
-
-        <form action={createAgencyAction} className="mt-6 grid gap-4">
-          <label className="block text-sm font-medium">
-            Agency name
-            <input
-              required
-              name="name"
-              minLength={2}
-              maxLength={80}
-              placeholder="Northstar Automation"
-              className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
-            />
-          </label>
-          <label className="block text-sm font-medium">
-            Slug
-            <input
-              name="slug"
-              maxLength={80}
-              placeholder="northstar-automation"
-              className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
-            />
-          </label>
-          <button
-            type="submit"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-primary bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-[#6d5ee0]"
-          >
-            Create workspace
-          </button>
-        </form>
-      </section>
-    </main>
+      <form action={createAgencyAction} className="grid gap-6">
+        <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
+          Agency name
+          <input
+            required
+            name="name"
+            minLength={2}
+            maxLength={80}
+            placeholder="Northstar Automation"
+            className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
+          />
+        </label>
+        <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
+          Slug
+          <input
+            name="slug"
+            maxLength={80}
+            placeholder="northstar-automation"
+            className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
+          />
+        </label>
+        <Button type="submit" className="w-full">
+          Create workspace
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }
 

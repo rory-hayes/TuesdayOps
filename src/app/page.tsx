@@ -14,7 +14,13 @@ export default async function Home({ searchParams }: HomeProps) {
   const [data, params] = await Promise.all([getOperationalData(workspace.agency), searchParams]);
 
   return (
-    <AppShell workspace={workspace}>
+    <AppShell
+      workspace={workspace}
+      clients={data.clients
+        .filter((client) => !client.archived)
+        .slice(0, 6)
+        .map((client) => ({ id: client.id, name: client.name }))}
+    >
       <OverviewDashboard
         data={data}
         notice={readSampleNotice(readParam(params.sample))}
