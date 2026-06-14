@@ -51,9 +51,10 @@ test("workflow can be imported from a cURL command", async ({ page, baseURL }) =
   await expect(page.getByText(clientName)).toBeVisible();
 
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("link", { name: "Add workflow" })).toHaveAttribute("href", "#quick-import");
-  await page.getByRole("link", { name: "Add workflow" }).click();
-  await expect(page).toHaveURL(/#quick-import$/);
+  await expect(page.getByRole("heading", { name: "Workflow registry" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Quick workflow import" })).not.toBeVisible();
+  await page.getByRole("button", { name: "Add workflow" }).click();
+  await expect(page.getByRole("heading", { name: "Add workflow" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Quick workflow import" })).toBeVisible();
   await page.getByLabel("Import source").selectOption("curl");
   const importForm = page.locator("form").filter({ has: page.locator('textarea[name="importText"]') });

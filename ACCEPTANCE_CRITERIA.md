@@ -29,6 +29,8 @@ Every feature must satisfy:
 ## Workflows
 
 - User can create a workflow under a client.
+- Workflows opens to the full workflow registry before setup forms.
+- Add workflow opens a guided onboarding modal with quick import and manual endpoint setup.
 - User can import a workflow from URL, cURL, OpenAPI JSON, or Postman collection JSON.
 - User can configure endpoint URL, method, auth type, frequency, and expected status.
 - Auth config is encrypted or stored securely.

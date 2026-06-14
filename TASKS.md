@@ -129,11 +129,12 @@ Acceptance:
 
 - [x] Build workflow list.
 - [x] Build add workflow form.
+- [x] Move quick import and manual setup into a guided Add workflow dialog.
 - [x] Build workflow detail shell.
 
 Acceptance:
 
-- user can add first workflow for a client
+- user can see the workflow registry first and add the first workflow for a client from a guided modal
 
 ## Milestone 3 — Endpoint Health Checks
 
@@ -435,6 +436,7 @@ Acceptance:
 
 - [x] Add workflow import parser for URL, cURL, OpenAPI JSON, and Postman collection JSON.
 - [x] Add quick import UI on Workflows.
+- [x] Keep the workflow registry visible first, with quick import launched from Add workflow.
 - [x] Create imported workflow plus first health check through the same tenant/billing/encryption path as manual creation.
 - [x] Support request bodies for imported and manual POST/PATCH/PUT health checks.
 

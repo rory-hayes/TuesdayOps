@@ -163,6 +163,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - Supabase migration for profiles, agencies, memberships, clients, workflows, checks, check runs, and issues
 - tenant-scoped overview, clients, workflows, checks, issues, reports, and settings screens
 - client create/update/archive server actions
+- registry-first Workflows page with guided Add workflow onboarding for quick import and manual endpoint setup
 - workflow creation with encrypted auth config handling
 - endpoint health check creation, manual run execution, assertion evaluation, and check run persistence
 - failed/degraded manual checks create deduped issues with severity mapping

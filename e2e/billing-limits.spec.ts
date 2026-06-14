@@ -106,6 +106,10 @@ async function createWorkflow(
     expectRedirect?: boolean;
   },
 ) {
+  await page.getByRole("button", { name: "Add workflow" }).click();
+  await expect(page.getByRole("heading", { name: "Add workflow" })).toBeVisible();
+  await page.getByRole("button", { name: "Manual setup" }).click();
+  await expect(page.getByRole("heading", { name: "Manual endpoint setup" })).toBeVisible();
   await page.getByLabel("Workflow name").fill(input.workflowName);
   await page.getByLabel("Endpoint URL").fill(
     `${input.appUrl}/api/e2e-billing-workflow-${input.runId}-${input.index}`,
@@ -117,13 +121,13 @@ async function createWorkflow(
   const workflowForm = page.locator("form").filter({ has: page.locator('input[name="endpointUrl"]') });
 
   if (input.expectRedirect === false) {
-    await workflowForm.getByRole("button", { name: "Add workflow" }).click();
+    await workflowForm.getByRole("button", { name: "Create workflow" }).click();
     return;
   }
 
   await Promise.all([
     page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 15_000 }),
-    workflowForm.getByRole("button", { name: "Add workflow" }).click(),
+    workflowForm.getByRole("button", { name: "Create workflow" }).click(),
   ]);
 }
 
