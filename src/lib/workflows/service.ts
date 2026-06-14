@@ -9,6 +9,10 @@ import { canCreateWorkflow } from "@/lib/billing/limits";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import type { WorkflowAuthConfig } from "@/lib/checks/runner";
 import type { Workflow } from "@/lib/domain/types";
+import {
+  assertSafeWorkflowEndpoint,
+  shouldAllowPrivateWorkflowEndpoints,
+} from "@/lib/security/endpoint-url";
 import { encryptJsonPayload } from "@/lib/security/secrets";
 import { createClient } from "@/lib/supabase/server";
 import { parseWorkflowImport } from "@/lib/workflows/onboarding";
@@ -161,13 +165,24 @@ export async function updateWorkflowAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
+  let endpointUrl: string;
+
+  try {
+    endpointUrl = assertSafeWorkflowEndpoint(parsed.data.endpointUrl, {
+      allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Workflow endpoint did not pass safety validation.";
+    redirect(`/workflows/${parsed.data.id}?error=${encodeURIComponent(message)}`);
+  }
+
   const { error } = await supabase
     .from("workflows")
     .update({
       name: parsed.data.name,
       type: parsed.data.type,
       environment: parsed.data.environment,
-      endpoint_url: parsed.data.endpointUrl,
+      endpoint_url: endpointUrl,
       method: parsed.data.method,
       check_frequency_minutes: parsed.data.checkFrequencyMinutes,
       included_in_reports: parsed.data.includedInReports === "on",
@@ -230,6 +245,17 @@ async function createWorkflowWithHealthCheck({
     redirect(`/workflows?error=${encodeURIComponent(limitDecision.upgradeMessage ?? "Upgrade required.")}`);
   }
 
+  let endpointUrl: string;
+
+  try {
+    endpointUrl = assertSafeWorkflowEndpoint(input.endpointUrl, {
+      allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Workflow endpoint did not pass safety validation.";
+    redirect(`/workflows?error=${encodeURIComponent(message)}`);
+  }
+
   const authConfig = buildAuthConfig(input);
   let encryptedAuthConfig = null;
 
@@ -248,7 +274,7 @@ async function createWorkflowWithHealthCheck({
       name: input.name,
       type: input.type,
       environment: input.environment,
-      endpoint_url: input.endpointUrl,
+      endpoint_url: endpointUrl,
       method: input.method,
       auth_type: input.authType,
       encrypted_auth_config: encryptedAuthConfig,
