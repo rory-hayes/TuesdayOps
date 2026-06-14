@@ -1,5 +1,9 @@
 import type { CheckRunStatus } from "@/lib/domain/types";
 import {
+  assertSafeWorkflowEndpoint,
+  shouldAllowPrivateWorkflowEndpoints,
+} from "@/lib/security/endpoint-url";
+import {
   checkConfigSchema,
   evaluateAssertions,
   type AssertionResult,
@@ -62,7 +66,10 @@ export async function runHttpCheck({
   }
 
   try {
-    const response = await fetch(workflow.endpointUrl, requestInit);
+    const endpointUrl = assertSafeWorkflowEndpoint(workflow.endpointUrl, {
+      allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
+    });
+    const response = await fetch(endpointUrl, requestInit);
     const bodyText = await response.text();
     const latencyMs = Date.now() - startedAtDate.getTime();
     const bodyJson = parseJson(bodyText);

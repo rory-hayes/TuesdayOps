@@ -31,6 +31,7 @@ Before promoting a deployment, confirm these Vercel settings:
 - Preview deployments use the same required server env vars as production.
 - `NEXT_PUBLIC_APP_URL` points to the deployed app URL for the target environment.
 - Inngest is connected through the Vercel integration or has production `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`.
+- `/api/health` returns a `ready` status before public launch.
 
 ## Required Environment Variables
 
@@ -42,6 +43,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 
 WORKFLOW_AUTH_ENCRYPTION_KEY=
+ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=
 SCHEDULER_SECRET=
 
 INNGEST_EVENT_KEY=
@@ -60,12 +62,13 @@ STRIPE_PRICE_ID=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
 NEXT_PUBLIC_POSTHOG_KEY=
-POSTHOG_HOST=https://app.posthog.com
+NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 
 SENTRY_DSN=
 ```
 
 Never add service-role keys, Resend keys, Stripe keys, scheduler secrets, or workflow auth material to `NEXT_PUBLIC_` variables.
+Leave `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS` unset in production. It exists only for local/private test environments that intentionally monitor localhost or private-network endpoints.
 
 ## Supabase Migration Procedure
 
@@ -137,6 +140,11 @@ Run this after the Vercel deployment is ready:
 - Confirm Settings billing shows plan usage.
 - Confirm missing Stripe config returns a clear Settings error in non-billing environments.
 - Confirm Stripe webhook endpoint is configured as `/api/stripe/webhook` in live mode before taking payment.
+- Open `/api/health` and confirm `launchReady` is `true`.
+- Confirm Settings shows Production readiness as `ready`.
+- Confirm Settings shows Operational reliability as `ready` or that remaining attention items are accepted for the design partner.
+- Import a workflow from a cURL command and confirm it creates a normal workflow plus first health check.
+- Attempt to add a localhost/private endpoint in production and confirm it is blocked.
 - Confirm another agency cannot access the first agency's workflow detail URL or report download route.
 
 ## Release Notes

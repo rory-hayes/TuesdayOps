@@ -37,6 +37,7 @@ describe("report PDF helpers", () => {
 
     expect(text.startsWith("%PDF-1.4")).toBe(true);
     expect(text).toContain("Client One");
+    expect(text).toContain("Monitoring coverage: 2 workflows, 12 checks, 4 synthetic runs");
     expect(text).toContain("Workflow health overview");
     expect(text).not.toContain("token=secret");
   });
@@ -49,6 +50,7 @@ describe("report PDF helpers", () => {
       }),
     ).toMatchObject({
       subject: "Client One June 2026 maintenance report",
+      text: expect.stringContaining("Monitoring coverage: 2 workflows, 12 checks, 4 synthetic runs"),
     });
   });
 });

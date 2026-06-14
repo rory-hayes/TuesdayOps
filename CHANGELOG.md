@@ -27,3 +27,4 @@ Track meaningful product and engineering changes here.
 - Added Milestone 7C billing and plan limits with Stripe Checkout, Customer Portal, webhook handling, billing state fields, plan-limit enforcement, Settings usage UI, unit coverage, and E2E coverage.
 - Added Milestone 8 QA hardening with targeted scheduler smoke support, cross-tenant report download E2E coverage, starter workflow-limit E2E coverage, and Stripe webhook route safety tests.
 - Removed custom color controls from onboarding and Settings report branding while keeping the default agency color stored for existing report data.
+- Added production-ready milestones 9-14: provider readiness and `/api/health`, quick workflow import, production endpoint safety guard, operational reliability gate, report readiness scoring, and QA handoff docs.

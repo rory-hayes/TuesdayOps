@@ -105,6 +105,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
 WORKFLOW_AUTH_ENCRYPTION_KEY=
+ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=
 SCHEDULER_SECRET=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
@@ -112,11 +113,15 @@ STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_POSTHOG_KEY=
+NEXT_PUBLIC_POSTHOG_HOST=
+SENTRY_DSN=
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 `SUPABASE_SECRET_KEY` and `SCHEDULER_SECRET` are server-only values. They must never be exposed to browser code or committed to the repo.
 `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are required for live email alerts.
+`ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is only for local/private test environments. Production should leave it unset so workflow checks cannot call localhost, private networks, or metadata endpoints.
 
 Inngest is wired at `/api/inngest` for scheduled checks. Local Inngest development can use `INNGEST_DEV=1`. Production scheduling requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` configuration.
 

@@ -8,6 +8,27 @@ All API routes require an authenticated user unless explicitly public.
 
 Tenant access is based on agency membership.
 
+## Public health
+
+### `GET /api/health`
+
+Public deployment health/readiness payload.
+
+The response does not include secret values. It only exposes provider group status.
+
+```json
+{
+  "ok": true,
+  "status": "ready",
+  "launchReady": true,
+  "generatedAt": "2026-06-14T09:00:00.000Z",
+  "checks": [
+    { "id": "app", "status": "ready", "required": true },
+    { "id": "supabase", "status": "ready", "required": true }
+  ]
+}
+```
+
 ## Clients
 
 ### `GET /api/clients`
@@ -66,6 +87,17 @@ Creates workflow.
   "checkFrequencyMinutes": 15
 }
 ```
+
+The Workflows page also supports quick import through the server action equivalent `createWorkflowFromImportAction`. Supported import sources:
+
+- direct URL
+- cURL command
+- OpenAPI JSON
+- Postman collection JSON
+
+The import path creates a normal workflow plus the first health check. Billing limits, tenant scoping, endpoint safety validation, and encrypted auth handling still apply.
+
+Workflow endpoints are normalized and blocked in production when they target localhost, loopback, private networks, link-local ranges, metadata IPs, or `.local` hostnames. Local/private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`.
 
 ### `PATCH /api/workflows/:id`
 

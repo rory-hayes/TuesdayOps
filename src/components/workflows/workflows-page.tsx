@@ -4,9 +4,10 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { createWorkflowAction } from "@/lib/workflows/service";
+import { createWorkflowAction, createWorkflowFromImportAction } from "@/lib/workflows/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatCurrency, formatPercentage, formatRelativeTime } from "@/lib/formatting";
+import { WORKFLOW_ONBOARDING_TEMPLATES } from "@/lib/workflows/onboarding";
 
 export function WorkflowsPage({
   data,
@@ -34,6 +35,83 @@ export function WorkflowsPage({
       </section>
 
       {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold">Quick workflow import</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Create a monitored workflow from a URL, cURL command, OpenAPI JSON, or Postman collection JSON.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2 md:grid-cols-4">
+            {WORKFLOW_ONBOARDING_TEMPLATES.map((template) => (
+              <div key={template.type} className="rounded-lg border border-border p-3">
+                <p className="text-sm font-medium">{template.label}</p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">{template.detail}</p>
+              </div>
+            ))}
+          </div>
+          {data.clients.length ? (
+            <form action={createWorkflowFromImportAction} className="grid gap-3 md:grid-cols-4">
+              <label className="block text-sm font-medium">
+                Import client
+                <select
+                  required
+                  name="clientId"
+                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                >
+                  {data.clients
+                    .filter((client) => !client.archived)
+                    .map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="block text-sm font-medium">
+                Import source
+                <select
+                  required
+                  name="importSource"
+                  defaultValue="url"
+                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                >
+                  <option value="url">URL</option>
+                  <option value="curl">cURL</option>
+                  <option value="openapi">OpenAPI JSON</option>
+                  <option value="postman">Postman JSON</option>
+                </select>
+              </label>
+              <Input
+                className="md:col-span-2"
+                label="Imported name"
+                name="importedWorkflowName"
+                placeholder="Lead Intake Webhook"
+              />
+              <label className="block text-sm font-medium md:col-span-4">
+                Import details
+                <textarea
+                  required
+                  name="importText"
+                  placeholder="https://api.example.com/health"
+                  rows={5}
+                  className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <Button type="submit" className="md:col-span-4 md:w-fit">
+                <Plus size={15} aria-hidden="true" />
+                Import workflow
+              </Button>
+            </form>
+          ) : (
+            <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+              Add a client before importing a workflow endpoint.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -123,6 +201,15 @@ export function WorkflowsPage({
               <Input label="Frequency minutes" name="checkFrequencyMinutes" placeholder="60" type="number" required />
               <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
               <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required />
+              <label className="block text-sm font-medium md:col-span-4">
+                Request body
+                <textarea
+                  name="requestBody"
+                  placeholder='{"ping": true}'
+                  rows={4}
+                  className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                />
+              </label>
               <Button type="submit" className="md:col-span-4 md:w-fit">
                 <Plus size={15} aria-hidden="true" />
                 Add workflow

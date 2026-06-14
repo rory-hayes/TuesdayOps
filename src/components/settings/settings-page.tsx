@@ -1,4 +1,4 @@
-import { CreditCard, FileText, KeyRound, PlugZap, ShieldCheck } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CreditCard, FileText, KeyRound, PlugZap, ShieldCheck } from "lucide-react";
 import { createCheckoutSessionAction, createCustomerPortalSessionAction } from "@/lib/billing/service";
 import { formatLimit, getPlanLimits } from "@/lib/billing/limits";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
+import { buildOperationalReliability } from "@/lib/production/operational-reliability";
+import { buildProductionReadiness } from "@/lib/production/readiness";
 
 const integrations = [
   { name: "Supabase", status: "planned", detail: "Auth, Postgres, Storage" },
@@ -28,6 +30,8 @@ export function SettingsPage({
   const activeClients = data.clients.filter((client) => !client.archived).length;
   const workflows = data.workflows.length;
   const limits = getPlanLimits(workspace.agency.plan, workspace.agency.billingStatus);
+  const readiness = buildProductionReadiness();
+  const reliability = buildOperationalReliability({ data });
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -120,7 +124,7 @@ export function SettingsPage({
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <h2 className="text-base font-semibold">Integrations</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Approved MVP services.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Approved MVP services and provider state.</p>
             </div>
             <PlugZap size={18} className="text-primary" aria-hidden="true" />
           </CardHeader>
@@ -140,6 +144,56 @@ export function SettingsPage({
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
+              <h2 className="text-base font-semibold">Production readiness</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Launch-blocking provider configuration.</p>
+            </div>
+            <KeyRound size={18} className="text-primary" aria-hidden="true" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Launch gate</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {readiness.launchReady
+                    ? "All required provider groups are configured."
+                    : `${readiness.missingRequired.length} required settings need attention.`}
+                </p>
+              </div>
+              <Badge variant={readiness.launchReady ? "success" : "danger"}>
+                {readiness.launchReady ? "ready" : "blocked"}
+              </Badge>
+            </div>
+            {readiness.groups.map((group) => (
+              <div key={group.id} className="rounded-lg border border-border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium">{group.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{group.detail}</p>
+                  </div>
+                  <Badge variant={group.status === "ready" ? "success" : "danger"}>
+                    {group.status}
+                  </Badge>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {group.items.map((item) => (
+                    <div key={item.env} className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {item.configured ? (
+                        <CheckCircle2 size={14} className="text-success" aria-hidden="true" />
+                      ) : (
+                        <AlertTriangle size={14} className="text-danger" aria-hidden="true" />
+                      )}
+                      <span>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
               <h2 className="text-base font-semibold">Security readiness</h2>
               <p className="mt-1 text-sm text-muted-foreground">Tenant and secret handling guardrails.</p>
             </div>
@@ -150,6 +204,42 @@ export function SettingsPage({
             <ReadinessItem text="Report preview uses client-safe summaries." />
             <ReadinessItem text="Workflow auth config will be encrypted before persistence." />
             <ReadinessItem text="Raw responses stay out of report output by default." />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <h2 className="text-base font-semibold">Operational reliability</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Tenant data signals before production handoff.</p>
+            </div>
+            <ShieldCheck size={18} className="text-primary" aria-hidden="true" />
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+              <div>
+                <p className="text-sm font-medium">Operational gate</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {reliability.ready
+                    ? "Checks, issues, and reports are in a production-ready state."
+                    : `${reliability.blockers.length} operational items need attention.`}
+                </p>
+              </div>
+              <Badge variant={reliability.ready ? "success" : "warning"}>
+                {reliability.ready ? "ready" : "attention"}
+              </Badge>
+            </div>
+            {reliability.checks.map((check) => (
+              <div key={check.id} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
+                <div>
+                  <p className="text-sm font-medium">{check.label}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{check.detail}</p>
+                </div>
+                <Badge variant={check.status === "ready" ? "success" : "warning"}>
+                  {check.value}
+                </Badge>
+              </div>
+            ))}
           </CardContent>
         </Card>
       </section>

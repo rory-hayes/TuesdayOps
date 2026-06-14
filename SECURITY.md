@@ -56,6 +56,20 @@ The current HTTP check runner stores a short response summary and redacts emails
 
 Avoid storing full raw bodies unless user explicitly enables debug mode.
 
+## Workflow endpoint safety
+
+Workflow endpoints are validated before storage and again before execution.
+
+Production blocks:
+
+- `localhost`
+- loopback IPs such as `127.0.0.1` and `::1`
+- private IPv4 ranges such as `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`
+- link-local and cloud metadata ranges such as `169.254.0.0/16`
+- `.local` hostnames
+
+Local development and private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`. Do not enable this in production.
+
 ## Data redaction
 
 Redact common sensitive values:
