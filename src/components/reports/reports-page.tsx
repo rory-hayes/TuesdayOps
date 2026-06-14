@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getOpenIssues, getPortfolioSummary } from "@/lib/domain/summaries";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatDateTime, formatPercentage } from "@/lib/formatting";
+import { buildReportQuality } from "@/lib/reports/quality";
 import {
   generateReportAction,
   generateReportPdfAction,
@@ -29,6 +30,7 @@ export function ReportsPage({
         .filter((item) => item.reportId === activeReport.id)
         .sort((left, right) => left.sortOrder - right.sortOrder)
     : [];
+  const reportQuality = buildReportQuality({ data, reportId: activeReport?.id });
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -183,6 +185,37 @@ export function ReportsPage({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="rounded-lg border border-border p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">Report readiness</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {reportQuality.status === "ready"
+                    ? "Ready for client review and send."
+                    : reportQuality.status === "review"
+                      ? "Review open risks before sending."
+                      : "Generate or improve source data before sending."}
+                </p>
+              </div>
+              <Badge variant={reportQuality.status === "ready" ? "success" : reportQuality.status === "review" ? "warning" : "danger"}>
+                {reportQuality.score}%
+              </Badge>
+            </div>
+            <div className="mt-4 grid gap-2 md:grid-cols-2">
+              {reportQuality.checks.map((check) => (
+                <div key={check.id} className="rounded-lg bg-muted p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-medium uppercase text-muted-foreground">{check.label}</p>
+                    <Badge variant={check.status === "ready" ? "success" : check.status === "warning" ? "warning" : "danger"}>
+                      {check.status}
+                    </Badge>
+                  </div>
+                  <p className="mt-2 text-xs leading-5 text-muted-foreground">{check.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="rounded-lg bg-muted p-5">
             <div className="flex items-center gap-3">
               <div className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">

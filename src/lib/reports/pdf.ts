@@ -50,10 +50,12 @@ export function buildReportEmail({
   downloadUrl: string;
 }) {
   const subject = `${report.clientName} ${report.periodLabel} maintenance report`;
+  const coverageLine = buildCoverageLine(report);
   const text = [
     subject,
     "",
     sanitizeReportText(report.summary),
+    coverageLine,
     "",
     `Download: ${downloadUrl}`,
   ].join("\n");
@@ -61,6 +63,7 @@ export function buildReportEmail({
     <div>
       <h1>${escapeHtml(subject)}</h1>
       <p>${escapeHtml(sanitizeReportText(report.summary))}</p>
+      <p>${escapeHtml(coverageLine)}</p>
       <p><a href="${escapeHtml(downloadUrl)}">Download the PDF report</a></p>
     </div>
   `;
@@ -72,6 +75,7 @@ function buildPdfLines(report: ReportDraft): string[] {
   return [
     sanitizeReportText(report.summary),
     "",
+    buildCoverageLine(report),
     `Workflows monitored: ${report.metrics.workflowsMonitored}`,
     `Checks run: ${report.metrics.checksRun}`,
     `Check pass rate: ${report.metrics.passRate}%`,
@@ -91,6 +95,14 @@ function buildPdfLines(report: ReportDraft): string[] {
   ]
     .flatMap(wrapLine)
     .slice(0, 44);
+}
+
+function buildCoverageLine(report: ReportDraft): string {
+  return `Monitoring coverage: ${report.metrics.workflowsMonitored} ${pluralize("workflow", report.metrics.workflowsMonitored)}, ${report.metrics.checksRun} ${pluralize("check", report.metrics.checksRun)}, ${report.metrics.testRuns} synthetic ${pluralize("run", report.metrics.testRuns)}`;
+}
+
+function pluralize(noun: string, count: number): string {
+  return count === 1 ? noun : `${noun}s`;
 }
 
 function wrapLine(line: string): string[] {
