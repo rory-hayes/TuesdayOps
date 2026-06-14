@@ -29,3 +29,4 @@ Track meaningful product and engineering changes here.
 - Removed custom color controls from onboarding and Settings report branding while keeping the default agency color stored for existing report data.
 - Added production-ready milestones 9-14: provider readiness and `/api/health`, quick workflow import, production endpoint safety guard, operational reliability gate, report readiness scoring, and QA handoff docs.
 - Improved workflow onboarding UX with a real quick-import anchor, client-side import preview, disabled invalid imports, safer auth-secret preview copy, and mobile preview-before-submit ordering.
+- Hardened workflow import hydration so early user input is reflected in the preview once the client component becomes interactive.
