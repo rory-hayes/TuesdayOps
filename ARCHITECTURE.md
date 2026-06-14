@@ -44,6 +44,7 @@ Browser
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
 - Monthly reports aggregate stored workflow, check, issue, and synthetic run data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts.
+- The Workflows page is registry-first; the Add workflow dialog contains quick import and manual setup so agencies can find existing workflows before starting a new onboarding path.
 - Workflow quick import supports direct URLs, cURL commands, OpenAPI JSON, and Postman collection JSON while reusing the normal workflow/check creation path.
 - Production readiness checks expose public `/api/health` status without secret disclosure. Provider launch gates are kept out of the user-facing Settings UI.
 - Operational reliability checks flag missing enabled checks, stale workflow data, high-risk open issues, and report queue gaps.
