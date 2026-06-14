@@ -86,7 +86,7 @@ export function WorkflowsPage({
               </label>
               <Input
                 className="md:col-span-2"
-                label="Imported workflow name"
+                label="Imported name"
                 name="importedWorkflowName"
                 placeholder="Lead Intake Webhook"
               />

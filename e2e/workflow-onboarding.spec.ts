@@ -53,7 +53,7 @@ test("workflow can be imported from a cURL command", async ({ page, baseURL }) =
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Quick workflow import" })).toBeVisible();
   await page.getByLabel("Import source").selectOption("curl");
-  await page.getByLabel("Imported workflow name").fill(workflowName);
+  await page.getByLabel("Imported name").fill(workflowName);
   await page.getByLabel("Import details").fill(
     `curl -X POST "${appUrl}/api/e2e-import-${runId}" -H "Authorization: Bearer import_token_${runId}" -H "Content-Type: application/json" -d '{"ping":true}'`,
   );
