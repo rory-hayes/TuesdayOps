@@ -1,0 +1,282 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, LockKeyhole, Plus, Timer } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  WORKFLOW_ONBOARDING_TEMPLATES,
+  parseWorkflowImport,
+  type WorkflowImportPlan,
+  type WorkflowImportSource,
+} from "@/lib/workflows/onboarding";
+
+type ClientOption = {
+  id: string;
+  name: string;
+};
+
+type WorkflowImportFormProps = {
+  clients: ClientOption[];
+  action: (formData: FormData) => void | Promise<void>;
+};
+
+type ImportPreviewState =
+  | { status: "empty" }
+  | { status: "error"; message: string }
+  | { status: "ready"; plan: WorkflowImportPlan };
+
+const importSources: Array<{
+  value: WorkflowImportSource;
+  label: string;
+  placeholder: string;
+}> = [
+  {
+    value: "url",
+    label: "URL",
+    placeholder: "https://api.example.com/health",
+  },
+  {
+    value: "curl",
+    label: "cURL",
+    placeholder:
+      'curl -X POST "https://hooks.example.com/lead" -H "Authorization: Bearer ..." -d \'{"ping":true}\'',
+  },
+  {
+    value: "openapi",
+    label: "OpenAPI JSON",
+    placeholder: '{"openapi":"3.1.0","servers":[{"url":"https://api.example.com"}],"paths":{...}}',
+  },
+  {
+    value: "postman",
+    label: "Postman JSON",
+    placeholder: '{"info":{"name":"Client workflow"},"item":[{"request":{...}}]}',
+  },
+];
+
+export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps) {
+  const [importSource, setImportSource] = useState<WorkflowImportSource>("url");
+  const [importText, setImportText] = useState("");
+  const [displayName, setDisplayName] = useState("");
+
+  const selectedSource = importSources.find((source) => source.value === importSource) ?? importSources[0];
+  const preview = useMemo<ImportPreviewState>(() => {
+    if (!importText.trim()) {
+      return { status: "empty" };
+    }
+
+    try {
+      return {
+        status: "ready",
+        plan: parseWorkflowImport({
+          source: importSource,
+          text: importText,
+        }),
+      };
+    } catch (error) {
+      return {
+        status: "error",
+        message: error instanceof Error ? error.message : "Workflow import could not be parsed.",
+      };
+    }
+  }, [importSource, importText]);
+  const canSubmit = clients.length > 0 && preview.status === "ready";
+
+  if (!clients.length) {
+    return (
+      <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+        Add an active client before importing a workflow endpoint.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-2 md:grid-cols-4">
+        {WORKFLOW_ONBOARDING_TEMPLATES.map((template) => (
+          <button
+            key={template.type}
+            type="button"
+            className="rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50 hover:bg-muted focus:border-primary focus:outline-none"
+            onClick={() => setImportSource(template.defaultMethod === "POST" ? "curl" : "url")}
+          >
+            <p className="text-sm font-medium">{template.label}</p>
+            <p className="mt-1 text-xs leading-5 text-muted-foreground">{template.detail}</p>
+          </button>
+        ))}
+      </div>
+
+      <form action={action} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-3 md:grid-cols-4">
+          <label className="block text-sm font-medium">
+            Import client
+            <select
+              required
+              name="clientId"
+              className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            >
+              {clients.map((client) => (
+                <option key={client.id} value={client.id}>
+                  {client.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium">
+            Import source
+            <select
+              required
+              name="importSource"
+              value={importSource}
+              onChange={(event) => setImportSource(event.target.value as WorkflowImportSource)}
+              className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            >
+              {importSources.map((source) => (
+                <option key={source.value} value={source.value}>
+                  {source.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="block text-sm font-medium md:col-span-2">
+            Display name
+            <input
+              name="importedWorkflowName"
+              value={displayName}
+              onChange={(event) => setDisplayName(event.target.value)}
+              placeholder="Lead Intake Webhook"
+              className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="block text-sm font-medium md:col-span-4">
+            Import details
+            <textarea
+              required
+              minLength={8}
+              name="importText"
+              value={importText}
+              onChange={(event) => setImportText(event.target.value)}
+              placeholder={selectedSource.placeholder}
+              rows={7}
+              className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </label>
+        </div>
+
+        <ImportPreview preview={preview} displayName={displayName} />
+        <Button type="submit" disabled={!canSubmit} className="lg:col-start-1 lg:w-fit">
+          <Plus size={15} aria-hidden="true" />
+          Import workflow
+        </Button>
+      </form>
+    </div>
+  );
+}
+
+function ImportPreview({
+  preview,
+  displayName,
+}: {
+  preview: ImportPreviewState;
+  displayName: string;
+}) {
+  if (preview.status === "empty") {
+    return (
+      <aside
+        data-testid="workflow-import-preview"
+        className="rounded-lg bg-muted p-4"
+        aria-live="polite"
+      >
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <Timer size={16} className="text-primary" aria-hidden="true" />
+          Preview pending
+        </div>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          Paste import details to confirm the endpoint, method, auth mode, and first health check before creation.
+        </p>
+      </aside>
+    );
+  }
+
+  if (preview.status === "error") {
+    return (
+      <aside
+        data-testid="workflow-import-preview"
+        className="rounded-lg bg-danger-background p-4 text-danger"
+        aria-live="polite"
+      >
+        <div className="flex items-center gap-2 text-sm font-semibold">
+          <AlertTriangle size={16} aria-hidden="true" />
+          Import needs attention
+        </div>
+        <p className="mt-2 text-sm leading-6">{preview.message}</p>
+      </aside>
+    );
+  }
+
+  const plan = preview.plan;
+  const finalName = displayName.trim() || plan.name;
+
+  return (
+    <aside
+      data-testid="workflow-import-preview"
+      className="rounded-lg bg-muted p-4"
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-2 text-sm font-semibold">
+        <CheckCircle2 size={16} className="text-success" aria-hidden="true" />
+        Import preview
+      </div>
+      <div className="mt-4 space-y-3 text-sm">
+        <PreviewRow label="Name" value={finalName} />
+        <PreviewRow label="Endpoint" value={plan.endpointUrl} breakValue />
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-muted-foreground">Method</span>
+          <Badge>{plan.method}</Badge>
+        </div>
+        <PreviewRow label="Auth" value={formatAuth(plan)} />
+        <PreviewRow label="Check" value={`Every ${plan.checkFrequencyMinutes} min, ${plan.expectedStatus}, under ${plan.maxLatencyMs} ms`} />
+        <PreviewRow label="Body" value={plan.requestBody ? "Request body detected" : "No request body"} />
+      </div>
+      {plan.authType !== "none" ? (
+        <p className="mt-4 flex items-center gap-2 rounded-md bg-background p-3 text-xs leading-5 text-muted-foreground">
+          <LockKeyhole size={14} className="text-primary" aria-hidden="true" />
+          Auth secrets are encrypted on save and are not shown in previews.
+        </p>
+      ) : null}
+    </aside>
+  );
+}
+
+function PreviewRow({
+  label,
+  value,
+  breakValue = false,
+}: {
+  label: string;
+  value: string;
+  breakValue?: boolean;
+}) {
+  return (
+    <div className="grid gap-1">
+      <span className="text-xs uppercase text-muted-foreground">{label}</span>
+      <span className={breakValue ? "break-all font-medium" : "font-medium"}>{value}</span>
+    </div>
+  );
+}
+
+function formatAuth(plan: WorkflowImportPlan) {
+  if (plan.authType === "bearer") {
+    return "Bearer token detected";
+  }
+
+  if (plan.authType === "api_key_header") {
+    return plan.authHeaderName ? `${plan.authHeaderName} header detected` : "API key header detected";
+  }
+
+  if (plan.authType === "basic") {
+    return "Basic auth detected";
+  }
+
+  return "No auth";
+}
