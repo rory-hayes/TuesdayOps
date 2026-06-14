@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { runDueScheduledChecks } from "@/lib/checks/scheduled-runner";
 import { getSchedulerSecret } from "@/lib/env";
+import { createMemoryRateLimiter } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -9,8 +10,25 @@ export const runtime = "nodejs";
 const schedulerRequestSchema = z.object({
   checkId: z.string().uuid().optional(),
 });
+const schedulerRateLimiter = createMemoryRateLimiter({ limit: 30, windowMs: 60_000 });
 
 export async function POST(request: NextRequest) {
+  const rateLimit = schedulerRateLimiter.check(`scheduler:${getRequestIp(request)}`);
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many scheduler trigger attempts." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+          "X-RateLimit-Limit": String(rateLimit.limit),
+          "X-RateLimit-Remaining": String(rateLimit.remaining),
+        },
+      },
+    );
+  }
+
   if (!isAuthorizedSchedulerRequest(request)) {
     return NextResponse.json({ error: "Unauthorized scheduler trigger." }, { status: 401 });
   }
@@ -25,6 +43,12 @@ export async function POST(request: NextRequest) {
   const result = await runDueScheduledChecks({ supabase, checkId: parsedBody.data.checkId });
 
   return NextResponse.json({ ok: true, ...result });
+}
+
+function getRequestIp(request: NextRequest): string {
+  const forwardedFor = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+
+  return forwardedFor || request.headers.get("x-real-ip") || "unknown";
 }
 
 function isAuthorizedSchedulerRequest(request: NextRequest): boolean {

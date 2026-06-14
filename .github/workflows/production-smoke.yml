@@ -1,0 +1,26 @@
+name: Production Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_url:
+        description: Production app URL
+        required: false
+        default: https://tuesday-ops.vercel.app
+  schedule:
+    - cron: "17,47 * * * *"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: ${{ github.event.inputs.app_url || 'https://tuesday-ops.vercel.app' }}
+    steps:
+      - name: Check public health endpoint
+        run: |
+          set -euo pipefail
+          payload="$(curl --fail --silent --show-error --max-time 20 "$APP_URL/api/health")"
+          echo "$payload" | jq .
+          test "$(echo "$payload" | jq -r '.ok')" = "true"
+          test "$(echo "$payload" | jq -r '.checks[] | select(.id == "app") | .status')" = "ready"
+          test "$(echo "$payload" | jq -r '.checks[] | select(.id == "supabase") | .status')" = "ready"

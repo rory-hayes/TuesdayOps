@@ -99,6 +99,8 @@ The import path creates a normal workflow plus the first health check. Billing l
 
 Workflow endpoints are normalized and blocked in production when they target localhost, loopback, private networks, link-local ranges, metadata IPs, or `.local` hostnames. Local/private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`.
 
+Workflow check execution does not follow endpoint redirects. If an endpoint returns `3xx`, the run fails with a report-safe redirect-blocked error so checks cannot be redirected into private networks after initial URL validation.
+
 ### `PATCH /api/workflows/:id`
 
 Updates workflow.
@@ -108,6 +110,8 @@ Updates workflow.
 Manually triggers a check run. Current server action equivalent: `runCheckAction(checkId)`.
 
 If the run is failed or degraded, the current implementation creates or updates one active issue for the material failure fingerprint.
+
+Check response bodies are read with a bounded retention limit and then summarized/redacted before persistence. Large responses are marked as truncated in `response_summary`.
 
 ## Checks
 
@@ -161,6 +165,16 @@ Requires either:
 - `x-scheduler-secret: <SCHEDULER_SECRET>`
 
 The route uses the server-only Supabase secret key, loads enabled due health checks, runs them, persists scheduled `check_runs`, and creates or updates issues through the same service path as manual checks.
+
+The route also applies a fixed-window per-IP limiter. Excess attempts receive:
+
+```json
+{
+  "error": "Too many scheduler trigger attempts."
+}
+```
+
+with HTTP `429` and `Retry-After`, `X-RateLimit-Limit`, and `X-RateLimit-Remaining` headers.
 
 Optional JSON body for targeted operational smoke tests:
 

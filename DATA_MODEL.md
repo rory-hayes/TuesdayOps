@@ -290,18 +290,31 @@ Milestone 6 creates a private Supabase Storage bucket named `reports`. Generated
 
 ## audit_events
 
-Records important user/system actions.
+Records important user/system actions. App server code writes these with the service-role client; agency members can read their own agency's audit history through RLS. Metadata is recursively redacted before persistence.
 
 ```txt
 id uuid primary key
 agency_id uuid references agencies(id)
 actor_user_id uuid references profiles(id)
-event_type text not null
-entity_type text
-entity_id uuid
-metadata_json jsonb
+action text check in (
+  'workflow.created',
+  'workflow.updated',
+  'check.run',
+  'issue.assigned',
+  'issue.resolved',
+  'issue.ignored',
+  'report.generated',
+  'report.pdf_generated',
+  'report.send_attempted',
+  'billing.webhook_processed'
+)
+target_type text check in ('workflow', 'check', 'issue', 'report', 'billing_event')
+target_id text
+metadata_json jsonb default '{}'
 created_at timestamptz default now()
 ```
+
+The code hardening migration also adds a service-only `delete_old_check_runs(older_than interval, max_delete integer)` retention helper and indexes for workflow health summaries, due checks, check history, issue queues, report lists, test runs, and audit history.
 
 ## billing_events
 
