@@ -16,6 +16,7 @@ jobs:
       SUPABASE_SECRET_KEY: ci-secret-key
       WORKFLOW_AUTH_ENCRYPTION_KEY: ci-workflow-auth-encryption-key
       SCHEDULER_SECRET: ci-scheduler-secret
+      SUPABASE_CRON_ENABLED: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

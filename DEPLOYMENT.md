@@ -30,7 +30,7 @@ Before promoting a deployment, confirm these Vercel settings:
 - Node.js version is 22.x or newer.
 - Preview deployments use the same required server env vars as production.
 - `NEXT_PUBLIC_APP_URL` points to the deployed app URL for the target environment.
-- Inngest is connected through the Vercel integration or has production `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`.
+- Supabase Cron is enabled, with Vault secrets named `tuesdayops_app_url` and `tuesdayops_scheduler_secret`.
 - `/api/health` returns a `ready` status before public launch.
 
 ## Required Environment Variables
@@ -46,8 +46,7 @@ WORKFLOW_AUTH_ENCRYPTION_KEY=
 ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=
 SCHEDULER_SECRET=
 
-INNGEST_EVENT_KEY=
-INNGEST_SIGNING_KEY=
+SUPABASE_CRON_ENABLED=
 
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
@@ -100,6 +99,23 @@ The code hardening migration adds `audit_events`, additional query indexes, and 
 - `service_role` can insert audit rows and execute `delete_old_check_runs`.
 - No `security definer` helper is exposed for this retention path.
 
+The Supabase Cron scheduler migration adds:
+
+- `pg_net` and `pg_cron` extension setup.
+- `supabase_vault` setup for encrypted scheduler material.
+- `public.trigger_due_check_sweep()`, which calls the protected Vercel scheduler route.
+- `public.configure_due_check_cron()`, which schedules `tuesdayops-run-due-checks` every five minutes.
+
+Before marking scheduling ready, add these Supabase Vault secrets:
+
+```sql
+select vault.create_secret('https://tuesday-ops.vercel.app', 'tuesdayops_app_url');
+select vault.create_secret('<same value as SCHEDULER_SECRET>', 'tuesdayops_scheduler_secret');
+select public.configure_due_check_cron();
+```
+
+Then set `SUPABASE_CRON_ENABLED=true` in Vercel production env and redeploy.
+
 Supabase projects created after April 28, 2026 may not expose new public tables to the Data API automatically. For each new public table, migrations must include:
 
 - RLS enabled.
@@ -142,6 +158,7 @@ Run this after the Vercel deployment is ready:
 - Generate a monthly report.
 - Generate and download a PDF; response content type must be `application/pdf`.
 - Trigger `/api/scheduler/run-due-checks` without a scheduler secret and confirm it returns `401`.
+- Confirm the Supabase Cron job `tuesdayops-run-due-checks` is active and its latest run has no error.
 - Trigger `/api/scheduler/run-due-checks` with the scheduler secret and confirm due checks are processed.
 - Confirm high-severity alert attempts record delivery metadata or a redacted configuration error.
 - Confirm scheduler trigger abuse protection returns `429` after repeated calls from the same source.

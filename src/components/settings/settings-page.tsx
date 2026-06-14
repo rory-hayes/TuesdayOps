@@ -11,7 +11,7 @@ import { buildProductionReadiness } from "@/lib/production/readiness";
 
 const integrations = [
   { name: "Supabase", status: "planned", detail: "Auth, Postgres, Storage" },
-  { name: "Inngest or Trigger.dev", status: "planned", detail: "Scheduled checks and jobs" },
+  { name: "Supabase Cron", status: "planned", detail: "Scheduled checks and jobs" },
   { name: "Resend", status: "planned", detail: "Issue alerts and report emails" },
   { name: "Stripe", status: "active", detail: "Billing gate and customer portal" },
 ];

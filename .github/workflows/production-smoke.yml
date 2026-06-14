@@ -24,3 +24,4 @@ jobs:
           test "$(echo "$payload" | jq -r '.ok')" = "true"
           test "$(echo "$payload" | jq -r '.checks[] | select(.id == "app") | .status')" = "ready"
           test "$(echo "$payload" | jq -r '.checks[] | select(.id == "supabase") | .status')" = "ready"
+          test "$(echo "$payload" | jq -r '.checks[] | select(.id == "scheduler") | .status')" = "ready"

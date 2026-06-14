@@ -12,7 +12,7 @@ Browser
     -> Supabase Auth
     -> Supabase Postgres
     -> Supabase Storage
-    -> Inngest/Trigger.dev Jobs
+    -> Supabase Cron/Vault scheduled triggers
       -> Workflow endpoint checks
       -> Synthetic test pack runs
       -> Issue creation
@@ -36,8 +36,8 @@ Browser
 - Workflow check execution does not follow redirects, caps retained response reads, and stores only redacted summaries.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
 - Issue queue actions assign, resolve with a report-safe note, or ignore issues inside the tenant boundary.
-- Inngest serves scheduled check functions from `/api/inngest`.
-- A scheduled sweep runs every five minutes, finds enabled due health checks, and fans out one event per due check.
+- Supabase Cron triggers the protected scheduler route every five minutes.
+- A scheduled sweep finds enabled due health checks and runs them through the shared scheduled runner.
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
 - The scheduler trigger route is protected by `SCHEDULER_SECRET` and an in-memory fixed-window limiter to reduce abuse before provider-side firewalling is configured.
@@ -111,7 +111,7 @@ user -> membership -> agency -> clients/workflows/checks/issues/reports
 
 ## 4. Job model
 
-Use Inngest or Trigger.dev for:
+Use Supabase Cron plus the protected Next.js scheduler route for:
 
 - recurring check schedules
 - manual check execution
@@ -121,7 +121,7 @@ Use Inngest or Trigger.dev for:
 
 Jobs must be idempotent where practical.
 
-Milestone 4 uses Inngest. The cron sweep queues due check events every five minutes, and the per-check event function has a retry budget of three attempts. The database also prevents duplicate scheduled runs for the same `(agency_id, check_id, scheduled_for)` window.
+Supabase Cron calls `/api/scheduler/run-due-checks` every five minutes using `pg_net` with a 45-second timeout. The request URL and scheduler secret are read from Supabase Vault secrets named `tuesdayops_app_url` and `tuesdayops_scheduler_secret`. The database prevents duplicate scheduled runs for the same `(agency_id, check_id, scheduled_for)` window.
 
 ## 5. Check execution flow
 

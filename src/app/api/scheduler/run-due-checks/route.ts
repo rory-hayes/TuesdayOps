@@ -6,6 +6,7 @@ import { createMemoryRateLimiter } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const schedulerRequestSchema = z.object({
   checkId: z.string().uuid().optional(),

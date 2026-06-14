@@ -7,9 +7,7 @@ export type ReadinessEnv = Record<string, string | undefined> & Partial<Record<
   | "SUPABASE_SECRET_KEY"
   | "WORKFLOW_AUTH_ENCRYPTION_KEY"
   | "SCHEDULER_SECRET"
-  | "INNGEST_DEV"
-  | "INNGEST_EVENT_KEY"
-  | "INNGEST_SIGNING_KEY"
+  | "SUPABASE_CRON_ENABLED"
   | "RESEND_API_KEY"
   | "RESEND_FROM_EMAIL"
   | "STRIPE_SECRET_KEY"
@@ -158,7 +156,6 @@ function buildGroup({
 }
 
 function buildSchedulerGroup(env: ReadinessEnv): ReadinessGroup {
-  const inngestConfigured = hasValue(env.INNGEST_DEV) || (hasValue(env.INNGEST_EVENT_KEY) && hasValue(env.INNGEST_SIGNING_KEY));
   const items: ReadinessItem[] = [
     {
       label: "Scheduler route secret",
@@ -166,16 +163,16 @@ function buildSchedulerGroup(env: ReadinessEnv): ReadinessGroup {
       configured: hasValue(env.SCHEDULER_SECRET),
     },
     {
-      label: "Inngest production or dev mode",
-      env: "INNGEST_EVENT_KEY + INNGEST_SIGNING_KEY or INNGEST_DEV",
-      configured: inngestConfigured,
+      label: "Supabase Cron and Vault",
+      env: "SUPABASE_CRON_ENABLED",
+      configured: hasValue(env.SUPABASE_CRON_ENABLED),
     },
   ];
 
   return {
     id: "scheduler",
     label: "Scheduled jobs",
-    detail: "Due check sweep and per-check execution.",
+    detail: "Supabase Cron triggers the protected due-check sweep.",
     required: true,
     status: items.every((item) => item.configured) ? "ready" : "missing",
     items,

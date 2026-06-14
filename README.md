@@ -107,6 +107,7 @@ SUPABASE_SECRET_KEY=
 WORKFLOW_AUTH_ENCRYPTION_KEY=
 ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=
 SCHEDULER_SECRET=
+SUPABASE_CRON_ENABLED=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=
 STRIPE_SECRET_KEY=
@@ -123,7 +124,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are required for live email alerts.
 `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is only for local/private test environments. Production should leave it unset so workflow checks cannot call localhost, private networks, or metadata endpoints.
 
-Inngest is wired at `/api/inngest` for scheduled checks. Local Inngest development can use `INNGEST_DEV=1`. Production scheduling requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` configuration.
+Scheduled checks are triggered by Supabase Cron calling `/api/scheduler/run-due-checks`. The Cron SQL reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, so the scheduler secret is not stored in migrations or client code. Set `SUPABASE_CRON_ENABLED=true` only after the Cron job and Vault secrets are configured.
 
 Local Supabase uses the repo `supabase/config.toml` port range `55420-55429` to avoid clashes with other local Supabase projects.
 
@@ -166,7 +167,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - endpoint health check creation, manual run execution, assertion evaluation, and check run persistence
 - failed/degraded manual checks create deduped issues with severity mapping
 - issue queue filters, expandable details, assignment, resolution notes, and ignore actions
-- Inngest scheduled check functions served from `/api/inngest`
+- Supabase Cron/Vault scheduled trigger for `/api/scheduler/run-due-checks`
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
 - scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
 - bounded workflow check response reads, blocked redirect following, and fixed-window protection on the scheduler trigger route
