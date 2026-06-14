@@ -142,7 +142,7 @@ function buildGroup({
   const items = keys.map(([key, itemLabel]) => ({
     label: itemLabel,
     env: key,
-    configured: hasValue(env[key]),
+    configured: isConfiguredEnvValue(key, env[key]),
   }));
 
   return {
@@ -210,4 +210,27 @@ function buildObservabilityGroup(env: ReadinessEnv): ReadinessGroup {
 
 function hasValue(value: string | undefined): boolean {
   return Boolean(value?.trim());
+}
+
+function isConfiguredEnvValue(key: keyof ReadinessEnv, value: string | undefined): boolean {
+  const configuredValue = value?.trim();
+
+  if (!configuredValue) {
+    return false;
+  }
+
+  if (key === "NEXT_PUBLIC_APP_URL") {
+    return isAbsoluteHttpUrl(configuredValue);
+  }
+
+  return true;
+}
+
+function isAbsoluteHttpUrl(value: string): boolean {
+  try {
+    const parsedUrl = new URL(value);
+    return ["http:", "https:"].includes(parsedUrl.protocol);
+  } catch {
+    return false;
+  }
 }

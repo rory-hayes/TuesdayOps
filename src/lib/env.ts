@@ -41,7 +41,19 @@ export function getSchedulerSecret(): string {
 }
 
 export function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  try {
+    const parsedUrl = new URL(appUrl);
+
+    if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+      throw new Error("Unsupported protocol.");
+    }
+
+    return parsedUrl.origin;
+  } catch {
+    throw new Error("Invalid NEXT_PUBLIC_APP_URL. Set it to an absolute http(s) URL.");
+  }
 }
 
 export function getResendApiKey(): string {

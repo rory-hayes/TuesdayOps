@@ -72,6 +72,19 @@ describe("buildProductionReadiness", () => {
     expect(readiness.launchReady).toBe(false);
     expect(readiness.missingRequired).toContain("SUPABASE_CRON_ENABLED");
   });
+
+  it("marks app runtime missing when the public app URL is malformed", () => {
+    const readiness = buildProductionReadiness({
+      ...completeEnv,
+      NEXT_PUBLIC_APP_URL: "tuesday-ops.vercel.app",
+    });
+
+    const app = readiness.groups.find((group) => group.id === "app");
+
+    expect(app?.status).toBe("missing");
+    expect(readiness.launchReady).toBe(false);
+    expect(readiness.missingRequired).toContain("NEXT_PUBLIC_APP_URL");
+  });
 });
 
 describe("buildPublicHealthPayload", () => {

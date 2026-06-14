@@ -35,3 +35,4 @@ Track meaningful product and engineering changes here.
 - Removed the internal Production readiness launch-gate panel from user-facing Settings while keeping `/api/health` for operator checks.
 - Made Workflows registry-first and moved quick import/manual endpoint setup into a guided Add workflow modal.
 - Hardened production E2E coverage for configured Stripe/Resend providers and prevented early Add workflow clicks before hydration.
+- Validated production app URL readiness and surfaced Stripe billing setup errors without crashing Settings.

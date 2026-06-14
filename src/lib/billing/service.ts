@@ -15,65 +15,72 @@ export async function createCheckoutSessionAction() {
 
   let stripe;
   let priceId;
+  let appUrl;
 
   try {
     stripe = getStripeClient();
     priceId = getStripePriceId();
+    appUrl = getAppUrl();
   } catch (error) {
     redirect(`/settings?billing_error=${encodeURIComponent(error instanceof Error ? error.message : "Billing is not configured.")}`);
   }
 
   const supabase = await createClient();
   let customerId = workspace.agency.billingCustomerId;
+  let checkoutUrl: string | null = null;
 
-  if (!customerId) {
-    const customer = await stripe.customers.create({
-      name: workspace.agency.name,
-      email: workspace.user.email ?? undefined,
+  try {
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        name: workspace.agency.name,
+        email: workspace.user.email ?? undefined,
+        metadata: {
+          agency_id: workspace.agency.id,
+        },
+      });
+      customerId = customer.id;
+
+      const { error } = await supabase
+        .from("agencies")
+        .update({ billing_customer_id: customerId })
+        .eq("id", workspace.agency.id);
+
+      if (error) {
+        throw new Error(error.message);
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      mode: "subscription",
+      customer: customerId,
+      client_reference_id: workspace.agency.id,
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      success_url: `${appUrl}/settings?billing=checkout-success`,
+      cancel_url: `${appUrl}/settings?billing=checkout-canceled`,
       metadata: {
         agency_id: workspace.agency.id,
+      },
+      subscription_data: {
+        metadata: {
+          agency_id: workspace.agency.id,
+        },
       },
     });
-    customerId = customer.id;
-
-    const { error } = await supabase
-      .from("agencies")
-      .update({ billing_customer_id: customerId })
-      .eq("id", workspace.agency.id);
-
-    if (error) {
-      redirect(`/settings?billing_error=${encodeURIComponent(error.message)}`);
-    }
+    checkoutUrl = session.url;
+  } catch (error) {
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Stripe Checkout could not be started."))}`);
   }
 
-  const appUrl = getAppUrl();
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer: customerId,
-    client_reference_id: workspace.agency.id,
-    line_items: [
-      {
-        price: priceId,
-        quantity: 1,
-      },
-    ],
-    success_url: `${appUrl}/settings?billing=checkout-success`,
-    cancel_url: `${appUrl}/settings?billing=checkout-canceled`,
-    metadata: {
-      agency_id: workspace.agency.id,
-    },
-    subscription_data: {
-      metadata: {
-        agency_id: workspace.agency.id,
-      },
-    },
-  });
-
-  if (!session.url) {
+  if (!checkoutUrl) {
     redirect(`/settings?billing_error=${encodeURIComponent("Stripe did not return a checkout URL.")}`);
   }
 
-  redirect(session.url);
+  redirect(checkoutUrl);
 }
 
 export async function createCustomerPortalSessionAction() {
@@ -88,18 +95,41 @@ export async function createCustomerPortalSessionAction() {
   }
 
   let stripe;
+  let appUrl;
 
   try {
     stripe = getStripeClient();
+    appUrl = getAppUrl();
   } catch (error) {
     redirect(`/settings?billing_error=${encodeURIComponent(error instanceof Error ? error.message : "Billing is not configured.")}`);
   }
 
-  const appUrl = getAppUrl();
-  const session = await stripe.billingPortal.sessions.create({
-    customer: workspace.agency.billingCustomerId,
-    return_url: `${appUrl}/settings?billing=portal-return`,
-  });
+  let portalUrl: string | null = null;
 
-  redirect(session.url);
+  try {
+    const session = await stripe.billingPortal.sessions.create({
+      customer: workspace.agency.billingCustomerId,
+      return_url: `${appUrl}/settings?billing=portal-return`,
+    });
+
+    portalUrl = session.url;
+  } catch (error) {
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Stripe customer portal could not be started."))}`);
+  }
+
+  if (!portalUrl) {
+    redirect(`/settings?billing_error=${encodeURIComponent("Stripe did not return a customer portal URL.")}`);
+  }
+
+  redirect(portalUrl);
+}
+
+function formatBillingError(error: unknown, fallback: string): string {
+  const message = error instanceof Error ? error.message : fallback;
+
+  if (message.length <= 240) {
+    return message;
+  }
+
+  return `${message.slice(0, 237)}...`;
 }
