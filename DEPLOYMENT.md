@@ -166,12 +166,12 @@ Run this after the Vercel deployment is ready:
 - Confirm missing Stripe config returns a clear Settings error in non-billing environments.
 - Confirm Stripe webhook endpoint is configured as `/api/stripe/webhook` in live mode before taking payment.
 - Open `/api/health` and confirm `launchReady` is `true`.
-- Confirm Settings shows Production readiness as `ready`.
 - Confirm Settings shows Operational reliability as `ready` or that remaining attention items are accepted for the design partner.
 - Import a workflow from a cURL command and confirm it creates a normal workflow plus first health check.
 - Attempt to add a localhost/private endpoint in production and confirm it is blocked.
 - Attempt a workflow endpoint that returns a redirect and confirm the check run fails without following the redirect.
 - Confirm another agency cannot access the first agency's workflow detail URL or report download route.
+- Confirm Settings does not show the internal Production readiness launch-gate panel.
 
 ## Automated Smoke
 

@@ -45,7 +45,7 @@ Browser
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
 - Monthly reports aggregate stored workflow, check, issue, and synthetic run data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts.
 - Workflow quick import supports direct URLs, cURL commands, OpenAPI JSON, and Postman collection JSON while reusing the normal workflow/check creation path.
-- Production readiness checks expose public `/api/health` status without secret disclosure and render provider readiness in Settings.
+- Production readiness checks expose public `/api/health` status without secret disclosure. Provider launch gates are kept out of the user-facing Settings UI.
 - Operational reliability checks flag missing enabled checks, stale workflow data, high-risk open issues, and report queue gaps.
 - Report quality checks score source data, report sections, recommendations, and open high-risk issues before send/export.
 - Stripe billing and plan limits are implemented. Sentry/PostHog are represented in production readiness and still require provider-side configuration before public launch.
