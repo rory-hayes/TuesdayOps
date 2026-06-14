@@ -36,3 +36,5 @@ Track meaningful product and engineering changes here.
 - Made Workflows registry-first and moved quick import/manual endpoint setup into a guided Add workflow modal.
 - Hardened production E2E coverage for configured Stripe/Resend providers and prevented early Add workflow clicks before hydration.
 - Validated production app URL readiness and surfaced Stripe billing setup errors without crashing Settings.
+- Began the Catalyst UI migration with Inter/zinc design tokens, Catalyst-style shared button/card/badge primitives, sidebar and auth layouts, a sidebar Clients section with New Client modal, Catalyst-style overview stats, and client detail drill-down pages.
+- Continued the Catalyst/Tailwind Plus UI pass with a Headless UI Add Workflow onboarding modal, hydration-safe client/workflow triggers, user-facing Settings cleanup, and stabilized server-action E2E waits.

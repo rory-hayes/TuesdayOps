@@ -1,4 +1,6 @@
-import { Archive, BriefcaseBusiness, FileText, Save, Search } from "lucide-react";
+import Link from "next/link";
+import { Archive, FileText, Save, Search } from "lucide-react";
+import { NewClientDialog } from "@/components/clients/new-client-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,35 +51,6 @@ export function ClientsPage({
       {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
 
       <Card>
-        <CardHeader>
-          <h2 className="text-base font-semibold">Add client</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Create a retained client before registering workflows and checks.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <form action={createClientAction} className="grid gap-3 md:grid-cols-5">
-            <Input label="Client name" name="name" placeholder="Nova Dental Group" required />
-            <Input label="Slug" name="slug" placeholder="nova-dental" />
-            <Input label="Industry" name="industry" placeholder="Healthcare" required />
-            <Input label="Report email" name="reportRecipientEmail" type="email" placeholder="ops@example.com" required />
-            <label className="block text-sm font-medium">
-              Notes
-              <input
-                name="notes"
-                placeholder="Workflow scope"
-                className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-              />
-            </label>
-            <Button type="submit" className="md:col-span-5 md:w-fit">
-              <BriefcaseBusiness size={15} aria-hidden="true" />
-              Add client
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-base font-semibold">Clients</h2>
@@ -121,7 +94,9 @@ export function ClientsPage({
                 return (
                   <tr key={client.id} className="border-b border-border last:border-0">
                     <td className="px-5 py-4">
-                      <p className="font-medium">{client.name}</p>
+                      <Link href={`/clients/${client.id}`} className="font-medium hover:text-zinc-700">
+                        {client.name}
+                      </Link>
                       <p className="mt-1 text-xs text-muted-foreground">{client.industry}</p>
                     </td>
                     <td className="px-5 py-4">{workflows.length}</td>
@@ -220,10 +195,13 @@ function PageHeader({
         <h1 className="mt-2 text-2xl font-semibold tracking-normal md:text-3xl">{title}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
-      <Button variant="secondary" size="sm">
-        <FileText size={15} aria-hidden="true" />
-        Export view
-      </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm">
+            <FileText size={15} aria-hidden="true" />
+            Export view
+          </Button>
+          <NewClientDialog action={createClientAction} />
+        </div>
     </section>
   );
 }
@@ -237,32 +215,5 @@ function PortfolioTile({ label, value, detail }: { label: string; value: string;
         <p className="mt-1 text-sm text-muted-foreground">{detail}</p>
       </CardContent>
     </Card>
-  );
-}
-
-function Input({
-  label,
-  name,
-  placeholder,
-  type = "text",
-  required = false,
-}: {
-  label: string;
-  name: string;
-  placeholder: string;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="block text-sm font-medium">
-      {label}
-      <input
-        required={required}
-        name={name}
-        type={type}
-        placeholder={placeholder}
-        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-      />
-    </label>
   );
 }

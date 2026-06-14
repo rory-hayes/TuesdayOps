@@ -35,7 +35,7 @@ test("onboarding checklist can seed a useful demo workspace", async ({ page, bas
     await page.getByLabel("Agency name").fill(agencyName);
     await page.getByLabel("Slug").fill(agencySlug);
     await Promise.all([
-      page.waitForURL(`${appUrl}/`, { timeout: 15_000 }),
+      page.waitForURL(`${appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),
     ]);
   }
@@ -47,6 +47,7 @@ test("onboarding checklist can seed a useful demo workspace", async ({ page, bas
   await Promise.all([
     page.waitForURL((url) => url.pathname === "/" && url.searchParams.get("sample") === "seeded", {
       timeout: 15_000,
+      waitUntil: "commit",
     }),
     page.getByRole("button", { name: "Seed demo data" }).click(),
   ]);

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
+import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorkflowImportForm } from "@/components/workflows/workflow-import-form";
@@ -30,68 +31,11 @@ export function AddWorkflowDialog({
 }: AddWorkflowDialogProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SetupMode>("import");
-  const hydrated = useSyncExternalStore(
+  const ready = useSyncExternalStore(
     subscribeHydration,
     clientHydratedSnapshot,
     serverHydratedSnapshot,
   );
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const dialogRef = useRef<HTMLElement>(null);
-
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    const focusFrame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
-
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        setOpen(false);
-        return;
-      }
-
-      if (event.key !== "Tab" || !dialogRef.current) {
-        return;
-      }
-
-      const focusableElements = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-        ),
-      );
-
-      if (!focusableElements.length) {
-        return;
-      }
-
-      const firstElement = focusableElements[0];
-      const lastElement = focusableElements[focusableElements.length - 1];
-
-      if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-      } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-      }
-    }
-
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      window.cancelAnimationFrame(focusFrame);
-      window.removeEventListener("keydown", onKeyDown);
-
-      if (previouslyFocused?.isConnected) {
-        previouslyFocused.focus();
-      }
-    };
-  }, [open]);
 
   function openDialog() {
     setMode("import");
@@ -100,40 +44,24 @@ export function AddWorkflowDialog({
 
   return (
     <>
-      <Button type="button" size="sm" disabled={!hydrated} onClick={openDialog}>
+      <Button type="button" size="sm" disabled={!ready} onClick={openDialog}>
         <Plus size={15} aria-hidden="true" />
         Add workflow
       </Button>
 
-      {open ? (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/20 px-4 py-6 backdrop-blur-sm md:py-10"
-          role="presentation"
-        >
-          <button
-            type="button"
-            aria-label="Close add workflow"
-            tabIndex={-1}
-            className="fixed inset-0 cursor-default"
-            onClick={() => setOpen(false)}
-          />
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="add-workflow-title"
-            aria-describedby="add-workflow-description"
-            ref={dialogRef}
-            className="relative z-10 flex w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-border bg-card shadow-xl"
-          >
-            <header className="flex items-start justify-between gap-4 border-b border-border p-5">
+      <Dialog open={open} onClose={setOpen} className="relative z-50">
+        <DialogBackdrop className="fixed inset-0 bg-zinc-950/25" />
+        <div className="fixed inset-0 flex w-screen items-start justify-center overflow-y-auto px-4 py-8 sm:py-12">
+          <DialogPanel className="w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-xl ring-1 ring-zinc-950/10">
+            <header className="flex items-start justify-between gap-4 border-b border-zinc-950/10 p-6">
               <div>
-                <p className="text-sm font-medium text-primary">Workflow onboarding</p>
-                <h2 id="add-workflow-title" className="mt-1 text-xl font-semibold">
+                <p className="text-sm/6 font-medium text-zinc-500">Workflow onboarding</p>
+                <DialogTitle id="add-workflow-title" className="mt-1 text-xl/7 font-semibold text-zinc-950">
                   Add workflow
-                </h2>
+                </DialogTitle>
                 <p
                   id="add-workflow-description"
-                  className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground"
+                  className="mt-2 max-w-2xl text-sm/6 text-zinc-500"
                 >
                   Import an existing endpoint or configure one manually, then TuesdayOps creates the first health check.
                 </p>
@@ -141,21 +69,20 @@ export function AddWorkflowDialog({
               <button
                 type="button"
                 aria-label="Close add workflow"
-                ref={closeButtonRef}
-                className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="grid size-8 place-items-center rounded-lg text-zinc-500 transition hover:bg-zinc-950/5 hover:text-zinc-950"
                 onClick={() => setOpen(false)}
               >
                 <X size={18} aria-hidden="true" />
               </button>
             </header>
 
-            <div className="grid gap-4 border-b border-border p-5 md:grid-cols-3">
+            <div className="grid gap-4 border-b border-zinc-950/10 p-6 md:grid-cols-3">
               <JourneyStep label="1. Capture" detail="Choose import or manual setup." />
               <JourneyStep label="2. Confirm check" detail="Set method, auth, frequency, and thresholds." />
               <JourneyStep label="3. Create & test" detail="Save the workflow, then run its first check." />
             </div>
 
-            <div className="flex flex-wrap gap-2 border-b border-border p-5">
+            <div className="flex flex-wrap gap-2 border-b border-zinc-950/10 p-6">
               <ModeButton
                 active={mode === "import"}
                 icon={<Upload size={15} aria-hidden="true" />}
@@ -170,12 +97,12 @@ export function AddWorkflowDialog({
               />
             </div>
 
-            <div className="max-h-[calc(100vh-18rem)] overflow-y-auto p-5">
+            <div className="max-h-[calc(100vh-19rem)] overflow-y-auto p-6">
               {mode === "import" ? (
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-base font-semibold">Quick workflow import</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    <h3 className="text-base/7 font-semibold text-zinc-950">Quick workflow import</h3>
+                    <p className="mt-1 text-sm/6 text-zinc-500">
                       Paste a URL, cURL command, OpenAPI JSON, or Postman collection and review the generated monitor before saving.
                     </p>
                   </div>
@@ -185,21 +112,21 @@ export function AddWorkflowDialog({
                 <ManualWorkflowForm clients={clients} action={createWorkflowAction} />
               )}
             </div>
-          </section>
+          </DialogPanel>
         </div>
-      ) : null}
+      </Dialog>
     </>
   );
 }
 
 function JourneyStep({ label, detail }: { label: string; detail: string }) {
   return (
-    <div className="rounded-lg bg-muted p-3">
-      <div className="flex items-center gap-2 text-sm font-medium">
-        <CheckCircle2 size={15} className="text-primary" aria-hidden="true" />
+    <div className="rounded-lg bg-zinc-50 p-3 ring-1 ring-zinc-950/5">
+      <div className="flex items-center gap-2 text-sm/6 font-medium text-zinc-950">
+        <CheckCircle2 size={15} className="text-lime-700" aria-hidden="true" />
         {label}
       </div>
-      <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>
+      <p className="mt-1 text-xs/5 text-zinc-500">{detail}</p>
     </div>
   );
 }
@@ -221,8 +148,8 @@ function ModeButton({
       aria-pressed={active}
       className={`inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${
         active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted"
+          ? "border-zinc-950 bg-zinc-950 text-white"
+          : "border-zinc-950/10 bg-white text-zinc-700 hover:bg-zinc-950/5"
       }`}
       onClick={onClick}
     >
@@ -241,7 +168,7 @@ function ManualWorkflowForm({
 }) {
   if (!clients.length) {
     return (
-      <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+      <p className="rounded-lg bg-zinc-50 p-3 text-sm/6 text-zinc-500 ring-1 ring-zinc-950/5">
         Add an active client before registering a workflow endpoint.
       </p>
     );
@@ -250,8 +177,8 @@ function ManualWorkflowForm({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-base font-semibold">Manual endpoint setup</h3>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+        <h3 className="text-base/7 font-semibold text-zinc-950">Manual endpoint setup</h3>
+        <p className="mt-1 text-sm/6 text-zinc-500">
           Register a live client endpoint and create its first health check.
         </p>
       </div>
@@ -261,7 +188,7 @@ function ManualWorkflowForm({
           <select
             required
             name="clientId"
-            className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
           >
             {clients.map((client) => (
               <option key={client.id} value={client.id}>
@@ -276,7 +203,7 @@ function ManualWorkflowForm({
           <select
             name="type"
             defaultValue="http_endpoint"
-            className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
           >
             <option value="http_endpoint">HTTP endpoint</option>
             <option value="webhook">Webhook</option>
@@ -292,7 +219,7 @@ function ManualWorkflowForm({
           <select
             name="environment"
             defaultValue="production"
-            className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
           >
             <option value="production">Production</option>
             <option value="staging">Staging</option>
@@ -312,7 +239,7 @@ function ManualWorkflowForm({
           <select
             name="method"
             defaultValue="GET"
-            className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
           >
             <option value="GET">GET</option>
             <option value="POST">POST</option>
@@ -325,7 +252,7 @@ function ManualWorkflowForm({
           <select
             name="authType"
             defaultValue="none"
-            className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+            className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
           >
             <option value="none">None</option>
             <option value="bearer">Bearer token</option>
@@ -345,7 +272,7 @@ function ManualWorkflowForm({
             name="requestBody"
             placeholder='{"ping": true}'
             rows={4}
-            className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+            className="mt-2 w-full rounded-lg border border-zinc-950/10 bg-white px-3 py-2 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
           />
         </label>
         <Button type="submit" className="md:col-span-4 md:w-fit">
@@ -380,7 +307,7 @@ function Input({
         name={name}
         type={type}
         placeholder={placeholder}
-        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+        className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />
     </label>
   );

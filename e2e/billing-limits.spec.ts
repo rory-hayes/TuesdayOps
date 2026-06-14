@@ -39,7 +39,7 @@ test("billing settings show limits and starter client limit is enforced", async 
     await page.getByLabel("Agency name").fill(agencyName);
     await page.getByLabel("Slug").fill(agencySlug);
     await Promise.all([
-      page.waitForURL(`${appUrl}/`, { timeout: 15_000 }),
+      page.waitForURL(`${appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),
     ]);
   }
@@ -58,8 +58,9 @@ test("billing settings show limits and starter client limit is enforced", async 
   expect(["checkout", "config-error"]).toContain(upgradeResult);
 
   await page.goto("/clients", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   await createClient(page, firstClient, `qa-billing-${runId}@example.invalid`);
-  await expect(page.getByText(firstClient)).toBeVisible();
+  await expect(page.getByRole("table").getByRole("link", { name: firstClient })).toBeVisible();
 
   await createClient(page, secondClient, `qa-billing-overflow-${runId}@example.invalid`);
   await expect(page.getByText("Upgrade to add more clients.")).toBeVisible();
@@ -90,11 +91,14 @@ test("billing settings show limits and starter client limit is enforced", async 
 });
 
 async function createClient(page: import("@playwright/test").Page, name: string, email: string) {
+  await page.getByRole("button", { name: "New client" }).click();
+  await expect(page.getByRole("heading", { name: "New client" })).toBeVisible();
   await page.getByLabel("Client name").fill(name);
   await page.getByLabel("Industry").fill("QA Automation");
   await page.getByLabel("Report email").fill(email);
   await page.getByLabel("Notes").fill("Billing limit E2E client.");
   await page.getByRole("button", { name: "Add client" }).click();
+  await expect(page.getByRole("dialog", { name: "New client" })).toBeHidden({ timeout: 30_000 });
 }
 
 async function createWorkflow(
@@ -122,12 +126,15 @@ async function createWorkflow(
   const workflowForm = page.locator("form").filter({ has: page.locator('input[name="endpointUrl"]') });
 
   if (input.expectRedirect === false) {
-    await workflowForm.getByRole("button", { name: "Create workflow" }).click();
+    await Promise.all([
+      page.waitForURL(/\/workflows\?error=/, { timeout: 30_000, waitUntil: "commit" }),
+      workflowForm.getByRole("button", { name: "Create workflow" }).click(),
+    ]);
     return;
   }
 
   await Promise.all([
-    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 15_000 }),
+    page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 30_000, waitUntil: "commit" }),
     workflowForm.getByRole("button", { name: "Create workflow" }).click(),
   ]);
 }
