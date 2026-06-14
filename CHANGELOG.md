@@ -34,3 +34,4 @@ Track meaningful product and engineering changes here.
 - Replaced Inngest production scheduling with Supabase Cron/Vault calling the protected due-check scheduler route, and removed the Inngest app dependency.
 - Removed the internal Production readiness launch-gate panel from user-facing Settings while keeping `/api/health` for operator checks.
 - Made Workflows registry-first and moved quick import/manual endpoint setup into a guided Add workflow modal.
+- Hardened production E2E coverage for configured Stripe/Resend providers and prevented early Add workflow clicks before hydration.

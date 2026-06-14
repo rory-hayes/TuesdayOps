@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,10 @@ type AddWorkflowDialogProps = {
 
 type SetupMode = "import" | "manual";
 
+const subscribeHydration = () => () => {};
+const clientHydratedSnapshot = () => true;
+const serverHydratedSnapshot = () => false;
+
 export function AddWorkflowDialog({
   clients,
   createWorkflowAction,
@@ -26,6 +30,11 @@ export function AddWorkflowDialog({
 }: AddWorkflowDialogProps) {
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<SetupMode>("import");
+  const hydrated = useSyncExternalStore(
+    subscribeHydration,
+    clientHydratedSnapshot,
+    serverHydratedSnapshot,
+  );
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
 
@@ -91,7 +100,7 @@ export function AddWorkflowDialog({
 
   return (
     <>
-      <Button type="button" size="sm" onClick={openDialog}>
+      <Button type="button" size="sm" disabled={!hydrated} onClick={openDialog}>
         <Plus size={15} aria-hidden="true" />
         Add workflow
       </Button>

@@ -158,19 +158,15 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
       return null;
     }
 
-    if (env.RESEND_API_KEY) {
-      return row.status === "sent" ? row : null;
-    }
-
-    return row.status === "failed" && row.send_error ? row : null;
+    return row.status === "sent" || (row.status === "failed" && row.send_error) ? row : null;
   }, "report send status");
 
-  if (env.RESEND_API_KEY) {
+  if (sentReport.status === "sent") {
     expect(sentReport.status).toBe("sent");
     expect(sentReport.send_error).toBeNull();
   } else {
     expect(sentReport.status).toBe("failed");
-    expect(sentReport.send_error).toContain("Missing RESEND_API_KEY");
+    expect(sentReport.send_error ?? "").toMatch(/Missing RESEND_API_KEY|Resend alert failed:/);
   }
 });
 

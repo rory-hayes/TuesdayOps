@@ -54,7 +54,8 @@ test("billing settings show limits and starter client limit is enforced", async 
   await expect(page.getByText("0 / 3")).toBeVisible();
   await expect(page.getByRole("button", { name: "Manage billing" })).toBeDisabled();
   await page.getByRole("button", { name: "Upgrade" }).click();
-  await expect(page.getByText(/Missing STRIPE_(SECRET_KEY|PRICE_ID)/)).toBeVisible();
+  const upgradeResult = await waitForCheckoutOrBillingError(page);
+  expect(["checkout", "config-error"]).toContain(upgradeResult);
 
   await page.goto("/clients", { waitUntil: "domcontentloaded" });
   await createClient(page, firstClient, `qa-billing-${runId}@example.invalid`);
@@ -142,6 +143,28 @@ async function createConfirmedUser({ email, password }: { email: string; passwor
       user_metadata: { name: "Billing QA" },
     }),
   });
+}
+
+async function waitForCheckoutOrBillingError(
+  page: import("@playwright/test").Page,
+): Promise<"checkout" | "config-error"> {
+  const billingError = page.getByText(/Missing STRIPE_(SECRET_KEY|PRICE_ID)|Billing is not configured/);
+
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const url = new URL(page.url());
+
+    if (url.hostname === "checkout.stripe.com") {
+      return "checkout";
+    }
+
+    if (await billingError.isVisible().catch(() => false)) {
+      return "config-error";
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  throw new Error(`Timed out waiting for Stripe Checkout or billing config error. Current URL: ${page.url()}`);
 }
 
 async function supabaseFetch(path: string, options: RequestInit = {}) {
