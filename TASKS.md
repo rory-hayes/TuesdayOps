@@ -185,7 +185,7 @@ Acceptance:
 
 ### T4.1 Background job setup
 
-- [x] Add Inngest or Trigger.dev.
+- [x] Add Supabase Cron scheduler trigger.
 - [x] Add scheduled check job.
 - [x] Add retry behavior.
 
@@ -420,7 +420,7 @@ Acceptance:
 
 ### T9.1 Provider readiness checks
 
-- [x] Add server-safe readiness checks for app runtime, Supabase, scheduler/Inngest, Resend, Stripe, Sentry, and PostHog.
+- [x] Add server-safe readiness checks for app runtime, Supabase, Supabase Cron scheduler, Resend, Stripe, Sentry, and PostHog.
 - [x] Add public `/api/health` payload with no secret disclosure.
 - [x] Show launch-blocking provider configuration in Settings.
 

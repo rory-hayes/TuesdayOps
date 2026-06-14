@@ -11,8 +11,7 @@ const completeEnv: ReadinessEnv = {
   SUPABASE_SECRET_KEY: "supabase-secret-service-role",
   WORKFLOW_AUTH_ENCRYPTION_KEY: "32-byte-minimum-encryption-secret",
   SCHEDULER_SECRET: "scheduler-secret",
-  INNGEST_EVENT_KEY: "inngest-event-key",
-  INNGEST_SIGNING_KEY: "inngest-signing-key",
+  SUPABASE_CRON_ENABLED: "true",
   RESEND_API_KEY: "re_secret",
   RESEND_FROM_EMAIL: "alerts@example.com",
   STRIPE_SECRET_KEY: "sk_live_secret",
@@ -61,18 +60,17 @@ describe("buildProductionReadiness", () => {
     expect(JSON.stringify(readiness)).not.toContain("supabase-secret-service-role");
   });
 
-  it("accepts local Inngest development mode outside production", () => {
+  it("keeps scheduler launch blocked until Supabase Cron is marked configured", () => {
     const readiness = buildProductionReadiness({
       ...completeEnv,
-      INNGEST_EVENT_KEY: undefined,
-      INNGEST_SIGNING_KEY: undefined,
-      INNGEST_DEV: "1",
+      SUPABASE_CRON_ENABLED: undefined,
     });
 
     const scheduler = readiness.groups.find((group) => group.id === "scheduler");
 
-    expect(scheduler?.status).toBe("ready");
-    expect(readiness.launchReady).toBe(true);
+    expect(scheduler?.status).toBe("missing");
+    expect(readiness.launchReady).toBe(false);
+    expect(readiness.missingRequired).toContain("SUPABASE_CRON_ENABLED");
   });
 });
 

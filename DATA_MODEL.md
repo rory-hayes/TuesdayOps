@@ -316,6 +316,17 @@ created_at timestamptz default now()
 
 The code hardening migration also adds a service-only `delete_old_check_runs(older_than interval, max_delete integer)` retention helper and indexes for workflow health summaries, due checks, check history, issue queues, report lists, test runs, and audit history.
 
+## Scheduler functions
+
+Supabase Cron triggers scheduled checks through database functions rather than a separate job provider.
+
+```txt
+public.trigger_due_check_sweep() returns bigint
+public.configure_due_check_cron(schedule_expression text default '*/5 * * * *') returns text
+```
+
+`trigger_due_check_sweep()` reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, then calls the protected Next.js scheduler route with `pg_net`. Both functions revoke execution from `public`, `anon`, and `authenticated`, and grant execution to `service_role`.
+
 ## billing_events
 
 Records processed Stripe webhook event IDs so billing webhooks are idempotent.

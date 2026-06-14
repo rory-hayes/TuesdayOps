@@ -59,7 +59,7 @@ Current Milestone 4 scheduled-check E2E status:
 - `npm run e2e -- e2e/scheduled-checks.spec.ts` passed against the local app and remote Supabase project.
 - Covered flow: confirmed QA user sign-in, onboarding, client creation, workflow creation, protected scheduler trigger, scheduled `check_runs` insert with `trigger = scheduled` and `scheduled_for`, issue creation from the scheduled failed run, second immediate scheduler trigger without duplicate run creation, and unauthorized scheduler trigger returning `401`.
 - Browser plugin DOM/log smoke check passed for the sign-in route, but screenshot capture timed out through the in-app browser. Playwright CLI fallback captured the final workflow and issue screenshots.
-- Production scheduling through Inngest requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values. The shared runner is verified through the protected scheduler route.
+- Production scheduling uses Supabase Cron and Vault. The shared runner is verified through the protected scheduler route; full production scheduling is ready only after the `tuesdayops-run-due-checks` Cron job and Vault secrets are configured.
 
 Current Milestone 4 alert E2E status:
 

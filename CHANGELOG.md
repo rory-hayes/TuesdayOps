@@ -31,3 +31,4 @@ Track meaningful product and engineering changes here.
 - Improved workflow onboarding UX with a real quick-import anchor, client-side import preview, disabled invalid imports, safer auth-secret preview copy, and mobile preview-before-submit ordering.
 - Hardened workflow import hydration so early user input is reflected in the preview once the client component becomes interactive.
 - Added code-only production hardening: capped workflow check response reads, blocked redirect following, scheduler trigger rate limiting, service-only audit events, scalability indexes, check-run retention helper, and GitHub Actions CI/production smoke workflows.
+- Replaced Inngest production scheduling with Supabase Cron/Vault calling the protected due-check scheduler route, and removed the Inngest app dependency.

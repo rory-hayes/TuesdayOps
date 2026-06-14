@@ -198,14 +198,17 @@ Response:
 }
 ```
 
-### `GET|POST|PUT /api/inngest`
+### Supabase Cron job
 
-Serves Inngest functions for background jobs.
+Production scheduling uses Supabase Cron job `tuesdayops-run-due-checks`.
 
-Current functions:
+The job runs:
 
-- `scheduled-check-sweep` cron: every five minutes, queues due checks.
-- `run-scheduled-check` event: runs one scheduled check with retry behavior.
+```sql
+select public.trigger_due_check_sweep();
+```
+
+`trigger_due_check_sweep()` calls `POST /api/scheduler/run-due-checks` with `pg_net` and a 45-second timeout. The Vercel app URL and scheduler secret are read from Supabase Vault secrets named `tuesdayops_app_url` and `tuesdayops_scheduler_secret`.
 
 ## Issues
 
