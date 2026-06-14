@@ -21,6 +21,9 @@ test("high-severity scheduled issue records an alert attempt", async ({ page, ba
   const agencySlug = `qa-alert-${runId}`;
   const clientName = `Alert Client ${runId}`;
   const workflowName = `Alert Failing Workflow ${runId}`;
+  const endpointUrl = isLocalAppUrl(appUrl)
+    ? "http://127.0.0.1:9/unreachable"
+    : "https://httpstat.us/500";
 
   await createConfirmedUser({ email, password });
 
@@ -55,7 +58,7 @@ test("high-severity scheduled issue records an alert attempt", async ({ page, ba
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
   await page.selectOption('select[name="clientId"]', { label: clientName });
   await page.getByLabel("Workflow name").fill(workflowName);
-  await page.getByLabel("Endpoint URL").fill("http://127.0.0.1:9/unreachable");
+  await page.getByLabel("Endpoint URL").fill(endpointUrl);
   await page.getByLabel("Frequency minutes").fill("5");
   await page.getByLabel("Expected status").fill("200");
   await page.getByLabel("Max latency ms").fill("5000");
@@ -208,6 +211,11 @@ function hasRequiredEnv() {
       env.SUPABASE_SECRET_KEY &&
       env.SCHEDULER_SECRET,
   );
+}
+
+function isLocalAppUrl(value: string): boolean {
+  const hostname = new URL(value).hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1";
 }
 
 function loadLocalEnv(): Record<string, string> {
