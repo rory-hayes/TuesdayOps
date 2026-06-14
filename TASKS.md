@@ -415,3 +415,78 @@ Acceptance:
 
 - invalid webhook requests do not touch billing state
 - duplicate webhook events are acknowledged without duplicate inserts or mutations
+
+## Milestone 9 — Production Provider Readiness
+
+### T9.1 Provider readiness checks
+
+- [x] Add server-safe readiness checks for app runtime, Supabase, scheduler/Inngest, Resend, Stripe, Sentry, and PostHog.
+- [x] Add public `/api/health` payload with no secret disclosure.
+- [x] Show launch-blocking provider configuration in Settings.
+
+Acceptance:
+
+- readiness output contains only configured/missing status
+- launch gate is blocked when required provider env vars are missing
+
+## Milestone 10 — Seamless Workflow Onboarding
+
+### T10.1 Workflow import paths
+
+- [x] Add workflow import parser for URL, cURL, OpenAPI JSON, and Postman collection JSON.
+- [x] Add quick import UI on Workflows.
+- [x] Create imported workflow plus first health check through the same tenant/billing/encryption path as manual creation.
+- [x] Support request bodies for imported and manual POST/PATCH/PUT health checks.
+
+Acceptance:
+
+- user can create a workflow from a cURL command
+- imported auth secrets are encrypted before persistence
+- imported workflows still enforce starter plan limits
+
+## Milestone 11 — Security and Tenant Hardening
+
+### T11.1 Endpoint safety guard
+
+- [x] Block private/local workflow endpoints in production.
+- [x] Re-check endpoint safety before HTTP runner execution.
+- [x] Document local override through `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`.
+
+Acceptance:
+
+- localhost, loopback, private IPv4, link-local, and metadata endpoints are blocked unless explicitly allowed for local/private tests
+
+## Milestone 12 — Operational Reliability
+
+### T12.1 Operational gate
+
+- [x] Add tenant operational reliability checks for enabled checks, stale workflows, high-risk open issues, and ready/sent reports.
+- [x] Show operational gate in Settings.
+
+Acceptance:
+
+- Settings highlights operational items that need attention before handoff
+
+## Milestone 13 — Report Polish
+
+### T13.1 Report readiness
+
+- [x] Add report quality scoring for source data, sections, recommendations, and open high-risk issues.
+- [x] Show report readiness in the report preview.
+- [x] Add monitoring coverage line to PDF and report email artifacts.
+
+Acceptance:
+
+- reports show ready/review/blocked status before send/export
+- client-facing artifacts include concise monitoring coverage
+
+## Milestone 14 — Launch Gate and QA Handoff
+
+### T14.1 Documentation and QA report
+
+- [x] Update roadmap, deployment, testing, security, and API docs for production readiness.
+- [x] Add QA handoff report for the production-ready milestone branch.
+
+Acceptance:
+
+- QA engineers have test results, current state, known gaps, and launch recommendations

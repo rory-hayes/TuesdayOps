@@ -124,6 +124,30 @@ Current Milestone 8 QA-hardening status:
   - `npx vitest run src/lib/checks/scheduler.test.ts src/lib/checks/scheduled-runner.test.ts` verifies targeted scheduler selection
   - `npm run e2e -- e2e/billing-limits.spec.ts e2e/reports.spec.ts` (`2 passed`)
 
+Current Milestones 9-14 production-readiness status:
+
+- Milestone 9 added provider readiness checks and public `/api/health` coverage.
+- Milestone 10 added quick workflow import from URL, cURL, OpenAPI JSON, and Postman collection JSON.
+- Milestone 11 added endpoint safety validation to block localhost/private-network/link-local/metadata endpoints in production.
+- Milestone 12 added operational reliability scoring for enabled checks, stale workflow data, high-risk issues, and report queue state.
+- Milestone 13 added report quality scoring and client-facing monitoring coverage lines in PDF/email artifacts.
+- Focused verification passed during implementation:
+  - `npx vitest run src/lib/production/readiness.test.ts`
+  - `npx vitest run src/lib/workflows/onboarding.test.ts`
+  - `npm run e2e -- e2e/workflow-onboarding.spec.ts`
+  - `npx vitest run src/lib/security/endpoint-url.test.ts src/lib/checks/execution.test.ts src/lib/checks/scheduled-runner.test.ts`
+  - `npx vitest run src/lib/production/operational-reliability.test.ts`
+  - `npm run e2e -- e2e/billing-limits.spec.ts e2e/workflow-onboarding.spec.ts`
+  - `npx vitest run src/lib/reports/quality.test.ts src/lib/reports/pdf.test.ts`
+  - `npm run e2e -- e2e/reports.spec.ts`
+- Full branch verification should include:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test`
+  - `npm run build`
+  - `npm run e2e`
+  - `npm audit --audit-level=moderate`
+
 ## Critical test areas
 
 ### Assertion engine

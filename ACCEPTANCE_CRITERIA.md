@@ -29,8 +29,10 @@ Every feature must satisfy:
 ## Workflows
 
 - User can create a workflow under a client.
+- User can import a workflow from URL, cURL, OpenAPI JSON, or Postman collection JSON.
 - User can configure endpoint URL, method, auth type, frequency, and expected status.
 - Auth config is encrypted or stored securely.
+- Production blocks localhost/private-network workflow endpoints unless private endpoint mode is explicitly enabled for local/private testing.
 - User can manually run a check.
 - Workflow status updates from check results.
 
@@ -85,6 +87,13 @@ Every feature must satisfy:
 - Recent issues list works.
 - Scheduled checks list works.
 - Client workflows table works.
+
+## Production readiness
+
+- `/api/health` returns provider readiness without exposing secret values.
+- Settings shows launch-blocking provider configuration.
+- Settings shows operational reliability status from enabled checks, stale workflow data, high-risk open issues, and report queue state.
+- Reports show ready/review/blocked quality state before send/export.
 
 ## Definition of MVP complete
 

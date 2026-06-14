@@ -9,10 +9,11 @@ The first integrations should be broad and low-friction:
 1. HTTP endpoint checks
 2. Webhook checks
 3. Synthetic POST requests
-4. Manual run logging API
-5. Slack webhook alerts
-6. Email alerts
-7. PDF report export
+4. Quick import from URL, cURL, OpenAPI JSON, and Postman collection JSON
+5. Manual run logging API
+6. Slack webhook alerts
+7. Email alerts
+8. PDF report export
 
 ## Connection levels
 
@@ -36,6 +37,15 @@ TuesdayOps checks:
 - status code
 - response assertion
 - failure/degraded status
+
+Endpoint imports create the same workflow/check records as the manual form. They do not create separate native integrations in the MVP.
+
+Supported import sources:
+
+- direct endpoint URL
+- cURL command
+- OpenAPI JSON
+- Postman collection JSON
 
 ### Level 2 — Synthetic test pack invocation
 

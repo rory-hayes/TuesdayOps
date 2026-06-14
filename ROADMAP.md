@@ -10,6 +10,10 @@
 - White-label PDF export
 - Alerts
 - Billing gate
+- Production provider readiness checks
+- Quick workflow import from URL, cURL, OpenAPI JSON, and Postman JSON
+- Production endpoint safety guard
+- Operational reliability and report readiness gates
 
 ## V1
 
@@ -20,7 +24,7 @@
 - Workflow grouping/tags
 - Model/prompt comparison improvements
 - Better run logging API
-- Better onboarding templates for n8n/Make/Zapier
+- Native onboarding helpers for n8n/Make/Zapier beyond generic webhook/import templates
 
 ## V2
 

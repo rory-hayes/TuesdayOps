@@ -25,13 +25,14 @@ Browser
 
 ## 2. Core services
 
-### Current Milestones 1-6 implementation slice
+### Current production-ready MVP implementation slice
 
 - Next.js App Router server components and server actions handle authenticated UI flows.
 - Supabase Auth manages identity through SSR cookie clients and route protection.
 - Supabase Postgres stores profiles, agencies, memberships, clients, workflows, checks, check runs, issues, test packs, test cases, test runs, reports, and report items.
 - Supabase RLS enforces `agency_id` membership boundaries for tenant-owned records.
 - Manual endpoint checks run synchronously from server actions and persist redacted summaries.
+- Workflow endpoint URLs are validated before storage and again before runner execution to reduce SSRF/private-network risk.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
 - Issue queue actions assign, resolve with a report-safe note, or ignore issues inside the tenant boundary.
 - Inngest serves scheduled check functions from `/api/inngest`.
@@ -41,7 +42,11 @@ Browser
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
 - Monthly reports aggregate stored workflow, check, issue, and synthetic run data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts.
-- Billing and analytics remain planned later milestones.
+- Workflow quick import supports direct URLs, cURL commands, OpenAPI JSON, and Postman collection JSON while reusing the normal workflow/check creation path.
+- Production readiness checks expose public `/api/health` status without secret disclosure and render provider readiness in Settings.
+- Operational reliability checks flag missing enabled checks, stale workflow data, high-risk open issues, and report queue gaps.
+- Report quality checks score source data, report sections, recommendations, and open high-risk issues before send/export.
+- Stripe billing and plan limits are implemented. Sentry/PostHog are represented in production readiness and still require provider-side configuration before public launch.
 
 ### Web app
 
@@ -153,6 +158,7 @@ User selects client + month
   -> aggregate workflow health
   -> aggregate test pack results
   -> generate client-safe executive summary and report items
+  -> calculate report readiness from source data, sections, recommendations, and open high-risk issues
   -> render report preview from stored report data
   -> generate PDF from stored report data
   -> store PDF in private Supabase Storage
