@@ -51,14 +51,28 @@ test("workflow can be imported from a cURL command", async ({ page, baseURL }) =
   await expect(page.getByText(clientName)).toBeVisible();
 
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("link", { name: "Add workflow" })).toHaveAttribute("href", "#quick-import");
+  await page.getByRole("link", { name: "Add workflow" }).click();
+  await expect(page).toHaveURL(/#quick-import$/);
   await expect(page.getByRole("heading", { name: "Quick workflow import" })).toBeVisible();
   await page.getByLabel("Import source").selectOption("curl");
-  await page.getByLabel("Imported name").fill(workflowName);
+  const importForm = page.locator("form").filter({ has: page.locator('textarea[name="importText"]') });
+
+  await expect(importForm.getByRole("button", { name: "Import workflow" })).toBeDisabled();
+  await page.getByLabel("Display name").fill(workflowName);
   await page.getByLabel("Import details").fill(
     `curl -X POST "${appUrl}/api/e2e-import-${runId}" -H "Authorization: Bearer import_token_${runId}" -H "Content-Type: application/json" -d '{"ping":true}'`,
   );
 
-  const importForm = page.locator("form").filter({ has: page.locator('textarea[name="importText"]') });
+  const importPreview = page.getByTestId("workflow-import-preview");
+  await expect(importPreview.getByText("Import preview")).toBeVisible();
+  await expect(importPreview.getByText(workflowName)).toBeVisible();
+  await expect(importPreview.getByText(`${appUrl}/api/e2e-import-${runId}`)).toBeVisible();
+  await expect(importPreview.getByText("POST")).toBeVisible();
+  await expect(importPreview.getByText("Bearer token detected")).toBeVisible();
+  await expect(importPreview.getByText(`import_token_${runId}`)).not.toBeVisible();
+  await expect(importForm.getByRole("button", { name: "Import workflow" })).toBeEnabled();
+
   await Promise.all([
     page.waitForURL(/\/workflows\/[0-9a-f-]+$/, { timeout: 15_000 }),
     importForm.getByRole("button", { name: "Import workflow" }).click(),

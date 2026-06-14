@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Activity, Plus } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
+import { WorkflowImportForm } from "@/components/workflows/workflow-import-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { createWorkflowAction, createWorkflowFromImportAction } from "@/lib/workflows/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatCurrency, formatPercentage, formatRelativeTime } from "@/lib/formatting";
-import { WORKFLOW_ONBOARDING_TEMPLATES } from "@/lib/workflows/onboarding";
 
 export function WorkflowsPage({
   data,
@@ -16,6 +16,10 @@ export function WorkflowsPage({
   data: TuesdayOpsSeedData;
   error?: string;
 }) {
+  const activeClients = data.clients
+    .filter((client) => !client.archived)
+    .map((client) => ({ id: client.id, name: client.name }));
+
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -28,15 +32,18 @@ export function WorkflowsPage({
             Registry of client automations, agents, endpoints, and MCP services under maintenance.
           </p>
         </div>
-        <Button size="sm">
+        <Link
+          href="#quick-import"
+          className="inline-flex h-8 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-primary bg-primary px-3 text-xs font-medium text-primary-foreground shadow-sm transition-colors hover:bg-[#6d5ee0]"
+        >
           <Plus size={15} aria-hidden="true" />
           Add workflow
-        </Button>
+        </Link>
       </section>
 
       {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
 
-      <Card>
+      <Card id="quick-import" className="scroll-mt-36 md:scroll-mt-28">
         <CardHeader>
           <h2 className="text-base font-semibold">Quick workflow import</h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -44,84 +51,19 @@ export function WorkflowsPage({
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-2 md:grid-cols-4">
-            {WORKFLOW_ONBOARDING_TEMPLATES.map((template) => (
-              <div key={template.type} className="rounded-lg border border-border p-3">
-                <p className="text-sm font-medium">{template.label}</p>
-                <p className="mt-1 text-xs leading-5 text-muted-foreground">{template.detail}</p>
-              </div>
-            ))}
-          </div>
-          {data.clients.length ? (
-            <form action={createWorkflowFromImportAction} className="grid gap-3 md:grid-cols-4">
-              <label className="block text-sm font-medium">
-                Import client
-                <select
-                  required
-                  name="clientId"
-                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                >
-                  {data.clients
-                    .filter((client) => !client.archived)
-                    .map((client) => (
-                      <option key={client.id} value={client.id}>
-                        {client.name}
-                      </option>
-                    ))}
-                </select>
-              </label>
-              <label className="block text-sm font-medium">
-                Import source
-                <select
-                  required
-                  name="importSource"
-                  defaultValue="url"
-                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                >
-                  <option value="url">URL</option>
-                  <option value="curl">cURL</option>
-                  <option value="openapi">OpenAPI JSON</option>
-                  <option value="postman">Postman JSON</option>
-                </select>
-              </label>
-              <Input
-                className="md:col-span-2"
-                label="Imported name"
-                name="importedWorkflowName"
-                placeholder="Lead Intake Webhook"
-              />
-              <label className="block text-sm font-medium md:col-span-4">
-                Import details
-                <textarea
-                  required
-                  name="importText"
-                  placeholder="https://api.example.com/health"
-                  rows={5}
-                  className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-                />
-              </label>
-              <Button type="submit" className="md:col-span-4 md:w-fit">
-                <Plus size={15} aria-hidden="true" />
-                Import workflow
-              </Button>
-            </form>
-          ) : (
-            <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-              Add a client before importing a workflow endpoint.
-            </p>
-          )}
+          <WorkflowImportForm clients={activeClients} action={createWorkflowFromImportAction} />
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <h2 className="text-base font-semibold">Add workflow endpoint</h2>
+          <h2 className="text-base font-semibold">Manual endpoint setup</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Register a live client endpoint and create its first health check.
           </p>
         </CardHeader>
         <CardContent>
-          {data.clients.length ? (
+          {activeClients.length ? (
             <form action={createWorkflowAction} className="grid gap-3 md:grid-cols-4">
               <label className="block text-sm font-medium">
                 Client
@@ -130,8 +72,7 @@ export function WorkflowsPage({
                   name="clientId"
                   className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
                 >
-                  {data.clients
-                    .filter((client) => !client.archived)
+                  {activeClients
                     .map((client) => (
                       <option key={client.id} value={client.id}>
                         {client.name}
@@ -217,7 +158,7 @@ export function WorkflowsPage({
             </form>
           ) : (
             <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-              Add a client before registering a workflow endpoint.
+              Add an active client before registering a workflow endpoint.
             </p>
           )}
         </CardContent>
