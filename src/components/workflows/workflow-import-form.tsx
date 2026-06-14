@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, LockKeyhole, Plus, Timer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,9 +55,24 @@ const importSources: Array<{
 ];
 
 export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps) {
+  const sourceRef = useRef<HTMLSelectElement>(null);
+  const displayNameRef = useRef<HTMLInputElement>(null);
+  const importTextRef = useRef<HTMLTextAreaElement>(null);
   const [importSource, setImportSource] = useState<WorkflowImportSource>("url");
   const [importText, setImportText] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const syncFormState = useCallback((sourceOverride?: WorkflowImportSource) => {
+    setImportSource(sourceOverride ?? readImportSource(sourceRef.current?.value));
+    setImportText(importTextRef.current?.value ?? "");
+    setDisplayName(displayNameRef.current?.value ?? "");
+  }, []);
+
+  useEffect(() => {
+    syncFormState();
+    const frame = window.requestAnimationFrame(() => syncFormState());
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [syncFormState]);
 
   const selectedSource = importSources.find((source) => source.value === importSource) ?? importSources[0];
   const preview = useMemo<ImportPreviewState>(() => {
@@ -98,7 +113,15 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
             key={template.type}
             type="button"
             className="rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50 hover:bg-muted focus:border-primary focus:outline-none"
-            onClick={() => setImportSource(template.defaultMethod === "POST" ? "curl" : "url")}
+            onClick={() => {
+              const nextSource = template.defaultMethod === "POST" ? "curl" : "url";
+
+              if (sourceRef.current) {
+                sourceRef.current.value = nextSource;
+              }
+
+              syncFormState(nextSource);
+            }}
           >
             <p className="text-sm font-medium">{template.label}</p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">{template.detail}</p>
@@ -127,8 +150,9 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
             <select
               required
               name="importSource"
-              value={importSource}
-              onChange={(event) => setImportSource(event.target.value as WorkflowImportSource)}
+              ref={sourceRef}
+              defaultValue="url"
+              onChange={() => syncFormState()}
               className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
             >
               {importSources.map((source) => (
@@ -142,8 +166,8 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
             Display name
             <input
               name="importedWorkflowName"
-              value={displayName}
-              onChange={(event) => setDisplayName(event.target.value)}
+              ref={displayNameRef}
+              onInput={() => syncFormState()}
               placeholder="Lead Intake Webhook"
               className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
             />
@@ -154,8 +178,8 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
               required
               minLength={8}
               name="importText"
-              value={importText}
-              onChange={(event) => setImportText(event.target.value)}
+              ref={importTextRef}
+              onInput={() => syncFormState()}
               placeholder={selectedSource.placeholder}
               rows={7}
               className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
@@ -171,6 +195,14 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
       </form>
     </div>
   );
+}
+
+function readImportSource(value: string | undefined): WorkflowImportSource {
+  if (value === "curl" || value === "openapi" || value === "postman") {
+    return value;
+  }
+
+  return "url";
 }
 
 function ImportPreview({
