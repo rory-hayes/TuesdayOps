@@ -10,6 +10,7 @@ import { canCreateWorkflow } from "@/lib/billing/limits";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import type { WorkflowAuthConfig } from "@/lib/checks/runner";
 import type { Workflow } from "@/lib/domain/types";
+import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import {
   assertSafeWorkflowEndpoint,
@@ -122,8 +123,7 @@ export async function createWorkflowFromImportAction(formData: FormData) {
       text: parsed.data.importText,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Workflow import could not be parsed.";
-    redirect(`/workflows?error=${encodeURIComponent(message)}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow import could not be parsed."))}`);
   }
 
   const workspace = await requireWorkspace();
@@ -198,8 +198,11 @@ export async function updateWorkflowAction(formData: FormData) {
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Workflow endpoint did not pass safety validation.";
-    redirect(`/workflows/${parsed.data.id}?error=${encodeURIComponent(message)}`);
+    redirect(
+      `/workflows/${parsed.data.id}?error=${encodeURIComponent(
+        formatActionError(error, "Workflow endpoint did not pass safety validation."),
+      )}`,
+    );
   }
 
   const updateResult = await supabase
@@ -221,8 +224,7 @@ export async function updateWorkflowAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Workflow was not found or is not accessible.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Workflow could not be saved.";
-    redirect(`/workflows?error=${encodeURIComponent(message)}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow could not be saved."))}`);
   }
   await recordWorkflowAuditEvent({
     workspace,
@@ -274,7 +276,7 @@ async function createWorkflowWithHealthCheck({
     .eq("agency_id", workspace.agency.id);
 
   if (countError) {
-    redirect(`/workflows?error=${encodeURIComponent(countError.message)}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(countError, "Workflow count could not be loaded."))}`);
   }
 
   const limitDecision = canCreateWorkflow({
@@ -294,8 +296,7 @@ async function createWorkflowWithHealthCheck({
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Workflow endpoint did not pass safety validation.";
-    redirect(`/workflows?error=${encodeURIComponent(message)}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow endpoint did not pass safety validation."))}`);
   }
 
   const authConfig = buildAuthConfig(input);
@@ -304,8 +305,7 @@ async function createWorkflowWithHealthCheck({
   try {
     encryptedAuthConfig = authConfig ? encryptJsonPayload(authConfig) : null;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Workflow auth config could not be encrypted.";
-    redirect(`/workflows?error=${encodeURIComponent(message)}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow auth config could not be encrypted."))}`);
   }
 
   const { data: workflow, error: workflowError } = await supabase
@@ -328,7 +328,7 @@ async function createWorkflowWithHealthCheck({
     .single();
 
   if (workflowError || !workflow) {
-    redirect(`/workflows?error=${encodeURIComponent(workflowError?.message ?? "Workflow could not be created.")}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(workflowError, "Workflow could not be created."))}`);
   }
 
   const checkConfig = checkConfigSchema.parse({
@@ -351,7 +351,7 @@ async function createWorkflowWithHealthCheck({
   });
 
   if (checkError) {
-    redirect(`/workflows?error=${encodeURIComponent(checkError.message)}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(checkError, "Health check could not be created."))}`);
   }
 
   return workflow.id as string;

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { canCreateClient } from "@/lib/billing/limits";
 import { createSlug } from "@/lib/domain/slug";
+import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createClient } from "@/lib/supabase/server";
 
@@ -37,7 +38,7 @@ export async function createClientAction(formData: FormData) {
     .is("archived_at", null);
 
   if (countError) {
-    redirect(`/clients?error=${encodeURIComponent(countError.message)}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(countError, "Client count could not be loaded."))}`);
   }
 
   const limitDecision = canCreateClient({
@@ -61,7 +62,7 @@ export async function createClientAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/clients?error=${encodeURIComponent(error.message)}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be created."))}`);
   }
 
   revalidatePath("/clients");
@@ -100,8 +101,7 @@ export async function updateClientAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Client was not found or is not accessible.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Client could not be saved.";
-    redirect(`/clients?error=${encodeURIComponent(message)}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be saved."))}`);
   }
 
   revalidatePath("/clients");
@@ -129,8 +129,7 @@ export async function archiveClientAction(formData: FormData) {
   try {
     assertMutationTouchedRow(archiveResult, "Client was not found or is not accessible.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Client could not be archived.";
-    redirect(`/clients?error=${encodeURIComponent(message)}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be archived."))}`);
   }
 
   revalidatePath("/clients");

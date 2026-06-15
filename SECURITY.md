@@ -81,7 +81,7 @@ Redact common sensitive values:
 - credit card-like numbers
 - passwords
 - secrets in headers
-- provider/database internals before showing auth, billing, onboarding, alert, or report-send errors to users
+- provider/database internals before showing server-action, auth, billing, onboarding, alert, or report errors to users
 
 ## Report safety
 

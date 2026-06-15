@@ -14,6 +14,7 @@ import { buildReportDraft } from "@/lib/reports/aggregation";
 import { buildReportEmail, renderReportPdfBytes } from "@/lib/reports/pdf";
 import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
 import { buildReportSendRedirect } from "@/lib/reports/send-feedback";
+import { formatActionError } from "@/lib/server-actions/feedback";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -90,8 +91,7 @@ export async function generateReportAction(formData: FormData) {
       },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Report could not be generated.";
-    redirect(`/reports?error=${encodeURIComponent(message)}`);
+    redirect(`/reports?error=${encodeURIComponent(formatActionError(error, "Report could not be generated."))}`);
   }
 
   revalidatePath("/reports");
@@ -128,8 +128,9 @@ export async function generateReportPdfAction(formData: FormData) {
       metadata: {},
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Report PDF could not be generated.";
-    redirect(`/reports?error=${encodeURIComponent(message)}`);
+    redirect(
+      `/reports?error=${encodeURIComponent(formatActionError(error, "Report PDF could not be generated."))}`,
+    );
   }
 
   revalidatePath("/reports");
@@ -205,15 +206,14 @@ export async function sendReportAction(formData: FormData) {
       metadata: { status: "sent" },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Report email could not be sent.";
-    const safeMessage = sanitizeReportError(message);
+    const safeMessage = formatActionError(error, "Report email could not be sent.");
     sendStatus = "failed";
     sendMessage = safeMessage;
     await recordReportSendFailure({
       supabase,
       agencyId: workspace.agency.id,
       reportId: parsed.data.reportId,
-      error: message,
+      error: safeMessage,
     });
     await recordReportAuditEvent({
       agencyId: workspace.agency.id,

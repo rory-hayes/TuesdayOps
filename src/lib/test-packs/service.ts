@@ -7,6 +7,7 @@ import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { runHttpCheck, type WorkflowAuthConfig } from "@/lib/checks/runner";
 import { decryptJsonPayload, type EncryptedJsonPayload } from "@/lib/security/secrets";
+import { formatActionError } from "@/lib/server-actions/feedback";
 import { createClient } from "@/lib/supabase/server";
 import {
   buildSyntheticIssueDraft,
@@ -91,7 +92,7 @@ export async function createTestPackAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/checks?error=${encodeURIComponent(error.message)}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be created."))}`);
   }
 
   revalidatePath("/checks");
@@ -115,11 +116,16 @@ export async function createTestCaseAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const pack = await loadTestPack({
-    supabase,
-    agencyId: workspace.agency.id,
-    testPackId: parsed.data.testPackId,
-  });
+  let pack: TestPackRow;
+  try {
+    pack = await loadTestPack({
+      supabase,
+      agencyId: workspace.agency.id,
+      testPackId: parsed.data.testPackId,
+    });
+  } catch (error) {
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be created."))}`);
+  }
   const assertions = buildTestCaseAssertions({
     expectedStatus: parsed.data.expectedStatus,
     maxLatencyMs: parsed.data.maxLatencyMs,
@@ -137,7 +143,7 @@ export async function createTestCaseAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/checks?error=${encodeURIComponent(error.message)}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be created."))}`);
   }
 
   revalidatePath("/checks");
@@ -161,8 +167,7 @@ export async function runTestPackAction(formData: FormData) {
       testPackId: parsed.data.testPackId,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Test pack run failed.";
-    redirect(`/checks?error=${encodeURIComponent(message)}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack run failed."))}`);
   }
 
   revalidatePath("/checks");

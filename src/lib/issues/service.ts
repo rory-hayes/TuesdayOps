@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
+import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -38,8 +39,7 @@ export async function assignIssueToMeAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Issue could not be assigned.";
-    redirect(buildIssueErrorRedirect("/issues", message));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be assigned.")));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -78,8 +78,7 @@ export async function resolveIssueAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Issue could not be resolved.";
-    redirect(buildIssueErrorRedirect("/issues", message));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be resolved.")));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -119,8 +118,7 @@ export async function ignoreIssueAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Issue could not be ignored.";
-    redirect(buildIssueErrorRedirect("/issues", message));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be ignored.")));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,

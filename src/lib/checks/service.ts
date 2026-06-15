@@ -7,6 +7,7 @@ import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import { executeCheckRun } from "@/lib/checks/execution";
+import { formatActionError } from "@/lib/server-actions/feedback";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,7 +50,7 @@ export async function createCheckAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/checks?error=${encodeURIComponent(error.message)}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be created."))}`);
   }
 
   revalidatePath("/checks");
@@ -84,8 +85,7 @@ export async function runCheckAction(formData: FormData) {
       runStatus: result.status === "completed" ? result.runStatus : result.status,
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Check run failed.";
-    redirect(`/checks?error=${encodeURIComponent(message)}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check run failed."))}`);
   }
 
   if (!workflowId) {

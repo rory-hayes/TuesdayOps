@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAppUrl } from "@/lib/env";
 import type { IssueRunContext } from "@/lib/issues/operations";
 import type { IssueDraft } from "@/lib/issues/engine";
+import { formatActionError } from "@/lib/server-actions/feedback";
 import {
   buildIssueAlertEmail,
   redactAlertText,
@@ -77,7 +78,7 @@ export async function sendIssueAlertForNewIssue({
 
     return { status: "sent", deliveryId: delivery.id };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Issue alert email failed.";
+    const message = formatActionError(error, "Issue alert email failed.");
 
     await recordAlertFailure({ supabase, context, issueId, error: message });
 

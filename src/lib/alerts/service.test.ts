@@ -120,7 +120,7 @@ describe("sendIssueAlertForNewIssue", () => {
     );
   });
 
-  it("records client lookup failures as alert failures", async () => {
+  it("sanitizes client lookup internals before recording alert failures", async () => {
     const updates: unknown[] = [];
 
     const result = await sendIssueAlertForNewIssue({
@@ -135,8 +135,8 @@ describe("sendIssueAlertForNewIssue", () => {
       sendEmail: vi.fn(),
     });
 
-    expect(result).toEqual({ status: "failed", error: "client row hidden by RLS" });
-    expect(updates).toContainEqual(expect.objectContaining({ alert_error: "client row hidden by RLS" }));
+    expect(result).toEqual({ status: "failed", error: "Issue alert email failed." });
+    expect(updates).toContainEqual(expect.objectContaining({ alert_error: "Issue alert email failed." }));
   });
 
   it("records missing client rows with the fallback alert error", async () => {

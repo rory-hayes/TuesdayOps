@@ -57,3 +57,4 @@ Track meaningful product and engineering changes here.
 - Added pending-state feedback to auth, onboarding, billing, and sign-out mutation actions.
 - Stabilized the Playwright suite by running E2E serially by default while keeping `PLAYWRIGHT_WORKERS` as an override.
 - Sanitized customer-facing auth and onboarding errors so provider/database internals are not exposed in redirects.
+- Sanitized customer-facing client, workflow, check, test-pack, issue, report, and alert action failures through shared safe feedback handling.
