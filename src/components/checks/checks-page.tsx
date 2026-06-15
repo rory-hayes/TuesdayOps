@@ -2,8 +2,8 @@ import Link from "next/link";
 import { Beaker, Plus, Play } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
@@ -68,10 +68,10 @@ export function ChecksPage({
               <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
               <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required />
               <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required />
-              <Button type="submit" className="md:col-span-5 md:w-fit">
+              <FormSubmitButton type="submit" className="md:col-span-5 md:w-fit" pendingLabel="Adding...">
                 <Plus size={15} aria-hidden="true" />
                 Add check
-              </Button>
+              </FormSubmitButton>
             </form>
           ) : (
             <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
@@ -108,10 +108,10 @@ export function ChecksPage({
                     <Badge variant="muted">{check.assertionCount} assertions</Badge>
                     <form action={runCheckAction}>
                       <input type="hidden" name="checkId" value={check.id} />
-                      <Button type="submit" size="sm">
+                      <FormSubmitButton type="submit" size="sm" pendingLabel="Running...">
                         <Play size={14} aria-hidden="true" />
                         Run
-                      </Button>
+                      </FormSubmitButton>
                     </form>
                   </div>
                 </div>
@@ -156,10 +156,10 @@ export function ChecksPage({
                   name="description"
                   placeholder="Core happy-path and guardrail checks"
                 />
-                <Button type="submit" className="md:col-span-2 md:w-fit">
+                <FormSubmitButton type="submit" className="md:col-span-2 md:w-fit" pendingLabel="Adding...">
                   <Plus size={15} aria-hidden="true" />
                   Add test pack
-                </Button>
+                </FormSubmitButton>
               </form>
             ) : null}
 
@@ -184,10 +184,10 @@ export function ChecksPage({
                         </Badge>
                         <form action={runTestPackAction}>
                           <input type="hidden" name="testPackId" value={pack.id} />
-                          <Button type="submit" size="sm" disabled={!cases.length}>
+                          <FormSubmitButton type="submit" size="sm" disabled={!cases.length} pendingLabel="Running...">
                             <Play size={14} aria-hidden="true" />
                             Run pack
-                          </Button>
+                          </FormSubmitButton>
                         </form>
                       </div>
                     </div>
@@ -209,10 +209,10 @@ export function ChecksPage({
                       <Input label="Max latency ms" name="maxLatencyMs" placeholder="10000" type="number" required />
                       <Input label="Required field" name="fieldExistsPath" placeholder="result.id" />
                       <Input label="Must not contain" name="notContainsValue" placeholder="error" />
-                      <Button type="submit" size="sm" className="md:col-span-2 md:w-fit">
+                      <FormSubmitButton type="submit" size="sm" className="md:col-span-2 md:w-fit" pendingLabel="Adding...">
                         <Plus size={14} aria-hidden="true" />
                         Add case
-                      </Button>
+                      </FormSubmitButton>
                     </form>
 
                     <div className="mt-4 grid gap-3 lg:grid-cols-2">

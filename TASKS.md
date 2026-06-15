@@ -423,12 +423,13 @@ Acceptance:
 
 - [x] Add server-safe readiness checks for app runtime, Supabase, Supabase Cron scheduler, Resend, Stripe, Sentry, and optional PostHog analytics.
 - [x] Add public `/api/health` payload with no secret disclosure.
-- [x] Show launch-blocking provider configuration in Settings.
+- [x] Keep launch-blocking provider configuration in `/api/health` and deployment checks, outside user-facing Settings.
 
 Acceptance:
 
 - readiness output contains only configured/missing status
 - launch gate is blocked when required provider env vars are missing
+- user-facing Settings does not expose internal provider readiness gates
 
 ## Milestone 10 — Seamless Workflow Onboarding
 
@@ -467,7 +468,7 @@ Acceptance:
 
 Acceptance:
 
-- Settings highlights operational items that need attention before handoff
+- Overview highlights operational items that need attention before handoff
 
 ## Milestone 13 — Report Polish
 

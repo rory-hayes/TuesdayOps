@@ -157,12 +157,13 @@ Current P0/P1/P2 continuation status on 2026-06-15:
 - Added unit coverage and server-action hardening so client, workflow, and issue mutations fail clearly when tenant-scoped updates touch no row.
 - Added unit coverage for report-send redirects so failed email delivery/configuration attempts show an error instead of a success-style notice.
 - Added acceptance coverage for Checks-page success feedback after test pack creation, test case creation, and synthetic pack runs.
+- Added acceptance coverage that synthetic pack runs show a pending `Running...` state before completion feedback.
 - Added unit coverage for billing error formatting so customer-facing Settings redirects do not expose Stripe env var names, emails, or tokens.
 - Added acceptance coverage that Overview surfaces operations-readiness signals alongside drilldowns.
 - Verification passed:
   - `npm run lint`
   - `npm run typecheck`
-  - `npm run test:coverage` (`36 passed`, `201 passed`; branch coverage `95.11%`)
+  - `npm run test:coverage` (`36 passed`, `203 passed`; branch coverage `95.05%`)
   - `npm run build`
   - `npm run e2e` (`8 passed`)
   - `npm audit --audit-level=moderate`

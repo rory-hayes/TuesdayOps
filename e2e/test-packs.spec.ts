@@ -129,6 +129,7 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
 
   const runPackForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Run pack" }) });
   await runPackForm.getByRole("button", { name: "Run pack" }).click();
+  await expect(page.getByRole("button", { name: "Running..." })).toBeVisible();
   await expect(page.getByText("Test pack run completed.")).toBeVisible();
 
   const testRun = await poll(async () => {

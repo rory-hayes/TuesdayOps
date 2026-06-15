@@ -53,3 +53,4 @@ Track meaningful product and engineering changes here.
 - Removed the dormant sample-data seeding server action and updated onboarding copy to require a first real report.
 - Sanitized customer-facing billing errors so missing Stripe setup and provider failures do not expose env vars, emails, or tokens.
 - Surfaced operations-readiness checks on Overview so stale workflows, enabled checks, high-risk issues, and report queue state are visible without exposing internal provider readiness.
+- Added pending-state feedback to Checks-page create/run actions, including synthetic test pack runs.
