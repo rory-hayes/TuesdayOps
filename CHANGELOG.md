@@ -45,3 +45,4 @@ Track meaningful product and engineering changes here.
 - Updated Settings integration status copy so configured MVP providers display as active instead of planned.
 - Disabled app-shell prefetch for authenticated navigation links to avoid Safari/WebKit protected-route prefetch errors.
 - Added Sentry Next.js SDK instrumentation, conservative sampling/privacy defaults, gated Sentry smoke-test routes, and Sentry env documentation.
+- Made PostHog analytics optional in production readiness while keeping Sentry error tracking launch-blocking.

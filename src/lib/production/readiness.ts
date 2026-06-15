@@ -25,6 +25,7 @@ export type ReadinessItem = {
   label: string;
   configured: boolean;
   env: string;
+  required: boolean;
 };
 
 export type ReadinessGroup = {
@@ -100,7 +101,7 @@ export function buildProductionReadiness(env: ReadinessEnv = process.env): Produ
   ];
   const missingRequired = groups
     .flatMap((group) => group.items)
-    .filter((item) => !item.configured)
+    .filter((item) => item.required && !item.configured)
     .map((item) => item.env);
 
   return {
@@ -143,6 +144,7 @@ function buildGroup({
     label: itemLabel,
     env: key,
     configured: isConfiguredEnvValue(key, env[key]),
+    required: true,
   }));
 
   return {
@@ -161,11 +163,13 @@ function buildSchedulerGroup(env: ReadinessEnv): ReadinessGroup {
       label: "Scheduler route secret",
       env: "SCHEDULER_SECRET",
       configured: hasValue(env.SCHEDULER_SECRET),
+      required: true,
     },
     {
       label: "Supabase Cron and Vault",
       env: "SUPABASE_CRON_ENABLED",
       configured: hasValue(env.SUPABASE_CRON_ENABLED),
+      required: true,
     },
   ];
 
@@ -185,25 +189,28 @@ function buildObservabilityGroup(env: ReadinessEnv): ReadinessGroup {
       label: "Sentry DSN",
       env: "SENTRY_DSN or NEXT_PUBLIC_SENTRY_DSN",
       configured: hasValue(env.SENTRY_DSN) || hasValue(env.NEXT_PUBLIC_SENTRY_DSN),
+      required: true,
     },
     {
       label: "PostHog project key",
       env: "NEXT_PUBLIC_POSTHOG_KEY",
       configured: hasValue(env.NEXT_PUBLIC_POSTHOG_KEY),
+      required: false,
     },
     {
       label: "PostHog host",
       env: "NEXT_PUBLIC_POSTHOG_HOST",
       configured: hasValue(env.NEXT_PUBLIC_POSTHOG_HOST),
+      required: false,
     },
   ];
 
   return {
     id: "observability",
     label: "Observability",
-    detail: "Error tracking and product analytics.",
+    detail: "Error tracking is required; product analytics can be enabled later.",
     required: true,
-    status: items.every((item) => item.configured) ? "ready" : "missing",
+    status: items.every((item) => !item.required || item.configured) ? "ready" : "missing",
     items,
   };
 }

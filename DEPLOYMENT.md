@@ -185,7 +185,7 @@ The repository includes:
 - `.github/workflows/ci.yml` for lint, typecheck, unit tests, and production build.
 - `.github/workflows/production-smoke.yml` for scheduled/manual checks of `/api/health`.
 
-The production smoke workflow intentionally checks only public app/Supabase readiness until scheduler, email, billing, and observability provider keys are configured.
+The production smoke workflow intentionally checks only public app/Supabase readiness until scheduler, email, billing, and Sentry provider keys are configured. PostHog keys are optional while analytics is intentionally skipped.
 
 ## Release Notes
 

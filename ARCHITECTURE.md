@@ -49,7 +49,7 @@ Browser
 - Production readiness checks expose public `/api/health` status without secret disclosure. Provider launch gates are kept out of the user-facing Settings UI.
 - Operational reliability checks flag missing enabled checks, stale workflow data, high-risk open issues, and report queue gaps.
 - Report quality checks score source data, report sections, recommendations, and open high-risk issues before send/export.
-- Stripe billing and plan limits are implemented. Sentry/PostHog are represented in production readiness and still require provider-side configuration before public launch.
+- Stripe billing and plan limits are implemented. Sentry is represented as launch-blocking production readiness; PostHog analytics envs are reserved but optional while the analytics pass is intentionally skipped.
 - Service-only audit events record key workflow, check, issue, report, and billing lifecycle actions without storing raw auth material.
 - Additional database indexes support due-check selection, workflow health summaries, issue queues, report lookups, audit history, and old check-run retention jobs.
 

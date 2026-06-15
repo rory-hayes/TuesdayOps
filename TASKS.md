@@ -421,7 +421,7 @@ Acceptance:
 
 ### T9.1 Provider readiness checks
 
-- [x] Add server-safe readiness checks for app runtime, Supabase, Supabase Cron scheduler, Resend, Stripe, Sentry, and PostHog.
+- [x] Add server-safe readiness checks for app runtime, Supabase, Supabase Cron scheduler, Resend, Stripe, Sentry, and optional PostHog analytics.
 - [x] Add public `/api/health` payload with no secret disclosure.
 - [x] Show launch-blocking provider configuration in Settings.
 

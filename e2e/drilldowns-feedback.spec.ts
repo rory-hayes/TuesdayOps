@@ -179,13 +179,14 @@ async function signInAndCreateWorkspace(
 
 async function createClient(page: import("@playwright/test").Page, name: string, email: string) {
   await page.getByRole("button", { name: "New client" }).click();
-  await expect(page.getByRole("heading", { name: "New client" })).toBeVisible();
-  await page.getByLabel("Client name").fill(name);
-  await page.getByLabel("Industry").fill("QA Automation");
-  await page.getByLabel("Report email").fill(email);
-  await page.getByLabel("Notes").fill("Drilldown acceptance client.");
-  await page.getByRole("button", { name: "Add client" }).click();
-  await expect(page.getByRole("dialog", { name: "New client" })).toBeHidden({ timeout: 30_000 });
+  const dialog = page.getByRole("dialog", { name: "New client" });
+  await expect(dialog.getByRole("heading", { name: "New client" })).toBeVisible();
+  await dialog.getByLabel("Client name").fill(name);
+  await dialog.getByLabel("Industry").fill("QA Automation");
+  await dialog.getByLabel("Report email").fill(email);
+  await dialog.getByLabel("Notes").fill("Drilldown acceptance client.");
+  await dialog.getByRole("button", { name: "Add client" }).click();
+  await expect(dialog).toBeHidden({ timeout: 30_000 });
 }
 
 async function getRows<T>(table: string, query: string): Promise<T[]> {

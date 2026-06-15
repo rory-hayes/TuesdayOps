@@ -60,6 +60,26 @@ describe("buildProductionReadiness", () => {
     expect(JSON.stringify(readiness)).not.toContain("supabase-secret-service-role");
   });
 
+  it("does not block launch readiness when PostHog is intentionally skipped", () => {
+    const readiness = buildProductionReadiness({
+      ...completeEnv,
+      NEXT_PUBLIC_POSTHOG_KEY: undefined,
+      NEXT_PUBLIC_POSTHOG_HOST: undefined,
+    });
+
+    const observability = readiness.groups.find((group) => group.id === "observability");
+
+    expect(readiness.launchReady).toBe(true);
+    expect(readiness.missingRequired).toEqual([]);
+    expect(observability?.status).toBe("ready");
+    expect(observability?.items).toContainEqual({
+      label: "PostHog project key",
+      env: "NEXT_PUBLIC_POSTHOG_KEY",
+      configured: false,
+      required: false,
+    });
+  });
+
   it("keeps scheduler launch blocked until Supabase Cron is marked configured", () => {
     const readiness = buildProductionReadiness({
       ...completeEnv,

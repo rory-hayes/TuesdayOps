@@ -39,3 +39,5 @@ SENTRY_EXAMPLE_ENABLED=
 Do not commit real `.env.local` files.
 
 `SENTRY_EXAMPLE_ENABLED=true` should only be used temporarily when testing Sentry in a deployed environment. The Sentry example page is available automatically in local development.
+
+PostHog env values are reserved for the analytics milestone. They can stay empty while PostHog is intentionally skipped; Sentry remains the required observability provider.

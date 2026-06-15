@@ -148,6 +148,19 @@ Current Milestones 9-14 production-readiness status:
   - `npm run e2e`
   - `npm audit --audit-level=moderate`
 
+Current P0/P1/P2 continuation status on 2026-06-15:
+
+- PostHog analytics is intentionally skipped for now and no longer blocks `/api/health` launch readiness; Sentry remains required for observability readiness.
+- Added readiness coverage for the skipped-PostHog path.
+- Hardened Playwright client-creation selectors to scope inputs to the active New Client dialog after full e2e found an ambiguity with inline client edit fields.
+- Verification passed:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test:coverage` (`34 passed`, `192 passed`; branch coverage `95.39%`)
+  - `npm run build`
+  - `npm run e2e` (`8 passed`)
+  - `npm audit --audit-level=moderate`
+
 ## Critical test areas
 
 ### Assertion engine

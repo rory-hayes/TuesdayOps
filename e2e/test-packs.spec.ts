@@ -51,13 +51,14 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
   await page.goto("/clients", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "New client" }).click();
-  await expect(page.getByRole("heading", { name: "New client" })).toBeVisible();
-  await page.getByLabel("Client name").fill(clientName);
-  await page.getByLabel("Industry").fill("QA Automation");
-  await page.getByLabel("Report email").fill(`qa-pack-${runId}@example.invalid`);
-  await page.getByLabel("Notes").fill("Synthetic test pack E2E client.");
-  await page.getByRole("button", { name: "Add client" }).click();
-  await expect(page.getByRole("dialog", { name: "New client" })).toBeHidden({ timeout: 30_000 });
+  const clientDialog = page.getByRole("dialog", { name: "New client" });
+  await expect(clientDialog.getByRole("heading", { name: "New client" })).toBeVisible();
+  await clientDialog.getByLabel("Client name").fill(clientName);
+  await clientDialog.getByLabel("Industry").fill("QA Automation");
+  await clientDialog.getByLabel("Report email").fill(`qa-pack-${runId}@example.invalid`);
+  await clientDialog.getByLabel("Notes").fill("Synthetic test pack E2E client.");
+  await clientDialog.getByRole("button", { name: "Add client" }).click();
+  await expect(clientDialog).toBeHidden({ timeout: 30_000 });
   await expect(page.getByRole("table").getByRole("link", { name: clientName })).toBeVisible({
     timeout: 30_000,
   });
