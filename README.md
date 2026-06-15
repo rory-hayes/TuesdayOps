@@ -117,11 +117,16 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=
 SENTRY_DSN=
+NEXT_PUBLIC_SENTRY_DSN=
+SENTRY_TRACES_SAMPLE_RATE=0.1
+NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1
+NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=0.25
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 `SUPABASE_SECRET_KEY` and `SCHEDULER_SECRET` are server-only values. They must never be exposed to browser code or committed to the repo.
 `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are required for live email alerts.
+`SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` should both be set to the project DSN so server and browser errors are captured. `SENTRY_EXAMPLE_ENABLED=true` can temporarily expose `/sentry-example-page` in production for verification, but leave it unset for normal operation.
 `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is only for local/private test environments. Production should leave it unset so workflow checks cannot call localhost, private networks, or metadata endpoints.
 
 Scheduled checks are triggered by Supabase Cron calling `/api/scheduler/run-due-checks`. The Cron SQL reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, so the scheduler secret is not stored in migrations or client code. Set `SUPABASE_CRON_ENABLED=true` only after the Cron job and Vault secrets are configured.

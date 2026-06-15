@@ -64,9 +64,14 @@ NEXT_PUBLIC_POSTHOG_KEY=
 NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
 
 SENTRY_DSN=
+NEXT_PUBLIC_SENTRY_DSN=
+SENTRY_TRACES_SAMPLE_RATE=0.1
+NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1
+NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=0.25
 ```
 
 Never add service-role keys, Resend keys, Stripe keys, scheduler secrets, or workflow auth material to `NEXT_PUBLIC_` variables.
+`NEXT_PUBLIC_SENTRY_DSN` is intentionally public and is required for browser-side error capture. Leave `SENTRY_EXAMPLE_ENABLED` unset except during a temporary deployed Sentry smoke test.
 Leave `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS` unset in production. It exists only for local/private test environments that intentionally monitor localhost or private-network endpoints.
 
 ## Supabase Migration Procedure
