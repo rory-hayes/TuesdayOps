@@ -53,4 +53,21 @@ describe("issue alert safe copy", () => {
     expect(email.text).not.toContain("abc123");
     expect(email.html).not.toContain("abc123");
   });
+
+  it("uses critical copy and trims trailing app URL slashes", () => {
+    const email = buildIssueAlertEmail({
+      issue: {
+        ...highSeverityIssue,
+        severity: "critical",
+      },
+      clientName: "Harbor Legal",
+      workflowName: "Risk Router",
+      checkName: "Endpoint health check",
+      appUrl: "https://tuesday-ops.vercel.app/",
+    });
+
+    expect(email.subject).toBe("[TuesdayOps] Critical issue for Harbor Legal: Risk router returned HTTP 500");
+    expect(email.text).toContain("Critical severity issue detected in TuesdayOps.");
+    expect(email.text).toContain("Open TuesdayOps: https://tuesday-ops.vercel.app/issues");
+  });
 });

@@ -121,4 +121,87 @@ describe("issue engine", () => {
       occurrence_count: 3,
     });
   });
+
+  it("creates high-severity request error issues without leaking raw error material", () => {
+    const issue = buildIssueDraftFromCheckRun({
+      ...baseRun,
+      workflowName: "  Risk   Router  ",
+      checkName: "Endpoint health",
+      errorMessage: "Bearer secret-token failed",
+      assertionResults: [
+        {
+          type: "status_code",
+          passed: false,
+          message: "Request failed.",
+        },
+      ],
+    });
+
+    expect(issue).toMatchObject({
+      severity: "high",
+      title: "Risk Router check could not complete",
+    });
+    expect(issue?.fingerprint).toMatch(/^check-123:request_error:/);
+    expect(issue?.suggestedAction).not.toContain("secret-token");
+  });
+
+  it("maps status and assertion failure types into appropriate severity", () => {
+    const mediumStatus = buildIssueDraftFromCheckRun({
+      ...baseRun,
+      statusCode: 404,
+      workflowName: "Lead Intake",
+      checkName: "Endpoint health",
+      assertionResults: [{ type: "status_code", passed: false, message: "404" }],
+    });
+    const lowStatus = buildIssueDraftFromCheckRun({
+      ...baseRun,
+      statusCode: 302,
+      workflowName: "Lead Intake",
+      checkName: "Endpoint health",
+      assertionResults: [{ type: "status_code", passed: false, message: "302" }],
+    });
+    const genericAssertion = buildIssueDraftFromCheckRun({
+      ...baseRun,
+      statusCode: 200,
+      workflowName: "Lead Intake",
+      checkName: "Endpoint health",
+      assertionResults: [{ type: "field_exists", passed: false, message: "missing field" }],
+    });
+
+    expect(mediumStatus?.severity).toBe("medium");
+    expect(lowStatus?.severity).toBe("low");
+    expect(genericAssertion).toMatchObject({
+      severity: "medium",
+      title: "Lead Intake failed a QA assertion",
+    });
+  });
+
+  it("uses degraded latency and fallback statuses when no assertion explains the run", () => {
+    const degradedLatency = buildIssueDraftFromCheckRun({
+      ...baseRun,
+      status: "degraded",
+      latencyMs: 6000,
+      workflowName: "Reminder Agent",
+      checkName: "Latency guard",
+      assertionResults: [{ type: "latency_under", passed: false, message: "slow" }],
+    });
+    const fallback = buildIssueDraftFromCheckRun({
+      ...baseRun,
+      status: "degraded",
+      workflowName: "",
+      checkName: "",
+      assertionResults: [],
+    });
+
+    expect(degradedLatency).toMatchObject({
+      severity: "low",
+      title: "Reminder Agent latency is above target",
+    });
+    expect(fallback).toMatchObject({
+      fingerprint: "check-123:degraded",
+      severity: "low",
+      title: "Workflow check is degraded",
+      description: "Workflow completed with degraded status.",
+    });
+  });
 });

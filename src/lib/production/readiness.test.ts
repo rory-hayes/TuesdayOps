@@ -105,4 +105,16 @@ describe("buildPublicHealthPayload", () => {
     expect(JSON.stringify(payload)).not.toContain("secret");
     expect(JSON.stringify(payload)).not.toContain("sk_live");
   });
+
+  it("marks the public health payload degraded when required setup is missing", () => {
+    const payload = buildPublicHealthPayload({
+      ...completeEnv,
+      STRIPE_WEBHOOK_SECRET: undefined,
+    });
+
+    expect(payload.ok).toBe(true);
+    expect(payload.status).toBe("degraded");
+    expect(payload.launchReady).toBe(false);
+    expect(payload.checks).toContainEqual({ id: "billing", status: "missing", required: true });
+  });
 });

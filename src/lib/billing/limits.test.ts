@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { canCreateClient, canCreateWorkflow, getPlanLimits } from "@/lib/billing/limits";
+import {
+  canCreateClient,
+  canCreateWorkflow,
+  formatLimit,
+  getPlanLimits,
+} from "@/lib/billing/limits";
 
 describe("billing plan limits", () => {
   it("allows starter agencies to create the first client and blocks the second", () => {
@@ -50,5 +55,15 @@ describe("billing plan limits", () => {
         activeClients: 99,
       }).allowed,
     ).toBe(true);
+  });
+
+  it("falls back to starter limits for unknown or inactive paid plans", () => {
+    expect(getPlanLimits("enterprise", "active")).toEqual({ clients: 1, workflows: 3 });
+    expect(getPlanLimits("growth", "past_due")).toEqual({ clients: 1, workflows: 3 });
+  });
+
+  it("formats finite and unlimited limits for billing UI copy", () => {
+    expect(formatLimit(5)).toBe("5");
+    expect(formatLimit(Number.POSITIVE_INFINITY)).toBe("Unlimited");
   });
 });

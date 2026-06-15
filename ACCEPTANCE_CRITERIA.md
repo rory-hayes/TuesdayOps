@@ -10,6 +10,7 @@ Every feature must satisfy:
 - clear loading/error/empty states
 - responsive desktop-first layout
 - basic tests where feasible
+- the 95% unit coverage gate stays green for MVP service/API logic
 - docs updated if behavior changes
 
 ## Foundation
@@ -89,6 +90,7 @@ Every feature must satisfy:
 - Recent issues list works.
 - Scheduled checks list works.
 - Client workflows table works.
+- Recent issues, workflow rows, client workflow rows, and recent reports drill down to their detail views.
 
 ## Production readiness
 

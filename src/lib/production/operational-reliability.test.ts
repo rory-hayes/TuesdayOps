@@ -48,6 +48,46 @@ describe("buildOperationalReliability", () => {
       "No client report is ready to send or sent.",
     ]);
   });
+
+  it("uses plural readiness copy for multiple stale workflows, issues, and sent reports", () => {
+    const data = buildData({
+      workflowLastCheckAt: "not-a-date",
+      issueSeverity: "high",
+      issueStatus: "in_review",
+      reportStatus: "sent",
+    });
+    data.workflows.push({
+      ...data.workflows[0],
+      id: "workflow-2",
+      lastCheckAt: "2026-06-10T09:00:00.000Z",
+    });
+    data.issues.push({
+      ...data.issues[0],
+      id: "issue-2",
+      severity: "critical",
+      status: "open",
+    });
+    data.reports.push({
+      ...data.reports[0],
+      id: "report-2",
+      status: "sent",
+    });
+
+    const reliability = buildOperationalReliability({
+      data,
+      now: new Date("2026-06-14T10:00:00.000Z"),
+    });
+
+    expect(reliability.blockers).toContain("2 monitored workflows have stale check data.");
+    expect(reliability.blockers).toContain("2 high or critical issues are still open.");
+    expect(reliability.checks).toContainEqual(
+      expect.objectContaining({
+        id: "report_queue",
+        status: "ready",
+        detail: "2 client reports ready or sent.",
+      }),
+    );
+  });
 });
 
 function buildData({

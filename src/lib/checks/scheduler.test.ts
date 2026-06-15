@@ -29,6 +29,16 @@ describe("scheduled check selection", () => {
     ).toBe(false);
   });
 
+  it("treats invalid latest run timestamps as due", () => {
+    expect(
+      isCheckDue({
+        now,
+        latestCompletedAt: "not-a-date",
+        frequencyMinutes: 15,
+      }),
+    ).toBe(true);
+  });
+
   it("selects only enabled endpoint checks that are due", () => {
     expect(
       selectDueChecks(
@@ -104,5 +114,19 @@ describe("scheduled check selection", () => {
         { checkId: "target" },
       ).map((check) => check.id),
     ).toEqual(["target"]);
+  });
+
+  it("uses default scheduling options when no explicit now, limit, or target is provided", () => {
+    const checks = Array.from({ length: 60 }, (_, index) => ({
+      id: `check-${index}`,
+      agencyId: "agency-1",
+      workflowId: `workflow-${index}`,
+      workflowEndpointUrl: "https://example.com/health",
+      workflowFrequencyMinutes: 5,
+      enabled: true,
+      latestCompletedAt: null,
+    }));
+
+    expect(selectDueChecks(checks)).toHaveLength(50);
   });
 });

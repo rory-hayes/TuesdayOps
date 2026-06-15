@@ -64,6 +64,7 @@ test("billing settings show limits and starter client limit is enforced", async 
 
   await createClient(page, secondClient, `qa-billing-overflow-${runId}@example.invalid`);
   await expect(page.getByText("Upgrade to add more clients.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Click here to upgrade" })).toBeVisible();
   await expect(page.getByText(secondClient)).not.toBeVisible();
 
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
@@ -86,6 +87,7 @@ test("billing settings show limits and starter client limit is enforced", async 
     expectRedirect: false,
   });
   await expect(page.getByText("Upgrade to monitor more workflows.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Click here to upgrade" })).toBeVisible();
   await expect(page.getByText(firstWorkflow)).toBeVisible();
   await expect(page.getByText(fourthWorkflow)).not.toBeVisible();
 });

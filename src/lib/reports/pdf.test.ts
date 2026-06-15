@@ -53,4 +53,42 @@ describe("report PDF helpers", () => {
       text: expect.stringContaining("Monitoring coverage: 2 workflows, 12 checks, 4 synthetic runs"),
     });
   });
+
+  it("escapes HTML-sensitive report values and redacts secrets in emails", () => {
+    const email = buildReportEmail({
+      report: {
+        ...draft,
+        clientName: "ACME <Support>",
+        summary: 'Investigate user@example.com with Bearer token_123 and password="bad".',
+        metrics: {
+          ...draft.metrics,
+          workflowsMonitored: 1,
+          checksRun: 1,
+          testRuns: 1,
+        },
+      },
+      downloadUrl: 'https://app.example.com/reports?client="acme"&token=secret',
+    });
+
+    expect(email.text).toContain("Monitoring coverage: 1 workflow, 1 check, 1 synthetic run");
+    expect(email.text).toContain("[redacted-email]");
+    expect(email.text).toContain("Bearer [redacted]");
+    expect(email.text).toContain("password=[redacted]");
+    expect(email.html).toContain("ACME &lt;Support&gt;");
+    expect(email.html).toContain("&quot;acme&quot;");
+    expect(email.html).not.toContain("user@example.com");
+    expect(email.html).not.toContain("Bearer token_123");
+  });
+
+  it("wraps long PDF lines and escapes PDF control characters", () => {
+    const bytes = renderReportPdfBytes({
+      ...draft,
+      clientName: "Client (One) \\ Support",
+      summary: "A".repeat(180),
+    });
+    const text = bytes.toString("latin1");
+
+    expect(text).toContain("Client \\(One\\) \\\\ Support June 2026 Report");
+    expect(text).toContain(`${"A".repeat(88)}) Tj T*`);
+  });
 });

@@ -492,3 +492,24 @@ Acceptance:
 Acceptance:
 
 - QA engineers have test results, current state, known gaps, and launch recommendations
+
+## Milestone 15 — Test Coverage Hardening
+
+### T15.1 Unit coverage gate
+
+- [x] Add Vitest V8 coverage reporting.
+- [x] Enforce 95% global coverage thresholds for statements, branches, functions, and lines.
+- [x] Expand unit coverage for core MVP services and API routes.
+
+Acceptance:
+
+- `npm run test:coverage` passes the 95% coverage gate
+
+### T15.2 Acceptance coverage
+
+- [x] Add drill-down and action-feedback acceptance coverage across client, workflow, issue, and report flows.
+- [x] Extend billing-limit E2E coverage for upgrade CTA prompts.
+
+Acceptance:
+
+- Playwright coverage exercises the core MVP loop and verifies critical navigation/feedback paths

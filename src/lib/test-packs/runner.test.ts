@@ -53,6 +53,50 @@ describe("synthetic test runner helpers", () => {
     });
   });
 
+  it("does not create issues for passed or skipped synthetic runs", () => {
+    expect(
+      buildSyntheticIssueDraft({
+        testPackId: "pack-1",
+        testCaseId: "case-1",
+        workflowName: "Matter Intake",
+        testPackName: "Regression pack",
+        testCaseName: "Happy path",
+        status: "passed",
+      }),
+    ).toBeNull();
+    expect(
+      buildSyntheticIssueDraft({
+        testPackId: "pack-1",
+        testCaseId: "case-1",
+        workflowName: "Matter Intake",
+        testPackName: "Regression pack",
+        testCaseName: "Happy path",
+        status: "skipped",
+      }),
+    ).toBeNull();
+  });
+
+  it("sanitizes blank synthetic issue names and supplies a default suggested action", () => {
+    expect(
+      buildSyntheticIssueDraft({
+        testPackId: "pack-1",
+        testCaseId: "case-1",
+        workflowName: "  ",
+        testPackName: "\n",
+        testCaseName: "\t",
+        status: "failed",
+      }),
+    ).toEqual({
+      fingerprint: "synthetic:pack-1:case-1:failed",
+      severity: "medium",
+      title: "Workflow synthetic test failed",
+      description: "Workflow failed the Workflow test case.",
+      suggestedAction:
+        "Inspect the workflow output against the synthetic test expectations and rerun the pack after remediation.",
+      reportable: true,
+    });
+  });
+
   it("builds assertions from the MVP test case form fields", () => {
     expect(
       buildTestCaseAssertions({
@@ -113,6 +157,70 @@ describe("synthetic test runner helpers", () => {
     });
   });
 
+  it("uses failed assertion messages when the HTTP runner has no explicit error", () => {
+    expect(
+      buildTestRunInsert({
+        agencyId: "agency-1",
+        workflowId: "workflow-1",
+        testPackId: "pack-1",
+        testCaseId: "case-1",
+        result: {
+          status: "degraded",
+          statusCode: 200,
+          latencyMs: 6000,
+          responseSummary: "{\"ok\":true}",
+          assertionResults: [
+            { type: "status_code", passed: true, message: "Expected HTTP 200." },
+            { type: "latency_under", passed: false, message: "Expected latency under 5000 ms." },
+          ],
+          startedAt: "2026-06-13T14:00:00.000Z",
+          completedAt: "2026-06-13T14:00:01.000Z",
+        },
+      }),
+    ).toMatchObject({
+      status: "failed",
+      status_code: 200,
+      error_message: "Expected latency under 5000 ms.",
+    });
+  });
+
+  it("maps healthy and skipped HTTP results to synthetic test run statuses", () => {
+    const base = {
+      agencyId: "agency-1",
+      workflowId: "workflow-1",
+      testPackId: "pack-1",
+      testCaseId: "case-1",
+    };
+
+    expect(
+      buildTestRunInsert({
+        ...base,
+        result: {
+          status: "healthy",
+          statusCode: 200,
+          latencyMs: 80,
+          responseSummary: "ok",
+          assertionResults: [],
+          startedAt: "2026-06-13T14:00:00.000Z",
+          completedAt: "2026-06-13T14:00:01.000Z",
+        },
+      }),
+    ).toMatchObject({ status: "passed", error_message: null });
+    expect(
+      buildTestRunInsert({
+        ...base,
+        result: {
+          status: "skipped",
+          latencyMs: 0,
+          responseSummary: "",
+          assertionResults: [],
+          startedAt: "2026-06-13T14:00:00.000Z",
+          completedAt: "2026-06-13T14:00:01.000Z",
+        },
+      }),
+    ).toMatchObject({ status: "skipped", status_code: null, error_message: null });
+  });
+
   it("increments repeat synthetic failures using the latest test run", () => {
     const now = "2026-06-13T14:15:00.000Z";
 
@@ -157,6 +265,27 @@ describe("synthetic test runner helpers", () => {
     ).toEqual({
       caseCount: 3,
       passRate: 67,
+      lastRunAt: "2026-06-13T14:30:00.000Z",
+    });
+  });
+
+  it("summarizes empty or skipped-only test packs without inflating pass rate", () => {
+    expect(buildTestPackSummary({ caseCount: 2, runs: [] })).toEqual({
+      caseCount: 2,
+      passRate: 0,
+      lastRunAt: "1970-01-01T00:00:00.000Z",
+    });
+    expect(
+      buildTestPackSummary({
+        caseCount: 2,
+        runs: [
+          { status: "skipped", createdAt: "2026-06-13T14:20:00.000Z" },
+          { status: "skipped", createdAt: "2026-06-13T14:30:00.000Z" },
+        ],
+      }),
+    ).toEqual({
+      caseCount: 2,
+      passRate: 0,
       lastRunAt: "2026-06-13T14:30:00.000Z",
     });
   });

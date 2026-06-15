@@ -39,4 +39,28 @@ describe("createMemoryRateLimiter", () => {
 
     expect(limiter.check("health:client")).toMatchObject({ allowed: true, remaining: 0 });
   });
+
+  it("prunes expired entries once the limiter map grows large", () => {
+    let now = 1_000;
+    const limiter = createMemoryRateLimiter({
+      limit: 1,
+      windowMs: 500,
+      now: () => now,
+    });
+
+    for (let index = 0; index < 1_001; index += 1) {
+      limiter.check(`key:${index}`);
+    }
+
+    now = 2_000;
+
+    expect(limiter.check("fresh")).toMatchObject({
+      allowed: true,
+      retryAfterSeconds: 1,
+    });
+    expect(limiter.check("key:0")).toMatchObject({
+      allowed: true,
+      remaining: 0,
+    });
+  });
 });

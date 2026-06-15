@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildAgencyBillingUpdate,
   getAgencyIdFromCheckoutSession,
+  isSubscriptionEvent,
   normalizeStripeSubscriptionStatus,
 } from "@/lib/billing/webhook";
 
@@ -11,6 +12,7 @@ describe("Stripe webhook helpers", () => {
     expect(normalizeStripeSubscriptionStatus("active")).toBe("active");
     expect(normalizeStripeSubscriptionStatus("past_due")).toBe("past_due");
     expect(normalizeStripeSubscriptionStatus("unpaid")).toBe("past_due");
+    expect(normalizeStripeSubscriptionStatus("paused")).toBe("past_due");
     expect(normalizeStripeSubscriptionStatus("canceled")).toBe("canceled");
     expect(normalizeStripeSubscriptionStatus("incomplete")).toBe("incomplete");
   });
@@ -56,5 +58,37 @@ describe("Stripe webhook helpers", () => {
         metadata: {},
       }),
     ).toBe("agency-fallback");
+
+    expect(getAgencyIdFromCheckoutSession({ metadata: null, client_reference_id: null })).toBeNull();
+  });
+
+  it("normalizes customer objects, missing prices, canceled plans, and subscription event types", () => {
+    expect(
+      buildAgencyBillingUpdate({
+        id: "sub_canceled",
+        customer: { id: "cus_object" },
+        status: "canceled",
+        current_period_end: null,
+        items: { data: [{}] },
+      }),
+    ).toEqual({
+      billing_customer_id: "cus_object",
+      billing_subscription_id: "sub_canceled",
+      billing_status: "canceled",
+      billing_price_id: null,
+      billing_current_period_end: null,
+      plan: "starter",
+    });
+
+    expect(
+      isSubscriptionEvent({
+        type: "customer.subscription.updated",
+      } as never),
+    ).toBe(true);
+    expect(
+      isSubscriptionEvent({
+        type: "checkout.session.completed",
+      } as never),
+    ).toBe(false);
   });
 });

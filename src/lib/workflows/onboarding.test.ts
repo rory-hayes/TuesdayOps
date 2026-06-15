@@ -22,6 +22,23 @@ describe("parseWorkflowImport", () => {
     });
   });
 
+  it("normalizes direct URLs with no path and rejects non-http endpoints", () => {
+    expect(parseWorkflowImport({
+      source: "url",
+      text: "https://api.example.com",
+    })).toMatchObject({
+      name: "api.example.com",
+      endpointUrl: "https://api.example.com/",
+    });
+    expect(() =>
+      parseWorkflowImport({
+        source: "url",
+        text: "ftp://api.example.com/file",
+      }),
+    ).toThrow("Workflow endpoint must be an HTTP or HTTPS URL.");
+  });
+
+
   it("extracts method, bearer auth, URL, and body from a cURL command", () => {
     expect(parseWorkflowImport({
       source: "curl",
@@ -36,6 +53,22 @@ describe("parseWorkflowImport", () => {
       requestBody: '{"email":"lead@example.com"}',
     });
   });
+
+  it("infers POST and API-key auth from cURL data and headers", () => {
+    expect(parseWorkflowImport({
+      source: "curl",
+      text: `curl --header "X-API-Key: secret_123" --data-raw '{"ok":true}' https://api.example.com/webhook`,
+    })).toMatchObject({
+      type: "webhook",
+      endpointUrl: "https://api.example.com/webhook",
+      method: "POST",
+      authType: "api_key_header",
+      authHeaderName: "X-API-Key",
+      authSecret: "secret_123",
+      requestBody: '{"ok":true}',
+    });
+  });
+
 
   it("uses the first OpenAPI operation and server URL", () => {
     const openApi = {
@@ -104,5 +137,181 @@ describe("parseWorkflowImport", () => {
       "mcp_server",
       "custom_api",
     ]);
+  });
+
+  it("rejects empty imports, unsupported cURL methods, and cURL commands without URLs", () => {
+    expect(() => parseWorkflowImport({ source: "url", text: "   " })).toThrow(
+      "Import details are required.",
+    );
+    expect(() =>
+      parseWorkflowImport({
+        source: "curl",
+        text: "curl -X DELETE https://api.example.com/lead",
+      }),
+    ).toThrow("Unsupported workflow method: DELETE");
+    expect(() =>
+      parseWorkflowImport({
+        source: "curl",
+        text: "curl -H 'Authorization: Bearer token' --data '{\"ok\":true}'",
+      }),
+    ).toThrow("A cURL import must include an HTTP URL.");
+  });
+
+  it("extracts OpenAPI example bodies and rejects unusable OpenAPI documents", () => {
+    expect(
+      parseWorkflowImport({
+        source: "openapi",
+        text: JSON.stringify({
+          servers: [{ url: "https://api.example.com" }],
+          paths: {
+            "/score": {
+              put: {
+                operationId: "scoreLead",
+                requestBody: {
+                  content: {
+                    "application/json": {
+                      example: { leadId: "lead-123" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      }),
+    ).toMatchObject({
+      name: "scoreLead",
+      endpointUrl: "https://api.example.com/score",
+      method: "PUT",
+      requestBody: '{"leadId":"lead-123"}',
+    });
+
+    expect(
+      parseWorkflowImport({
+        source: "openapi",
+        text: JSON.stringify({
+          paths: {
+            "https://api.example.com/absolute": {
+              patch: {
+                summary: "",
+                operationId: "absolutePatch",
+                requestBody: {
+                  content: {
+                    "application/json": {
+                      example: "{\"ok\":true}",
+                    },
+                  },
+                },
+              },
+            },
+          },
+        }),
+      }),
+    ).toMatchObject({
+      name: "absolutePatch",
+      endpointUrl: "https://api.example.com/absolute",
+      method: "PATCH",
+      requestBody: "{\"ok\":true}",
+    });
+
+    expect(() =>
+      parseWorkflowImport({
+        source: "openapi",
+        text: "{not-json",
+      }),
+    ).toThrow("OpenAPI import must be valid JSON.");
+    expect(() =>
+      parseWorkflowImport({
+        source: "openapi",
+        text: JSON.stringify({ paths: { "/relative": { get: {} } } }),
+      }),
+    ).toThrow("OpenAPI import must include at least one supported operation.");
+    expect(() =>
+      parseWorkflowImport({
+        source: "openapi",
+        text: JSON.stringify({ paths: { "/relative": { get: { operationId: "relativeGet" } } } }),
+      }),
+    ).toThrow("OpenAPI import needs a server URL when paths are relative.");
+  });
+
+  it("finds nested Postman requests and builds URLs from structured parts", () => {
+    expect(
+      parseWorkflowImport({
+        source: "postman",
+        text: JSON.stringify({
+          item: [
+            {
+              name: "Folder",
+              item: [
+                {
+                  name: "Nested health",
+                  request: {
+                    method: "GET",
+                    url: {
+                      protocol: "https",
+                      host: ["api", "example", "com"],
+                      path: ["health"],
+                    },
+                    header: [{ key: "Authorization", value: "Bearer postman-token" }],
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      }),
+    ).toMatchObject({
+      name: "Nested health",
+      endpointUrl: "https://api.example.com/health",
+      method: "GET",
+      authType: "bearer",
+      authSecret: "postman-token",
+    });
+
+    expect(() =>
+      parseWorkflowImport({
+        source: "postman",
+        text: JSON.stringify({ item: [{ name: "No request" }] }),
+      }),
+    ).toThrow("Postman collection must include at least one request.");
+  });
+
+  it("uses Postman request defaults and rejects unsupported Postman methods", () => {
+    expect(
+      parseWorkflowImport({
+        source: "postman",
+        text: JSON.stringify({
+          item: [
+            {
+              request: {
+                url: "https://api.example.com/status",
+                header: [{ key: "Content-Type", value: "application/json" }],
+              },
+            },
+          ],
+        }),
+      }),
+    ).toMatchObject({
+      name: "api.example.com status",
+      method: "GET",
+      authType: "none",
+      requestBody: undefined,
+    });
+
+    expect(() =>
+      parseWorkflowImport({
+        source: "postman",
+        text: JSON.stringify({
+          item: [
+            {
+              request: {
+                method: "DELETE",
+                url: "https://api.example.com/status",
+              },
+            },
+          ],
+        }),
+      }),
+    ).toThrow("Unsupported workflow method: DELETE");
   });
 });

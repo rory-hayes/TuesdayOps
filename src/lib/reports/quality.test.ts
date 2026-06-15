@@ -36,6 +36,46 @@ describe("buildReportQuality", () => {
     expect(quality.status).toBe("review");
     expect(quality.warnings).toContain("1 high or critical issue is still open for this client.");
   });
+
+  it("blocks export when no report has been generated yet", () => {
+    const data = buildData({ checksRun: 12, openHighRiskIssues: 0, recommendations: ["Keep monitoring cadence."] });
+    data.reports = [];
+
+    expect(buildReportQuality({ data })).toEqual({
+      status: "blocked",
+      score: 0,
+      blockers: ["Generate a report before export or send review."],
+      warnings: [],
+      checks: [
+        {
+          id: "source_data",
+          label: "Source data",
+          status: "blocked",
+          detail: "Generate a report before export or send review.",
+        },
+      ],
+    });
+  });
+
+  it("blocks reports with source data but no saved report sections", () => {
+    const data = buildData({ checksRun: 12, openHighRiskIssues: 0, recommendations: ["Keep monitoring cadence."] });
+    data.reportItems = [];
+
+    const quality = buildReportQuality({ data, reportId: "report-1" });
+
+    expect(quality.status).toBe("blocked");
+    expect(quality.blockers).toContain("Report has no saved report sections.");
+  });
+
+  it("uses plural high-risk issue language for multiple open issues", () => {
+    const quality = buildReportQuality({
+      data: buildData({ checksRun: 12, openHighRiskIssues: 2, recommendations: ["Resolve open risk."] }),
+      reportId: "report-1",
+    });
+
+    expect(quality.status).toBe("review");
+    expect(quality.warnings).toContain("2 high or critical issues are still open for this client.");
+  });
 });
 
 function buildData({

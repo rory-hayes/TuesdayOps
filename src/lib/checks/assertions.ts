@@ -163,5 +163,5 @@ function stringifyValue(value: unknown): string {
     return value;
   }
 
-  return JSON.stringify(value);
+  return JSON.stringify(value) ?? "";
 }
