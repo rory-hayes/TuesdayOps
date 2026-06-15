@@ -93,7 +93,6 @@ Qualification criteria:
 - Brand color/logo for reports
 - Model/prompt comparison MVP
 - Dashboard charts
-- Sample data mode
 - Onboarding wizard
 
 ### Could have later

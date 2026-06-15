@@ -10,6 +10,8 @@ describe("buildOnboardingProgress", () => {
     expect(progress.totalCount).toBe(5);
     expect(progress.percent).toBe(20);
     expect(progress.nextStep?.id).toBe("client");
+    expect(progress.steps.at(-1)?.label).toBe("Create first report");
+    expect(progress.steps.at(-1)?.label).not.toMatch(/demo|sample/i);
     expect(progress.steps.map((step) => [step.id, step.complete])).toEqual([
       ["agency", true],
       ["client", false],

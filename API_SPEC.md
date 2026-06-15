@@ -380,22 +380,17 @@ Current server action equivalent: `sendReportAction(reportId)`.
 
 The send action requires report readiness to be `ready` or `review`, ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error`, mark the report `failed`, and redirect back to the report detail with a visible error instead of a success-style notice. Error copy is sanitized before it is shown or stored.
 
-## Onboarding and sample data
+## Onboarding
 
-### `seedSampleDataAction()`
+The Overview activation checklist is derived from real tenant data only:
 
-Server action used from the Overview activation checklist.
+- agency workspace exists
+- first client exists
+- first workflow exists
+- first check run exists
+- first report exists
 
-The action:
-
-- requires an authenticated agency workspace
-- uses deterministic tenant-scoped UUIDs for demo rows
-- upserts one demo client, workflow, check, issue, test pack, test case, test run, report, and report items
-- stores no workflow auth secrets
-- marks `agencies.sample_data_seeded_at`
-- redirects back to Overview with a sample-data status
-
-The seeded demo records stay inside the current agency tenant boundary.
+There is no production server action for seeding demo records.
 
 ## Billing
 

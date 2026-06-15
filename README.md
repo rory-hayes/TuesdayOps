@@ -158,7 +158,7 @@ For production deployment, see `DEPLOYMENT.md`.
 
 ## Current implementation state
 
-The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, Milestone 6 monthly reports, Milestone 7A launch-readiness hardening, Milestone 7B onboarding/demo mode, Milestone 7C billing/plan limits, and Milestone 8 QA hardening:
+The repository now contains the foundation, Milestones 1-3, Milestone 4 scheduled checks/issues/alerts, Milestone 5 synthetic test packs, Milestone 6 monthly reports, Milestone 7A launch-readiness hardening, Milestone 7B onboarding, Milestone 7C billing/plan limits, and Milestone 8 QA hardening:
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
@@ -189,6 +189,6 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - scalability indexes for workflow health, due checks, check history, issue queues, reports, test runs, and audit history
 - 95% Vitest coverage gate across MVP services and API routes, including branch coverage
 - cross-tenant report download E2E coverage, starter workflow-limit E2E coverage, drill-down/feedback E2E coverage, and Stripe webhook route safety tests
-- domain, assertion, billing, issue-engine, scheduler, onboarding, sample-data, synthetic-runner, API route, and Playwright E2E tests
+- domain, assertion, billing, issue-engine, scheduler, onboarding, synthetic-runner, API route, and Playwright E2E tests
 
 The core MVP milestone list is now implemented. Live provider behavior still depends on production env vars and provider-side configuration.

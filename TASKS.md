@@ -344,20 +344,20 @@ Acceptance:
 - [x] Add first client step.
 - [x] Add first workflow step.
 - [x] Add first check run step.
-- [x] Add sample report step.
+- [x] Add first report step.
 
 Acceptance:
 
 - user can reach first check within 10 minutes
 
-### T7B.2 Sample data mode
+### T7B.2 Demo seeding removal
 
-- [x] Seed demo agency.
-- [x] Seed clients/workflows/checks/issues/reports.
+- [x] Remove user-facing demo seeding.
+- [x] Remove dormant sample-data seeding server action.
 
 Acceptance:
 
-- demo dashboard is useful for sales calls
+- activation uses real tenant client, workflow, check run, and report data
 
 ## Milestone 7C — Billing and Plan Limits
 

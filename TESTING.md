@@ -98,12 +98,12 @@ Current Milestone 7A launch-readiness status:
   - `npm run build`
   - `npm run e2e` (`4 passed`)
 
-Current Milestone 7B onboarding/demo status:
+Current Milestone 7B onboarding status:
 
-- Added unit coverage for onboarding progress calculation and deterministic sample data seed row shape.
+- Added unit coverage for onboarding progress calculation and non-demo activation checklist copy.
 - Applied the onboarding demo Supabase migration to the linked remote project.
 - `npm run e2e -- e2e/onboarding-demo.spec.ts` passed against the local app and remote Supabase project.
-- Covered flow: confirmed QA user sign-in, agency onboarding, activation checklist state, tenant-scoped demo seed action, seeded client/workflow/issue/report database rows, Reports page visibility, and Issues page visibility.
+- Covered flow: confirmed QA user sign-in, agency onboarding, activation checklist state, no visible demo seeding control, and no tenant demo client rows created.
 
 Current Milestone 7C billing/limits status:
 
@@ -111,7 +111,7 @@ Current Milestone 7C billing/limits status:
 - Applied the billing and plan limits Supabase migration to the linked remote project.
 - `npm run e2e -- e2e/billing-limits.spec.ts` passed against the local app and remote Supabase project.
 - Covered flow: confirmed QA user sign-in, agency onboarding, Settings billing usage display, missing Stripe config handled safely, first starter client creation, and second starter client blocked with upgrade copy.
-- Full Playwright suite passed with onboarding/demo, billing limits, scheduled checks, alerts, test packs, and reports: `6 passed`.
+- Full Playwright suite passed with onboarding, billing limits, scheduled checks, alerts, test packs, and reports: `6 passed`.
 
 Current Milestone 8 QA-hardening status:
 

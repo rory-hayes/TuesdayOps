@@ -10,7 +10,6 @@ export type WorkspaceContext = {
     slug: string;
     primaryColor: string;
     plan: string;
-    sampleDataSeededAt?: string;
     billingCustomerId?: string;
     billingSubscriptionId?: string;
     billingStatus: string;
@@ -30,7 +29,6 @@ type MembershipRow = {
         slug: string;
         primary_color: string;
         plan: string;
-        sample_data_seeded_at: string | null;
         billing_customer_id: string | null;
         billing_subscription_id: string | null;
         billing_status: string;
@@ -44,7 +42,6 @@ type MembershipRow = {
         slug: string;
         primary_color: string;
         plan: string;
-        sample_data_seeded_at: string | null;
         billing_customer_id: string | null;
         billing_subscription_id: string | null;
         billing_status: string;
@@ -70,7 +67,7 @@ export async function getWorkspaceContext(): Promise<{
   const { data, error } = await supabase
     .from("memberships")
     .select(
-      "role, agencies(id, name, slug, primary_color, plan, sample_data_seeded_at, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at)",
+      "role, agencies(id, name, slug, primary_color, plan, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at)",
     )
     .eq("user_id", user.id)
     .limit(1)
@@ -104,7 +101,6 @@ export async function getWorkspaceContext(): Promise<{
         slug: agency.slug,
         primaryColor: agency.primary_color,
         plan: agency.plan,
-        sampleDataSeededAt: agency.sample_data_seeded_at ?? undefined,
         billingCustomerId: agency.billing_customer_id ?? undefined,
         billingSubscriptionId: agency.billing_subscription_id ?? undefined,
         billingStatus: agency.billing_status ?? "trialing",

@@ -19,7 +19,7 @@ billing_status text default 'trialing'
 billing_price_id text
 billing_current_period_end timestamptz
 trial_ends_at timestamptz
-sample_data_seeded_at timestamptz
+sample_data_seeded_at timestamptz -- legacy field retained for existing migrated databases; not used by active onboarding
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```

@@ -4,9 +4,12 @@ Date: 2026-06-13
 
 Branch: `codex/milestone-7b-onboarding-demo`
 
+Current status: superseded. Demo seeding was removed from the active MVP after this
+handoff; onboarding now derives activation only from real tenant data.
+
 ## Scope
 
-This handoff covers Milestone 7B:
+This historical handoff covered Milestone 7B before demo seeding was removed:
 
 - Overview activation checklist.
 - First client, workflow, check run, and report progress tracking.
@@ -27,7 +30,7 @@ Agency -> Client -> Workflow -> Check Run -> Issue -> Monthly Report
   - add first client
   - add first workflow
   - run first check
-  - create sample report
+  - create sample report, later renamed to create first report
 - Added a tenant-scoped `seedSampleDataAction`.
 - Demo data uses deterministic agency-scoped UUIDs and upserts to avoid duplicate rows.
 - Demo data includes:
@@ -94,15 +97,11 @@ Covered E2E flow:
 - confirmed QA user sign-in
 - agency onboarding
 - activation checklist starts at `1 of 5`
-- sample data seed action completes
-- activation checklist reaches `5 of 5`
-- seeded client, workflow, issue, and report rows exist in Supabase for the same agency
-- seeded report appears on Reports
-- seeded issue appears on Issues
+- historical check only: sample data seed action completed before the feature was removed
 
 ## Known Residual Risks
 
-- The sample data action is intentionally user-triggered; it does not auto-seed new tenants.
+- Superseded: the sample data action has been removed from the active MVP.
 - Demo records are realistic but synthetic and should not be treated as customer data.
 - The seeded report PDF is not generated until the user runs the existing PDF action from Reports.
 - The action does not use a database transaction, but deterministic IDs plus upserts make repeated attempts idempotent.

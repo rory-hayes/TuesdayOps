@@ -110,9 +110,9 @@ Deliverables:
 - smoke test checklist
 - dependency audit hardening
 
-## Milestone 7B — Onboarding and Demo Mode
+## Milestone 7B — Onboarding
 
-Goal: a new agency can reach the first useful check quickly and the team can run sales demos with realistic data.
+Goal: a new agency can reach the first useful check quickly using real tenant data.
 
 Deliverables:
 
@@ -120,8 +120,8 @@ Deliverables:
 - first client step
 - first workflow step
 - first check run step
-- sample report step
-- sample data seed action
+- first report step
+- no production demo seeding path
 
 ## Milestone 7C — Billing and Plan Limits
 

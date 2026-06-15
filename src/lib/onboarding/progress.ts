@@ -52,7 +52,7 @@ export function buildOnboardingProgress(data: TuesdayOpsSeedData): OnboardingPro
     },
     {
       id: "report",
-      label: "Create sample report",
+      label: "Create first report",
       detail: data.reports.length ? data.reports[0].periodLabel : "Generate proof for the current month",
       href: "/reports",
       complete: data.reports.length > 0,

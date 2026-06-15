@@ -23,7 +23,7 @@ TuesdayOps has reached the clickable MVP implementation target for the focused a
 Agency -> Client -> Workflow -> Check -> Check Run -> Issue -> Monthly Report
 ```
 
-The app now supports authenticated agency workspaces, tenant-scoped clients and workflows, manual and scheduled checks, issue creation/dedupe, high-severity alert attempts, synthetic test packs, monthly reports with PDF export, onboarding/demo mode, and a basic Stripe billing gate with plan-limit enforcement.
+The app now supports authenticated agency workspaces, tenant-scoped clients and workflows, manual and scheduled checks, issue creation/dedupe, high-severity alert attempts, synthetic test packs, monthly reports with PDF export, real-data onboarding, and a basic Stripe billing gate with plan-limit enforcement.
 
 The latest full local gate passed:
 
@@ -57,7 +57,7 @@ Build: passed
 | 5 Test packs | Done | Synthetic cases/runs, failure issue creation |
 | 6 Reports | Done | Aggregation, preview, PDF storage/download, send attempts |
 | 7A Launch readiness | Done | Deployment docs, Node floor, clean audit |
-| 7B Onboarding/demo | Done | Activation checklist and tenant-scoped demo seed |
+| 7B Onboarding | Done | Activation checklist based on real tenant data |
 | 7C Billing/limits | Done | Stripe Checkout/Portal/webhook and plan limits |
 
 Recent PRs:
@@ -135,7 +135,7 @@ Result:
 
 Covered flows:
 
-- onboarding demo seed
+- onboarding without demo seeding
 - billing settings and starter client limit
 - scheduled checks
 - high-severity alert attempt
@@ -235,24 +235,16 @@ Current limitation: synthetic packs are manual only; scheduled synthetic pack ru
 
 Current limitation: report emails use a download link, not a direct PDF attachment.
 
-### Onboarding and Demo Mode
+### Onboarding
 
 - Overview includes a five-step activation checklist:
   - create agency
   - add first client
   - add first workflow
   - run first check
-  - create sample report
-- Demo seed action creates tenant-scoped sample data:
-  - client
-  - workflow
-  - check
-  - healthy and failed check runs
-  - open issue
-  - test pack/case/run
-  - ready-to-send report and report items
-- Demo seed uses deterministic IDs and upserts.
-- `agencies.sample_data_seeded_at` prevents repeated user-triggered seeding.
+  - create first report
+- Update on 2026-06-15: the demo seed action was removed from the active MVP.
+- Activation now uses real tenant client, workflow, check-run, and report data only.
 
 ### Billing
 
