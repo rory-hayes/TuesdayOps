@@ -4,7 +4,9 @@ export type ProductionSmokeCheckId =
   | "health"
   | "sentry-example-page"
   | "sentry-example-api"
-  | "scheduler-protection";
+  | "scheduler-protection"
+  | "app-route-protection"
+  | "stripe-webhook-protection";
 
 export type ProductionSmokeCheck = {
   id: ProductionSmokeCheckId;
@@ -68,6 +70,18 @@ export async function runProductionSmoke({
       fetchImpl,
     }),
   );
+  checks.push(await checkAppRouteProtection({ appUrl: normalizedAppUrl, fetchImpl }));
+  checks.push(
+    await checkExpectedStatus({
+      id: "stripe-webhook-protection",
+      label: "Stripe webhook requires signature",
+      appUrl: normalizedAppUrl,
+      path: "/api/stripe/webhook",
+      method: "POST",
+      expectedStatus: 400,
+      fetchImpl,
+    }),
+  );
 
   return {
     ok: checks.every((check) => check.status === "pass"),
@@ -75,6 +89,46 @@ export async function runProductionSmoke({
     checkedAt: new Date().toISOString(),
     checks,
   };
+}
+
+async function checkAppRouteProtection({
+  appUrl,
+  fetchImpl,
+}: {
+  appUrl: string;
+  fetchImpl: FetchLike;
+}): Promise<ProductionSmokeCheck> {
+  try {
+    const response = await fetchImpl(`${appUrl}/clients`, {
+      method: "GET",
+      cache: "no-store",
+      redirect: "manual",
+    });
+    const location = response.headers.get("location") ?? "none";
+
+    if (![302, 303, 307, 308].includes(response.status) || !isSignInLocation(location)) {
+      return {
+        id: "app-route-protection",
+        label: "Authenticated app routes require sign-in",
+        status: "fail",
+        detail: `Expected redirect to /sign-in, received ${response.status} with location ${location}.`,
+      };
+    }
+
+    return {
+      id: "app-route-protection",
+      label: "Authenticated app routes require sign-in",
+      status: "pass",
+      detail: `Received expected redirect to ${location}.`,
+    };
+  } catch (error) {
+    return {
+      id: "app-route-protection",
+      label: "Authenticated app routes require sign-in",
+      status: "fail",
+      detail: `Request failed: ${formatUnknownError(error)}.`,
+    };
+  }
 }
 
 export function formatProductionSmokeReport(result: ProductionSmokeResult): string {
@@ -212,6 +266,18 @@ function parseJsonObject(value: string): Record<string, unknown> | undefined {
   }
 
   return undefined;
+}
+
+function isSignInLocation(location: string): boolean {
+  if (location === "/sign-in") {
+    return true;
+  }
+
+  try {
+    return new URL(location).pathname === "/sign-in";
+  } catch {
+    return false;
+  }
 }
 
 function containsSecretShapedValue(value: string): boolean {

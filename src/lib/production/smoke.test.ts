@@ -28,6 +28,8 @@ describe("runProductionSmoke", () => {
           "/sentry-example-page": textResponse("not found", 404),
           "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
           "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+          "/clients": redirectResponse("/sign-in", 307),
+          "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
         },
         requests,
       ),
@@ -40,12 +42,16 @@ describe("runProductionSmoke", () => {
       ["sentry-example-page", "pass"],
       ["sentry-example-api", "pass"],
       ["scheduler-protection", "pass"],
+      ["app-route-protection", "pass"],
+      ["stripe-webhook-protection", "pass"],
     ]);
     expect(requests).toEqual([
       { url: "https://tuesday-ops.vercel.app/api/health", method: "GET" },
       { url: "https://tuesday-ops.vercel.app/sentry-example-page", method: "GET" },
       { url: "https://tuesday-ops.vercel.app/api/sentry-example-api", method: "GET" },
       { url: "https://tuesday-ops.vercel.app/api/scheduler/run-due-checks", method: "POST" },
+      { url: "https://tuesday-ops.vercel.app/clients", method: "GET" },
+      { url: "https://tuesday-ops.vercel.app/api/stripe/webhook", method: "POST" },
     ]);
   });
 
@@ -62,6 +68,8 @@ describe("runProductionSmoke", () => {
         "/sentry-example-page": textResponse("not found", 404),
         "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
       }),
     });
 
@@ -86,6 +94,8 @@ describe("runProductionSmoke", () => {
       "/sentry-example-page": textResponse("not found", 404),
       "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
       "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+      "/clients": redirectResponse("/sign-in", 307),
+      "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
     });
 
     const first = await runProductionSmoke({ appUrl: "https://tuesday-ops.vercel.app", fetchImpl });
@@ -103,6 +113,8 @@ describe("runProductionSmoke", () => {
         "/sentry-example-page": textResponse("not found", 404),
         "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
       }),
     });
 
@@ -125,9 +137,19 @@ describe("runProductionSmoke", () => {
           throw "network down";
         }
 
-        return path === "/api/scheduler/run-due-checks"
-          ? jsonResponse({ error: "Unauthorized scheduler trigger." }, 401)
-          : jsonResponse({ error: "Not found." }, 404);
+        if (path === "/api/scheduler/run-due-checks") {
+          return jsonResponse({ error: "Unauthorized scheduler trigger." }, 401);
+        }
+
+        if (path === "/clients") {
+          return redirectResponse("/sign-in", 307);
+        }
+
+        if (path === "/api/stripe/webhook") {
+          return jsonResponse({ error: "Missing Stripe signature." }, 400);
+        }
+
+        return jsonResponse({ error: "Not found." }, 404);
       },
     });
 
@@ -148,6 +170,8 @@ describe("runProductionSmoke", () => {
         "/sentry-example-page": textResponse("throw sample error", 200),
         "/api/sentry-example-api": textResponse("sample backend error", 500),
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
       }),
     });
 
@@ -170,6 +194,8 @@ describe("runProductionSmoke", () => {
         "/sentry-example-page": textResponse("not found", 404),
         "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
         "/api/scheduler/run-due-checks": jsonResponse({ ok: true, attempted: 1 }, 200),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
       }),
     });
 
@@ -177,6 +203,46 @@ describe("runProductionSmoke", () => {
     expect(result.checks.find((check) => check.id === "scheduler-protection")).toMatchObject({
       status: "fail",
       detail: "Expected 401, received 200.",
+    });
+  });
+
+  it("fails when authenticated app routes render for unauthenticated users", async () => {
+    const result = await runProductionSmoke({
+      appUrl: "https://tuesday-ops.vercel.app",
+      fetchImpl: buildFetch({
+        "/api/health": jsonResponse({ ok: true, status: "ready", launchReady: true, checks: [] }),
+        "/sentry-example-page": textResponse("not found", 404),
+        "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
+        "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": textResponse("clients", 200),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.checks.find((check) => check.id === "app-route-protection")).toMatchObject({
+      status: "fail",
+      detail: "Expected redirect to /sign-in, received 200 with location none.",
+    });
+  });
+
+  it("fails when unsigned Stripe webhook requests are not rejected", async () => {
+    const result = await runProductionSmoke({
+      appUrl: "https://tuesday-ops.vercel.app",
+      fetchImpl: buildFetch({
+        "/api/health": jsonResponse({ ok: true, status: "ready", launchReady: true, checks: [] }),
+        "/sentry-example-page": textResponse("not found", 404),
+        "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
+        "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ received: true }, 200),
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.checks.find((check) => check.id === "stripe-webhook-protection")).toMatchObject({
+      status: "fail",
+      detail: "Expected 400, received 200.",
     });
   });
 
@@ -266,4 +332,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function textResponse(body: string, status = 200): Response {
   return new Response(body, { status });
+}
+
+function redirectResponse(location: string, status = 307): Response {
+  return new Response("", { status, headers: { location } });
 }

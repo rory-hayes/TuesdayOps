@@ -274,7 +274,7 @@ Current limitation: live Stripe payment collection is not verified until product
 - There is no public client portal or public report URL.
 - Update on 2026-06-15: synthetic test packs now auto-resolve the active synthetic issue for the same test case after a later passing run.
 - Update on 2026-06-15: generated report PDFs now include cover metadata, an operations scorecard, value delivered, report sections, next actions, and a client-safe footer.
-- Update on 2026-06-15: `npm run smoke:production` now checks the deployed app health payload, gated Sentry example routes, and unauthenticated scheduler protection.
+- Update on 2026-06-15: `npm run smoke:production` now checks the deployed app health payload, gated Sentry example routes, app-route auth redirects, unauthenticated scheduler protection, and unsigned Stripe webhook rejection.
 
 ## QA Recommendations
 

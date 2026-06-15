@@ -543,7 +543,9 @@ Acceptance:
 - [x] Verify public `/api/health` is launch-ready and does not expose secret-shaped values.
 - [x] Verify temporary Sentry example routes stay gated in production.
 - [x] Verify the protected scheduler route rejects unauthenticated production requests.
+- [x] Verify authenticated app routes redirect unauthenticated visitors to sign-in.
+- [x] Verify unsigned Stripe webhook requests are rejected in production.
 
 Acceptance:
 
-- Operators and QA can run `npm run smoke:production` against the Vercel URL and get a readable pass/fail report for public readiness and privileged-route protection.
+- Operators and QA can run `npm run smoke:production` against the Vercel URL and get a readable pass/fail report for public readiness, auth boundaries, billing webhook protection, and privileged-route protection.
