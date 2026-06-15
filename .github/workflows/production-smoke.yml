@@ -14,14 +14,17 @@ jobs:
   smoke:
     runs-on: ubuntu-latest
     env:
-      APP_URL: ${{ github.event.inputs.app_url || 'https://tuesday-ops.vercel.app' }}
+      PRODUCTION_SMOKE_URL: ${{ github.event.inputs.app_url || 'https://tuesday-ops.vercel.app' }}
     steps:
-      - name: Check public health endpoint
-        run: |
-          set -euo pipefail
-          payload="$(curl --fail --silent --show-error --max-time 20 "$APP_URL/api/health")"
-          echo "$payload" | jq .
-          test "$(echo "$payload" | jq -r '.ok')" = "true"
-          test "$(echo "$payload" | jq -r '.checks[] | select(.id == "app") | .status')" = "ready"
-          test "$(echo "$payload" | jq -r '.checks[] | select(.id == "supabase") | .status')" = "ready"
-          test "$(echo "$payload" | jq -r '.checks[] | select(.id == "scheduler") | .status')" = "ready"
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run production smoke suite
+        run: npm run smoke:production

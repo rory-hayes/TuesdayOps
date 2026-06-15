@@ -183,12 +183,12 @@ Run this after the Vercel deployment is ready:
 The repository includes:
 
 - `.github/workflows/ci.yml` for lint, typecheck, unit tests, and production build.
-- `.github/workflows/production-smoke.yml` for scheduled/manual checks of `/api/health`.
+- `.github/workflows/production-smoke.yml` for scheduled/manual runs of the shared production smoke suite.
 - `npm run smoke:production` for an operator/QA smoke check against the deployed app URL.
 
-The production smoke command checks public readiness without exposing secrets, confirms temporary Sentry example routes are not exposed in production, verifies authenticated app routes redirect to sign-in, confirms unsigned Stripe webhook requests are rejected, and verifies the scheduler route rejects unauthenticated requests. It targets `https://tuesday-ops.vercel.app` by default; set `PRODUCTION_SMOKE_URL=https://your-deployment.example.com` to test another deployment.
+The production smoke command checks public readiness without exposing secrets, confirms temporary Sentry example routes are not exposed in production, verifies authenticated app routes redirect to sign-in, confirms unsigned Stripe webhook requests are rejected, verifies the scheduler route rejects unauthenticated requests, and confirms required browser security headers are present with framework disclosure disabled. It targets `https://tuesday-ops.vercel.app` by default; set `PRODUCTION_SMOKE_URL=https://your-deployment.example.com` to test another deployment.
 
-The GitHub production smoke workflow intentionally checks only public app/Supabase readiness until scheduler, email, billing, and Sentry provider keys are configured. PostHog keys are optional while analytics is intentionally skipped.
+The GitHub production smoke workflow runs the same shared production smoke command on a schedule and by manual dispatch. PostHog keys are optional while analytics is intentionally skipped.
 
 ## Release Notes
 

@@ -60,4 +60,5 @@ Track meaningful product and engineering changes here.
 - Sanitized customer-facing client, workflow, check, test-pack, issue, report, and alert action failures through shared safe feedback handling.
 - Added synthetic test recovery handling so passing reruns resolve the matching active synthetic issue while failed reruns still dedupe into one reportable issue.
 - Polished generated report PDFs with a client-ready one-page layout, operations scorecard, value-delivered section, next actions, and a report-safe footer.
-- Added a repeatable production smoke checker for `/api/health`, gated Sentry smoke routes, app-route auth redirects, scheduler route protection, and unsigned Stripe webhook rejection.
+- Added a repeatable production smoke checker for `/api/health`, gated Sentry smoke routes, app-route auth redirects, scheduler route protection, unsigned Stripe webhook rejection, and browser security headers.
+- Added global browser security headers and disabled framework disclosure on production responses.

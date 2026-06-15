@@ -30,6 +30,7 @@ describe("runProductionSmoke", () => {
           "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
           "/clients": redirectResponse("/sign-in", 307),
           "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+          "/": secureResponse("redirect", 307, { location: "/sign-in" }),
         },
         requests,
       ),
@@ -44,6 +45,7 @@ describe("runProductionSmoke", () => {
       ["scheduler-protection", "pass"],
       ["app-route-protection", "pass"],
       ["stripe-webhook-protection", "pass"],
+      ["security-headers", "pass"],
     ]);
     expect(requests).toEqual([
       { url: "https://tuesday-ops.vercel.app/api/health", method: "GET" },
@@ -52,6 +54,7 @@ describe("runProductionSmoke", () => {
       { url: "https://tuesday-ops.vercel.app/api/scheduler/run-due-checks", method: "POST" },
       { url: "https://tuesday-ops.vercel.app/clients", method: "GET" },
       { url: "https://tuesday-ops.vercel.app/api/stripe/webhook", method: "POST" },
+      { url: "https://tuesday-ops.vercel.app/", method: "GET" },
     ]);
   });
 
@@ -70,6 +73,7 @@ describe("runProductionSmoke", () => {
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
         "/clients": redirectResponse("/sign-in", 307),
         "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
       }),
     });
 
@@ -96,6 +100,7 @@ describe("runProductionSmoke", () => {
       "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
       "/clients": redirectResponse("/sign-in", 307),
       "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+      "/": secureResponse(),
     });
 
     const first = await runProductionSmoke({ appUrl: "https://tuesday-ops.vercel.app", fetchImpl });
@@ -115,6 +120,7 @@ describe("runProductionSmoke", () => {
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
         "/clients": redirectResponse("/sign-in", 307),
         "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
       }),
     });
 
@@ -149,6 +155,10 @@ describe("runProductionSmoke", () => {
           return jsonResponse({ error: "Missing Stripe signature." }, 400);
         }
 
+        if (path === "/") {
+          return secureResponse();
+        }
+
         return jsonResponse({ error: "Not found." }, 404);
       },
     });
@@ -172,6 +182,7 @@ describe("runProductionSmoke", () => {
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
         "/clients": redirectResponse("/sign-in", 307),
         "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
       }),
     });
 
@@ -196,6 +207,7 @@ describe("runProductionSmoke", () => {
         "/api/scheduler/run-due-checks": jsonResponse({ ok: true, attempted: 1 }, 200),
         "/clients": redirectResponse("/sign-in", 307),
         "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
       }),
     });
 
@@ -216,6 +228,7 @@ describe("runProductionSmoke", () => {
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
         "/clients": textResponse("clients", 200),
         "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
       }),
     });
 
@@ -236,6 +249,7 @@ describe("runProductionSmoke", () => {
         "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
         "/clients": redirectResponse("/sign-in", 307),
         "/api/stripe/webhook": jsonResponse({ received: true }, 200),
+        "/": secureResponse(),
       }),
     });
 
@@ -244,6 +258,30 @@ describe("runProductionSmoke", () => {
       status: "fail",
       detail: "Expected 400, received 200.",
     });
+  });
+
+  it("fails when required browser security headers are missing or framework headers leak", async () => {
+    const result = await runProductionSmoke({
+      appUrl: "https://tuesday-ops.vercel.app",
+      fetchImpl: buildFetch({
+        "/api/health": jsonResponse({ ok: true, status: "ready", launchReady: true, checks: [] }),
+        "/sentry-example-page": textResponse("not found", 404),
+        "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
+        "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": textResponse("ok", 200, { "x-powered-by": "Next.js" }),
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.checks.find((check) => check.id === "security-headers")).toMatchObject({
+      status: "fail",
+      detail: expect.stringContaining("Missing x-content-type-options=nosniff"),
+    });
+    expect(result.checks.find((check) => check.id === "security-headers")?.detail).toContain(
+      "x-powered-by should not be exposed",
+    );
   });
 
   it("rejects malformed or non-http smoke URLs", async () => {
@@ -330,10 +368,22 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function textResponse(body: string, status = 200): Response {
-  return new Response(body, { status });
+function textResponse(body: string, status = 200, headers?: HeadersInit): Response {
+  return new Response(body, { status, headers });
 }
 
 function redirectResponse(location: string, status = 307): Response {
   return new Response("", { status, headers: { location } });
+}
+
+function secureResponse(body = "ok", status = 200, headers?: HeadersInit): Response {
+  return textResponse(body, status, {
+    "content-security-policy": "frame-ancestors 'none'",
+    "permissions-policy": "camera=(), microphone=(), geolocation=()",
+    "referrer-policy": "strict-origin-when-cross-origin",
+    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    ...headers,
+  });
 }

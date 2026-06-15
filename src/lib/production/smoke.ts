@@ -6,7 +6,8 @@ export type ProductionSmokeCheckId =
   | "sentry-example-api"
   | "scheduler-protection"
   | "app-route-protection"
-  | "stripe-webhook-protection";
+  | "stripe-webhook-protection"
+  | "security-headers";
 
 export type ProductionSmokeCheck = {
   id: ProductionSmokeCheckId;
@@ -82,6 +83,7 @@ export async function runProductionSmoke({
       fetchImpl,
     }),
   );
+  checks.push(await checkSecurityHeaders({ appUrl: normalizedAppUrl, fetchImpl }));
 
   return {
     ok: checks.every((check) => check.status === "pass"),
@@ -89,6 +91,46 @@ export async function runProductionSmoke({
     checkedAt: new Date().toISOString(),
     checks,
   };
+}
+
+async function checkSecurityHeaders({
+  appUrl,
+  fetchImpl,
+}: {
+  appUrl: string;
+  fetchImpl: FetchLike;
+}): Promise<ProductionSmokeCheck> {
+  try {
+    const response = await fetchImpl(`${appUrl}/`, {
+      method: "GET",
+      cache: "no-store",
+      redirect: "manual",
+    });
+    const issues = getSecurityHeaderIssues(response.headers);
+
+    if (issues.length > 0) {
+      return {
+        id: "security-headers",
+        label: "Browser security headers",
+        status: "fail",
+        detail: sentenceCase(issues.join("; ")) + ".",
+      };
+    }
+
+    return {
+      id: "security-headers",
+      label: "Browser security headers",
+      status: "pass",
+      detail: "Required security headers are present and framework disclosure is disabled.",
+    };
+  } catch (error) {
+    return {
+      id: "security-headers",
+      label: "Browser security headers",
+      status: "fail",
+      detail: `Request failed: ${formatUnknownError(error)}.`,
+    };
+  }
 }
 
 async function checkAppRouteProtection({
@@ -278,6 +320,48 @@ function isSignInLocation(location: string): boolean {
   } catch {
     return false;
   }
+}
+
+function getSecurityHeaderIssues(headers: Headers): string[] {
+  const issues: string[] = [];
+
+  if (headers.get("x-content-type-options")?.toLowerCase() !== "nosniff") {
+    issues.push("missing x-content-type-options=nosniff");
+  }
+
+  if (headers.get("referrer-policy")?.toLowerCase() !== "strict-origin-when-cross-origin") {
+    issues.push("missing referrer-policy=strict-origin-when-cross-origin");
+  }
+
+  if (headers.get("x-frame-options")?.toUpperCase() !== "DENY") {
+    issues.push("missing x-frame-options=DENY");
+  }
+
+  const csp = headers.get("content-security-policy")?.toLowerCase() ?? "";
+
+  if (!csp.includes("frame-ancestors 'none'")) {
+    issues.push("missing content-security-policy frame-ancestors 'none'");
+  }
+
+  const permissionsPolicy = headers.get("permissions-policy")?.toLowerCase() ?? "";
+
+  for (const permission of ["camera=()", "microphone=()", "geolocation=()"]) {
+    if (!permissionsPolicy.includes(permission)) {
+      issues.push(`missing permissions-policy ${permission}`);
+    }
+  }
+
+  const hsts = headers.get("strict-transport-security")?.toLowerCase() ?? "";
+
+  if (!hsts.includes("max-age=") || !hsts.includes("includesubdomains")) {
+    issues.push("missing strict-transport-security max-age with includeSubDomains");
+  }
+
+  if (headers.has("x-powered-by")) {
+    issues.push("x-powered-by should not be exposed");
+  }
+
+  return issues;
 }
 
 function containsSecretShapedValue(value: string): boolean {

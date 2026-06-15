@@ -545,7 +545,8 @@ Acceptance:
 - [x] Verify the protected scheduler route rejects unauthenticated production requests.
 - [x] Verify authenticated app routes redirect unauthenticated visitors to sign-in.
 - [x] Verify unsigned Stripe webhook requests are rejected in production.
+- [x] Verify browser security headers are present and framework disclosure is disabled.
 
 Acceptance:
 
-- Operators and QA can run `npm run smoke:production` against the Vercel URL and get a readable pass/fail report for public readiness, auth boundaries, billing webhook protection, and privileged-route protection.
+- Operators and QA can run `npm run smoke:production` against the Vercel URL and get a readable pass/fail report for public readiness, auth boundaries, billing webhook protection, privileged-route protection, and browser security headers.

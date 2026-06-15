@@ -185,7 +185,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
 - tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts
 - production deployment checklist, Supabase migration checklist, smoke checklist, Node runtime floor, and clean dependency audit
-- GitHub Actions CI plus a production smoke workflow that checks public app/Supabase health without requiring provider secrets
+- GitHub Actions CI plus a production smoke workflow that checks public app/Supabase health, route protections, billing webhook safety, gated Sentry example routes, and browser security headers without requiring provider secrets
 - overview activation checklist for first client, workflow, check run, and report
 - Stripe Checkout, Customer Portal, webhook route, agency billing state, and plan-limit enforcement
 - service-only audit event foundations for workflow, check, issue, report, and billing lifecycle events

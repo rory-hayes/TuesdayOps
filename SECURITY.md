@@ -116,6 +116,19 @@ Detected: 10:30 AM
 Action: View in TuesdayOps
 ```
 
+## Browser security headers
+
+Production responses set browser security headers globally:
+
+- `Content-Security-Policy: frame-ancestors 'none'`
+- `Permissions-Policy: camera=(), microphone=(), geolocation=()`
+- `Referrer-Policy: strict-origin-when-cross-origin`
+- `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+
+The Next.js `X-Powered-By` header is disabled. `npm run smoke:production` verifies these headers against the deployed app.
+
 ## Audit events
 
 Record key events:
