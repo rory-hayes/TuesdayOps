@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSlug } from "@/lib/domain/slug";
+import { formatAgencyError, formatSignInError, formatSignUpError } from "@/lib/auth/feedback";
 import { createClient } from "@/lib/supabase/server";
 
 const authSchema = z.object({
@@ -31,7 +32,7 @@ export async function signInAction(formData: FormData) {
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
-    redirect(`/sign-in?error=${encodeURIComponent(error.message)}`);
+    redirect(`/sign-in?error=${encodeURIComponent(formatSignInError(error))}`);
   }
 
   redirect("/");
@@ -53,7 +54,7 @@ export async function signUpAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/sign-up?error=${encodeURIComponent(error.message)}`);
+    redirect(`/sign-up?error=${encodeURIComponent(formatSignUpError(error))}`);
   }
 
   redirect("/onboarding");
@@ -89,7 +90,7 @@ export async function createAgencyAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/onboarding?error=${encodeURIComponent(error.message)}`);
+    redirect(`/onboarding?error=${encodeURIComponent(formatAgencyError(error))}`);
   }
 
   redirect("/");

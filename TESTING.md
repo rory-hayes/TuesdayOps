@@ -160,12 +160,13 @@ Current P0/P1/P2 continuation status on 2026-06-15:
 - Added acceptance coverage that synthetic pack runs show a pending `Running...` state before completion feedback.
 - Added acceptance coverage that onboarding workspace creation shows a pending `Creating...` state before redirecting.
 - Added unit coverage for billing error formatting so customer-facing Settings redirects do not expose Stripe env var names, emails, or tokens.
+- Added unit coverage for auth and onboarding error formatting so customer-facing redirects do not expose provider/database internals.
 - Added acceptance coverage that Overview surfaces operations-readiness signals alongside drilldowns.
 - Playwright runs E2E serially by default to avoid shared remote-Supabase contention; set `PLAYWRIGHT_WORKERS` to opt into parallel local runs.
 - Verification passed:
   - `npm run lint`
   - `npm run typecheck`
-  - `npm run test:coverage` (`36 passed`, `203 passed`; branch coverage `95.05%`)
+  - `npm run test:coverage` (`37 passed`, `206 passed`; branch coverage `95.05%`)
   - `npm run build`
   - `npm run e2e` (`8 passed`)
   - `npm audit --audit-level=moderate`
