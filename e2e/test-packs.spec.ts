@@ -8,7 +8,7 @@ const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
 };
 
-test("synthetic test pack run stores a failed result and creates an issue", async ({
+test("synthetic test pack run stores failures and resolves recovered issues", async ({
   page,
   baseURL,
 }, testInfo) => {
@@ -156,16 +156,64 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
   expect(issue.occurrence_count).toBe(1);
   expect(issue.title).toContain(workflowName);
 
+  await updateRows(
+    "test_cases",
+    `id=eq.${testCase.id}`,
+    {
+      assertions_json: [
+        { type: "status_code", expected: 404 },
+        { type: "latency_under", maxMs: 5000 },
+      ],
+    },
+  );
+
+  await page.goto("/checks", { waitUntil: "domcontentloaded" });
+  await page
+    .locator("form")
+    .filter({ has: page.getByRole("button", { name: "Run pack" }) })
+    .getByRole("button", { name: "Run pack" })
+    .click();
+  await expect(page.getByText("Test pack run completed.")).toBeVisible();
+
+  const recoveredRun = await poll(async () => {
+    const rows = await getRows<TestRunRow>(
+      "test_runs",
+      `test_pack_id=eq.${pack.id}&select=id,status,status_code,error_message,created_at&order=created_at.desc`,
+    );
+    const latest = rows[0] ?? null;
+    return latest && latest.id !== testRun.id ? latest : null;
+  }, "passing synthetic test run");
+  expect(recoveredRun.status).toBe("passed");
+  expect(recoveredRun.status_code).toBe(404);
+  expect(recoveredRun.error_message).toBeNull();
+
+  const resolvedIssue = await poll(async () => {
+    const rows = await getRows<IssueRow>(
+      "issues",
+      `id=eq.${issue.id}&select=id,status,severity,title,test_run_id,occurrence_count,resolution_note,resolved_at`,
+    );
+    return rows[0]?.status === "resolved" ? rows[0] : null;
+  }, "resolved synthetic issue");
+  expect(resolvedIssue.test_run_id).toBe(recoveredRun.id);
+  expect(resolvedIssue.resolution_note).toBe("Synthetic test passed on rerun.");
+  expect(resolvedIssue.resolved_at).toBeTruthy();
+
   await page.goto("/checks", { waitUntil: "domcontentloaded" });
   await expect(page.getByText(caseName).first()).toBeVisible();
-  await expect(page.getByText("failed").first()).toBeVisible();
+  await expect(page.getByText("passed").first()).toBeVisible();
   await testInfo.attach("test-pack-checks", {
     body: await page.screenshot({ fullPage: false }),
     contentType: "image/png",
   });
 
   await page.goto("/issues", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText(issue.title)).toBeVisible();
+  const resolvedIssueCard = page.locator("article").filter({
+    has: page.getByRole("link", { name: issue.title }),
+  });
+  await expect(resolvedIssueCard.getByText("resolved")).toBeVisible();
+
+  await page.goto("/issues?status=open", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("link", { name: issue.title })).not.toBeVisible();
 });
 
 type TestPackRow = {
@@ -196,6 +244,8 @@ type IssueRow = {
   title: string;
   test_run_id: string;
   occurrence_count: number;
+  resolution_note?: string | null;
+  resolved_at?: string | null;
 };
 
 async function createConfirmedUser({ email, password }: { email: string; password: string }) {
@@ -215,6 +265,17 @@ async function getRows<T>(table: string, query: string): Promise<T[]> {
   return supabaseFetch(`/rest/v1/${table}?${query}`, {
     headers: { accept: "application/json" },
   }) as Promise<T[]>;
+}
+
+async function updateRows(table: string, query: string, payload: Record<string, unknown>) {
+  await supabaseFetch(`/rest/v1/${table}?${query}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json",
+      prefer: "return=minimal",
+    },
+    body: JSON.stringify(payload),
+  });
 }
 
 async function supabaseFetch(path: string, options: RequestInit = {}) {

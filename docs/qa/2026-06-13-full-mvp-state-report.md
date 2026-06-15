@@ -272,7 +272,7 @@ Current limitation: live Stripe payment collection is not verified until product
 - Sentry SDK error tracking is implemented; PostHog analytics is intentionally skipped for now.
 - Report PDFs are functional but visually minimal.
 - There is no public client portal or public report URL.
-- Synthetic test packs do not auto-resolve previous synthetic issues after a later pass.
+- Update on 2026-06-15: synthetic test packs now auto-resolve the active synthetic issue for the same test case after a later passing run.
 
 ## QA Recommendations
 

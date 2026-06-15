@@ -514,3 +514,15 @@ Acceptance:
 Acceptance:
 
 - Playwright coverage exercises the core MVP loop and verifies critical navigation/feedback paths
+
+## Milestone 16 — P0/P1/P2 Continuation
+
+### T16.1 Synthetic issue recovery
+
+- [x] Resolve the active synthetic issue for a test case when a later synthetic run passes.
+- [x] Keep failed synthetic runs creating or updating one active reportable issue per test case fingerprint.
+- [x] Add unit coverage for synthetic issue create, repeat-failure update, recovery, and skipped-run no-op behavior.
+
+Acceptance:
+
+- A passing synthetic run clears the matching active issue from the maintenance queue without hiding it from reports.
