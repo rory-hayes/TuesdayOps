@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AuthLayout } from "@/components/auth/auth-layout";
-import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { signInAction } from "@/lib/auth/actions";
 
 type AuthPageProps = {
@@ -25,9 +25,9 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
       <form action={signInAction} className="grid gap-6">
         <Field label="Email" name="email" type="email" autoComplete="email" />
         <Field label="Password" name="password" type="password" autoComplete="current-password" />
-        <Button type="submit" className="w-full">
+        <FormSubmitButton type="submit" className="w-full" pendingLabel="Signing in...">
           Sign in
-        </Button>
+        </FormSubmitButton>
       </form>
 
       <p className="text-sm/6 text-zinc-500">

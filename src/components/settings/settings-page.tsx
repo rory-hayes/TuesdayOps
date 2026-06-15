@@ -2,8 +2,8 @@ import { CreditCard, FileText, PlugZap, ShieldCheck } from "lucide-react";
 import { createCheckoutSessionAction, createCustomerPortalSessionAction } from "@/lib/billing/service";
 import { formatLimit, getPlanLimits } from "@/lib/billing/limits";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
@@ -77,16 +77,22 @@ export function SettingsPage({
             </div>
             <div className="flex flex-wrap gap-2">
               <form action={createCheckoutSessionAction}>
-                <Button type="submit" size="sm">
+                <FormSubmitButton type="submit" size="sm" pendingLabel="Opening...">
                   <CreditCard size={15} aria-hidden="true" />
                   Upgrade
-                </Button>
+                </FormSubmitButton>
               </form>
               <form action={createCustomerPortalSessionAction}>
-                <Button type="submit" variant="secondary" size="sm" disabled={!workspace.agency.billingCustomerId}>
+                <FormSubmitButton
+                  type="submit"
+                  variant="secondary"
+                  size="sm"
+                  pendingLabel="Opening..."
+                  disabled={!workspace.agency.billingCustomerId}
+                >
                   <CreditCard size={15} aria-hidden="true" />
                   Manage billing
-                </Button>
+                </FormSubmitButton>
               </form>
             </div>
             {!workspace.agency.billingCustomerId ? (

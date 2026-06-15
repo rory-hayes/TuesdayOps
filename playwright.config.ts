@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const workerCount = Number(process.env.PLAYWRIGHT_WORKERS ?? 1);
+const safeWorkerCount = Number.isFinite(workerCount) && workerCount > 0 ? workerCount : 1;
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 90_000,
@@ -11,7 +14,7 @@ export default defineConfig({
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
-  workers: 3,
+  workers: safeWorkerCount,
   projects: [
     {
       name: "chromium",

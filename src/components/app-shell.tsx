@@ -12,7 +12,7 @@ import {
 } from "@heroicons/react/20/solid";
 import { BrandLogo } from "@/components/brand-logo";
 import { NewClientDialog } from "@/components/clients/new-client-dialog";
-import { Button } from "@/components/ui/button";
+import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { signOutAction } from "@/lib/auth/actions";
 import { createClientAction } from "@/lib/clients/service";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
@@ -88,10 +88,16 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
               </div>
             </div>
             <form action={signOutAction} className="mt-1">
-              <Button variant="ghost" size="sm" className="w-full justify-start" type="submit">
+              <FormSubmitButton
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                type="submit"
+                pendingLabel="Signing out..."
+              >
                 <ArrowRightStartOnRectangleIcon aria-hidden="true" />
                 Sign out
-              </Button>
+              </FormSubmitButton>
             </form>
           </div>
         </div>
@@ -102,10 +108,10 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
           <div className="flex items-center justify-between gap-4">
             <BrandLogo />
             <form action={signOutAction}>
-              <Button variant="ghost" size="sm" type="submit">
+              <FormSubmitButton variant="ghost" size="sm" type="submit" pendingLabel="Signing out...">
                 <ArrowRightStartOnRectangleIcon aria-hidden="true" />
                 Sign out
-              </Button>
+              </FormSubmitButton>
             </form>
           </div>
           <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
