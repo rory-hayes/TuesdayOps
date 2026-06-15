@@ -375,7 +375,7 @@ Sends report to configured recipient.
 
 Current server action equivalent: `sendReportAction(reportId)`.
 
-The send action requires report readiness to be `ready` or `review`, ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error` and mark the report `failed` without exposing raw report data or secrets.
+The send action requires report readiness to be `ready` or `review`, ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error`, mark the report `failed`, and redirect back to the report detail with a visible error instead of a success-style notice. Error copy is sanitized before it is shown or stored.
 
 ## Onboarding and sample data
 

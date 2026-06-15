@@ -13,6 +13,7 @@ import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
 import { buildReportEmail, renderReportPdfBytes } from "@/lib/reports/pdf";
 import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
+import { buildReportSendRedirect } from "@/lib/reports/send-feedback";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -146,6 +147,8 @@ export async function sendReportAction(formData: FormData) {
   const workspace = await requireWorkspace();
   const supabase = await createClient();
   const admin = createAdminClient();
+  let sendStatus: "sent" | "failed" = "sent";
+  let sendMessage: string | undefined;
 
   try {
     assertReportCanBeExported(buildReportQuality({
@@ -203,6 +206,9 @@ export async function sendReportAction(formData: FormData) {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Report email could not be sent.";
+    const safeMessage = sanitizeReportError(message);
+    sendStatus = "failed";
+    sendMessage = safeMessage;
     await recordReportSendFailure({
       supabase,
       agencyId: workspace.agency.id,
@@ -214,13 +220,17 @@ export async function sendReportAction(formData: FormData) {
       actorUserId: workspace.user.id,
       action: "report.send_attempted",
       reportId: parsed.data.reportId,
-      metadata: { status: "failed", error: sanitizeReportError(message) },
+      metadata: { status: "failed", error: safeMessage },
     });
   }
 
   revalidatePath("/reports");
   revalidatePath(`/reports/${parsed.data.reportId}`);
-  redirect(`/reports/${parsed.data.reportId}?notice=${encodeURIComponent("Report email attempt recorded.")}`);
+  redirect(buildReportSendRedirect({
+    reportId: parsed.data.reportId,
+    status: sendStatus,
+    message: sendMessage,
+  }));
 }
 
 async function saveReportDraft({

@@ -48,3 +48,4 @@ Track meaningful product and engineering changes here.
 - Made PostHog analytics optional in production readiness while keeping Sentry error tracking launch-blocking.
 - Blocked report PDF export, direct PDF download, and report send actions when report readiness is blocked.
 - Added a shared tenant-scoped mutation guard so client, workflow, and issue actions return clear errors instead of false success when no row is updated.
+- Improved report-send feedback so failed Resend delivery/configuration attempts show a visible error while successful sends show a success notice.

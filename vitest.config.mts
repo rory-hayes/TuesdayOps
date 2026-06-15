@@ -34,6 +34,7 @@ export default defineConfig({
         "src/lib/reports/aggregation.ts",
         "src/lib/reports/pdf.ts",
         "src/lib/reports/quality.ts",
+        "src/lib/reports/send-feedback.ts",
         "src/lib/sample-data/seed.ts",
         "src/lib/security/endpoint-url.ts",
         "src/lib/security/rate-limit.ts",
