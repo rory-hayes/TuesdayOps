@@ -8,6 +8,8 @@ All API routes require an authenticated user unless explicitly public.
 
 Tenant access is based on agency membership.
 
+Tenant-scoped mutation actions must confirm that the target row was actually updated before returning success. If a client, workflow, or issue update matches no row in the current agency, the action returns a not-found/not-accessible error and does not record audit activity.
+
 ## Public health
 
 ### `GET /api/health`

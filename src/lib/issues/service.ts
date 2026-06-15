@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
+import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,14 +27,19 @@ export async function assignIssueToMeAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const { error } = await supabase
+  const updateResult = await supabase
     .from("issues")
     .update({ owner_user_id: workspace.user.id, status: "in_review" })
     .eq("agency_id", workspace.agency.id)
-    .eq("id", parsed.data.issueId);
+    .eq("id", parsed.data.issueId)
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    redirect(`/issues?error=${encodeURIComponent(error.message)}`);
+  try {
+    assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Issue could not be assigned.";
+    redirect(buildIssueErrorRedirect("/issues", message));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -57,7 +63,7 @@ export async function resolveIssueAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const { error } = await supabase
+  const updateResult = await supabase
     .from("issues")
     .update({
       status: "resolved",
@@ -65,10 +71,15 @@ export async function resolveIssueAction(formData: FormData) {
       resolution_note: parsed.data.resolutionNote,
     })
     .eq("agency_id", workspace.agency.id)
-    .eq("id", parsed.data.issueId);
+    .eq("id", parsed.data.issueId)
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    redirect(`/issues?error=${encodeURIComponent(error.message)}`);
+  try {
+    assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Issue could not be resolved.";
+    redirect(buildIssueErrorRedirect("/issues", message));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -92,7 +103,7 @@ export async function ignoreIssueAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const { error } = await supabase
+  const updateResult = await supabase
     .from("issues")
     .update({
       status: "ignored",
@@ -101,10 +112,15 @@ export async function ignoreIssueAction(formData: FormData) {
       resolution_note: "Ignored for reporting.",
     })
     .eq("agency_id", workspace.agency.id)
-    .eq("id", parsed.data.issueId);
+    .eq("id", parsed.data.issueId)
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    redirect(`/issues?error=${encodeURIComponent(error.message)}`);
+  try {
+    assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Issue could not be ignored.";
+    redirect(buildIssueErrorRedirect("/issues", message));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -126,6 +142,11 @@ function buildIssueRedirect(returnTo: string | undefined, fallback: string, noti
 
   const separator = fallback.includes("?") ? "&" : "?";
   return `${fallback}${separator}notice=${encodeURIComponent(notice)}`;
+}
+
+function buildIssueErrorRedirect(fallback: string, message: string) {
+  const separator = fallback.includes("?") ? "&" : "?";
+  return `${fallback}${separator}error=${encodeURIComponent(message)}`;
 }
 
 async function recordIssueAuditEvent({

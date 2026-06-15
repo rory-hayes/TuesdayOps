@@ -38,6 +38,7 @@ export default defineConfig({
         "src/lib/security/endpoint-url.ts",
         "src/lib/security/rate-limit.ts",
         "src/lib/security/secrets.ts",
+        "src/lib/server-actions/mutation-result.ts",
         "src/lib/test-packs/runner.ts",
         "src/lib/utils.ts",
         "src/lib/workflows/onboarding.ts",

@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { canCreateClient } from "@/lib/billing/limits";
 import { createSlug } from "@/lib/domain/slug";
+import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createClient } from "@/lib/supabase/server";
 
 const clientFormSchema = z.object({
@@ -82,7 +83,7 @@ export async function updateClientAction(formData: FormData) {
   const workspace = await requireWorkspace();
   const supabase = await createClient();
   const slug = createSlug(parsed.data.slug || parsed.data.name, "client");
-  const { error } = await supabase
+  const updateResult = await supabase
     .from("clients")
     .update({
       name: parsed.data.name,
@@ -92,10 +93,15 @@ export async function updateClientAction(formData: FormData) {
       notes: parsed.data.notes ?? "",
     })
     .eq("agency_id", workspace.agency.id)
-    .eq("id", parsed.data.id);
+    .eq("id", parsed.data.id)
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    redirect(`/clients?error=${encodeURIComponent(error.message)}`);
+  try {
+    assertMutationTouchedRow(updateResult, "Client was not found or is not accessible.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Client could not be saved.";
+    redirect(`/clients?error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/clients");
@@ -112,14 +118,19 @@ export async function archiveClientAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const { error } = await supabase
+  const archiveResult = await supabase
     .from("clients")
     .update({ archived_at: new Date().toISOString() })
     .eq("agency_id", workspace.agency.id)
-    .eq("id", parsed.data.id);
+    .eq("id", parsed.data.id)
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    redirect(`/clients?error=${encodeURIComponent(error.message)}`);
+  try {
+    assertMutationTouchedRow(archiveResult, "Client was not found or is not accessible.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Client could not be archived.";
+    redirect(`/clients?error=${encodeURIComponent(message)}`);
   }
 
   revalidatePath("/clients");

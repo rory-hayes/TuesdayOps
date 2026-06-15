@@ -154,10 +154,11 @@ Current P0/P1/P2 continuation status on 2026-06-15:
 - Added readiness coverage for the skipped-PostHog path.
 - Hardened Playwright client-creation selectors to scope inputs to the active New Client dialog after full e2e found an ambiguity with inline client edit fields.
 - Added server-side and UI safeguards so blocked reports cannot be exported, directly downloaded, or sent until readiness blockers are resolved.
+- Added unit coverage and server-action hardening so client, workflow, and issue mutations fail clearly when tenant-scoped updates touch no row.
 - Verification passed:
   - `npm run lint`
   - `npm run typecheck`
-  - `npm run test:coverage` (`34 passed`, `192 passed`; branch coverage `95.39%`)
+  - `npm run test:coverage` (`35 passed`, `198 passed`; branch coverage `95.09%`)
   - `npm run build`
   - `npm run e2e` (`8 passed`)
   - `npm audit --audit-level=moderate`

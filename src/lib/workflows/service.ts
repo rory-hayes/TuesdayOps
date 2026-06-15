@@ -10,6 +10,7 @@ import { canCreateWorkflow } from "@/lib/billing/limits";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import type { WorkflowAuthConfig } from "@/lib/checks/runner";
 import type { Workflow } from "@/lib/domain/types";
+import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import {
   assertSafeWorkflowEndpoint,
   shouldAllowPrivateWorkflowEndpoints,
@@ -201,7 +202,7 @@ export async function updateWorkflowAction(formData: FormData) {
     redirect(`/workflows/${parsed.data.id}?error=${encodeURIComponent(message)}`);
   }
 
-  const { error } = await supabase
+  const updateResult = await supabase
     .from("workflows")
     .update({
       name: parsed.data.name,
@@ -213,10 +214,15 @@ export async function updateWorkflowAction(formData: FormData) {
       included_in_reports: parsed.data.includedInReports === "on",
     })
     .eq("agency_id", workspace.agency.id)
-    .eq("id", parsed.data.id);
+    .eq("id", parsed.data.id)
+    .select("id")
+    .maybeSingle();
 
-  if (error) {
-    redirect(`/workflows/${parsed.data.id}?error=${encodeURIComponent(error.message)}`);
+  try {
+    assertMutationTouchedRow(updateResult, "Workflow was not found or is not accessible.");
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Workflow could not be saved.";
+    redirect(`/workflows?error=${encodeURIComponent(message)}`);
   }
   await recordWorkflowAuditEvent({
     workspace,
