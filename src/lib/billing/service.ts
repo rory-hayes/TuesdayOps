@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireWorkspace } from "@/lib/auth/workspace";
+import { formatBillingError } from "@/lib/billing/feedback";
 import { getAppUrl, getStripePriceId } from "@/lib/env";
 import { getStripeClient } from "@/lib/billing/stripe";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +23,7 @@ export async function createCheckoutSessionAction() {
     priceId = getStripePriceId();
     appUrl = getAppUrl();
   } catch (error) {
-    redirect(`/settings?billing_error=${encodeURIComponent(error instanceof Error ? error.message : "Billing is not configured.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error))}`);
   }
 
   const supabase = await createClient();
@@ -101,7 +102,7 @@ export async function createCustomerPortalSessionAction() {
     stripe = getStripeClient();
     appUrl = getAppUrl();
   } catch (error) {
-    redirect(`/settings?billing_error=${encodeURIComponent(error instanceof Error ? error.message : "Billing is not configured.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error))}`);
   }
 
   let portalUrl: string | null = null;
@@ -122,14 +123,4 @@ export async function createCustomerPortalSessionAction() {
   }
 
   redirect(portalUrl);
-}
-
-function formatBillingError(error: unknown, fallback: string): string {
-  const message = error instanceof Error ? error.message : fallback;
-
-  if (message.length <= 240) {
-    return message;
-  }
-
-  return `${message.slice(0, 237)}...`;
 }

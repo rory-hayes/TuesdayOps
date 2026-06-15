@@ -407,6 +407,7 @@ The action:
 - creates a Checkout Session with `mode = subscription`
 - uses `STRIPE_PRICE_ID`
 - redirects to Stripe's hosted Checkout URL
+- redirects back to Settings with sanitized billing errors if provider setup or Checkout fails
 
 If Stripe env vars are missing, the action redirects back to Settings with a clear billing error.
 
@@ -420,6 +421,7 @@ The action:
 - requires an existing `billing_customer_id`
 - creates a short-lived Stripe customer portal session
 - redirects to Stripe's hosted portal URL
+- redirects back to Settings with sanitized billing errors if provider setup or Portal creation fails
 
 ### `POST /api/stripe/webhook`
 

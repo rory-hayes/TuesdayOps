@@ -16,6 +16,7 @@ export default defineConfig({
         "src/lib/alerts/issue-alerts.ts",
         "src/lib/alerts/service.ts",
         "src/lib/audit/events.ts",
+        "src/lib/billing/feedback.ts",
         "src/lib/billing/limits.ts",
         "src/lib/billing/webhook.ts",
         "src/lib/checks/assertions.ts",

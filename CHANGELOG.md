@@ -51,3 +51,4 @@ Track meaningful product and engineering changes here.
 - Improved report-send feedback so failed Resend delivery/configuration attempts show a visible error while successful sends show a success notice.
 - Added visible Checks-page success feedback for test pack creation, test case creation, and test pack runs.
 - Removed the dormant sample-data seeding server action and updated onboarding copy to require a first real report.
+- Sanitized customer-facing billing errors so missing Stripe setup and provider failures do not expose env vars, emails, or tokens.
