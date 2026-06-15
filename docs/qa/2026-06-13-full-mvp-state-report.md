@@ -270,9 +270,10 @@ Current limitation: live Stripe payment collection is not verified until product
 - Scheduled checks depend on Supabase Cron/Vault calling the protected scheduler route with `SCHEDULER_SECRET`.
 - Stripe live checkout depends on `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, Dashboard Customer Portal config, and webhook setup.
 - Sentry SDK error tracking is implemented; PostHog analytics is intentionally skipped for now.
-- Report PDFs are functional but visually minimal.
+- Report PDFs now use a structured one-page client-ready layout; deeper multi-page brand templates remain a later design-partner polish item.
 - There is no public client portal or public report URL.
 - Update on 2026-06-15: synthetic test packs now auto-resolve the active synthetic issue for the same test case after a later passing run.
+- Update on 2026-06-15: generated report PDFs now include cover metadata, an operations scorecard, value delivered, report sections, next actions, and a client-safe footer.
 
 ## QA Recommendations
 
@@ -308,7 +309,7 @@ Before design-partner use, QA should run:
    - report metric reconciliation checklist
 
 3. Design-partner polish:
-   - branded report PDF layout
+   - deeper multi-page branded report templates
    - report scheduling
    - Slack alert option
    - workflow templates for n8n, Make, Zapier, Supabase Edge Functions, and MCP servers

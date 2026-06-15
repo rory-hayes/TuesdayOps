@@ -526,3 +526,13 @@ Acceptance:
 Acceptance:
 
 - A passing synthetic run clears the matching active issue from the maintenance queue without hiding it from reports.
+
+### T16.2 Client-ready report PDF polish
+
+- [x] Replace the minimal report PDF text stream with a structured one-page client report layout.
+- [x] Add cover metadata, executive summary, operations scorecard, value-delivered section, report sections, next actions, and a client-safe footer.
+- [x] Keep report text redaction and add unit coverage for the client-ready PDF artifact.
+
+Acceptance:
+
+- Generated PDFs remain downloadable and report-safe while presenting the monthly proof-of-work report in a clearer client-ready structure.

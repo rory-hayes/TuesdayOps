@@ -42,6 +42,21 @@ describe("report PDF helpers", () => {
     expect(text).not.toContain("token=secret");
   });
 
+  it("renders a client-ready report layout with scorecard and value sections", () => {
+    const bytes = renderReportPdfBytes(draft);
+    const text = bytes.toString("latin1");
+
+    expect(text).toContain("TuesdayOps maintenance report");
+    expect(text).toContain("Prepared for Client One");
+    expect(text).toContain("Report period: June 2026");
+    expect(text).toContain("Executive summary");
+    expect(text).toContain("Operations scorecard");
+    expect(text).toContain("Value delivered");
+    expect(text).toContain("Next actions");
+    expect(text).toContain("1 issue resolved before the next client report");
+    expect(text).toContain("/BaseFont /Helvetica-Bold");
+  });
+
   it("builds a client-safe report email with a download link", () => {
     expect(
       buildReportEmail({
@@ -90,5 +105,24 @@ describe("report PDF helpers", () => {
 
     expect(text).toContain("Client \\(One\\) \\\\ Support June 2026 Report");
     expect(text).toContain(`${"A".repeat(88)}) Tj T*`);
+  });
+
+  it("keeps PDFs valid when optional report copy is blank", () => {
+    const bytes = renderReportPdfBytes({
+      ...draft,
+      items: [
+        {
+          category: "qa_checks",
+          title: "QA checks run",
+          body: "",
+          sortOrder: 40,
+        },
+      ],
+    });
+    const text = bytes.toString("latin1");
+
+    expect(text.startsWith("%PDF-1.4")).toBe(true);
+    expect(text).toContain("QA checks run");
+    expect(text).toContain("() Tj T*");
   });
 });

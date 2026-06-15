@@ -164,12 +164,13 @@ Current P0/P1/P2 continuation status on 2026-06-15:
 - Added unit coverage and shared safe feedback handling so client, workflow, check, test-pack, issue, report, and alert action failures do not expose provider/database internals.
 - Added unit coverage for synthetic issue recovery so passing reruns resolve the matching active synthetic issue, skipped runs do not resolve, and failed reruns still dedupe.
 - Extended test-pack acceptance coverage so a failed synthetic issue is resolved after a later passing rerun and is hidden by the open-issues filter.
+- Added unit coverage that generated PDFs include a client-ready cover, executive summary, operations scorecard, value-delivered section, next actions, and bold layout resource.
 - Added acceptance coverage that Overview surfaces operations-readiness signals alongside drilldowns.
 - Playwright runs E2E serially by default to avoid shared remote-Supabase contention; set `PLAYWRIGHT_WORKERS` to opt into parallel local runs.
 - Verification passed:
   - `npm run lint`
   - `npm run typecheck`
-  - `npm run test:coverage` (`39 passed`, `213 passed`; branch coverage `95.03%`)
+  - `npm run test:coverage` (`39 passed`, `215 passed`; branch coverage `95.06%`)
   - `npm run build`
   - `npm run e2e` (`8 passed`)
   - `npm audit --audit-level=moderate`
