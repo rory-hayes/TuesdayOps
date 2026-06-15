@@ -153,6 +153,7 @@ Current P0/P1/P2 continuation status on 2026-06-15:
 - PostHog analytics is intentionally skipped for now and no longer blocks `/api/health` launch readiness; Sentry remains required for observability readiness.
 - Added readiness coverage for the skipped-PostHog path.
 - Hardened Playwright client-creation selectors to scope inputs to the active New Client dialog after full e2e found an ambiguity with inline client edit fields.
+- Added server-side and UI safeguards so blocked reports cannot be exported, directly downloaded, or sent until readiness blockers are resolved.
 - Verification passed:
   - `npm run lint`
   - `npm run typecheck`

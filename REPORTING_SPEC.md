@@ -140,6 +140,8 @@ MVP should support:
 - download PDF
 - send PDF by email
 
+Reports with blocked readiness remain previewable but cannot be exported, downloaded, or sent until readiness blockers are resolved. Reports in review can still be exported after the operator reviews the warnings.
+
 ## White-label settings
 
 Agency can configure:

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getWorkspaceContext } from "@/lib/auth/workspace";
+import { getOperationalData } from "@/lib/data/operational-data";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { GET } from "./route";
@@ -16,11 +17,17 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(),
 }));
 
+vi.mock("@/lib/data/operational-data", () => ({
+  getOperationalData: vi.fn(),
+}));
+
 describe("report PDF download route", () => {
   beforeEach(() => {
     vi.mocked(getWorkspaceContext).mockReset();
+    vi.mocked(getOperationalData).mockReset();
     vi.mocked(createClient).mockReset();
     vi.mocked(createAdminClient).mockReset();
+    vi.mocked(getOperationalData).mockResolvedValue(buildReportData({ checksRun: 3 }) as never);
   });
 
   it("requires an authenticated workspace", async () => {
@@ -68,6 +75,24 @@ describe("report PDF download route", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({ error: "Report PDF could not be downloaded." });
+  });
+
+  it("blocks direct downloads when report readiness is blocked", async () => {
+    vi.mocked(getWorkspaceContext).mockResolvedValue({
+      workspace: { agency: { id: "agency-1" } },
+    } as never);
+    vi.mocked(getOperationalData).mockResolvedValue(buildReportData({ checksRun: 0 }) as never);
+    vi.mocked(createClient).mockResolvedValue(createReportClient());
+
+    const response = await GET(new Request("https://app.example.com/api/reports/report-1/download"), {
+      params: Promise.resolve({ reportId: "report-1" }),
+    });
+
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({
+      error: "Report is blocked: Report has no check runs for this period.",
+    });
+    expect(createAdminClient).not.toHaveBeenCalled();
   });
 
   it("downloads report PDFs with no-store cache headers", async () => {
@@ -121,6 +146,26 @@ function createReportClient({
       };
     },
   } as never;
+}
+
+function buildReportData({ checksRun }: { checksRun: number }) {
+  return {
+    reports: [
+      {
+        id: "report-1",
+        clientId: "client-1",
+        workflowsMonitored: 1,
+        checksRun,
+        recommendations: ["Keep monitoring cadence."],
+      },
+    ],
+    reportItems: [
+      {
+        reportId: "report-1",
+      },
+    ],
+    issues: [],
+  };
 }
 
 function createStorageClient({

@@ -64,6 +64,16 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
     return rows[0] ?? null;
   }, "created client");
 
+  await page.goto("/reports", { waitUntil: "domcontentloaded" });
+  const blockedReportForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Generate" }) });
+  await blockedReportForm.getByLabel("Client").selectOption({ label: clientName });
+  await blockedReportForm.getByLabel("Period").fill("2026-05");
+  await blockedReportForm.getByRole("button", { name: "Generate" }).click();
+  await expect(page.getByText(`${clientName} May 2026`)).toBeVisible();
+  await expect(page.getByText("Resolve blocked readiness items before exporting or sending this report.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "PDF" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Send" })).toBeDisabled();
+
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Add workflow" }).click();
   await expect(page.getByRole("heading", { name: "Add workflow" })).toBeVisible();

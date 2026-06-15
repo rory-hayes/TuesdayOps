@@ -92,6 +92,15 @@ export function buildReportQuality({
   };
 }
 
+export function assertReportCanBeExported(quality: ReportQuality): void {
+  if (quality.status !== "blocked") {
+    return;
+  }
+
+  const reason = quality.blockers[0] ?? "Resolve blocked report readiness items before export or send.";
+  throw new Error(`Report is blocked: ${reason}`);
+}
+
 function countOpenHighRiskIssues(data: TuesdayOpsSeedData, report: ReportSummary): number {
   return data.issues.filter(
     (issue) =>

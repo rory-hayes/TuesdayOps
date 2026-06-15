@@ -12,6 +12,7 @@ import type { ReportDraft, ReportItemCategory } from "@/lib/domain/types";
 import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
 import { buildReportEmail, renderReportPdfBytes } from "@/lib/reports/pdf";
+import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -108,6 +109,10 @@ export async function generateReportPdfAction(formData: FormData) {
   const admin = createAdminClient();
 
   try {
+    assertReportCanBeExported(buildReportQuality({
+      data: await getOperationalData(workspace.agency),
+      reportId: parsed.data.reportId,
+    }));
     await generateAndStoreReportPdf({
       supabase,
       admin,
@@ -143,6 +148,10 @@ export async function sendReportAction(formData: FormData) {
   const admin = createAdminClient();
 
   try {
+    assertReportCanBeExported(buildReportQuality({
+      data: await getOperationalData(workspace.agency),
+      reportId: parsed.data.reportId,
+    }));
     const draft = await generateAndStoreReportPdf({
       supabase,
       admin,

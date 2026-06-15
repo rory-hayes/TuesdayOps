@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getWorkspaceContext } from "@/lib/auth/workspace";
+import { getOperationalData } from "@/lib/data/operational-data";
+import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -27,6 +29,18 @@ export async function GET(_request: Request, { params }: ReportDownloadRouteProp
 
   if (error || !report?.pdf_storage_path) {
     return NextResponse.json({ error: "Report PDF could not be found." }, { status: 404 });
+  }
+
+  try {
+    assertReportCanBeExported(buildReportQuality({
+      data: await getOperationalData(workspace.agency),
+      reportId,
+    }));
+  } catch (qualityError) {
+    const message = qualityError instanceof Error
+      ? qualityError.message
+      : "Report is blocked until readiness issues are resolved.";
+    return NextResponse.json({ error: message }, { status: 409 });
   }
 
   const admin = createAdminClient();

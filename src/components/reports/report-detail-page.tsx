@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Download, FileText, Send } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
@@ -30,6 +31,7 @@ export function ReportDetailPage({
     .filter((item) => item.reportId === report.id)
     .sort((left, right) => left.sortOrder - right.sortOrder);
   const reportQuality = buildReportQuality({ data, reportId: report.id });
+  const reportBlocked = reportQuality.status === "blocked";
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
@@ -53,7 +55,12 @@ export function ReportDetailPage({
           </p>
         </div>
         <div className="flex gap-2">
-          {report.pdfUrl ? (
+          {reportBlocked ? (
+            <Button variant="secondary" size="sm" disabled>
+              <Download size={15} aria-hidden="true" />
+              PDF
+            </Button>
+          ) : report.pdfUrl ? (
             <a
               href={report.pdfUrl}
               download
@@ -67,7 +74,13 @@ export function ReportDetailPage({
           ) : (
             <form action={generateReportPdfAction}>
               <input type="hidden" name="reportId" value={report.id} />
-              <FormSubmitButton variant="secondary" size="sm" type="submit" pendingLabel="Preparing...">
+              <FormSubmitButton
+                variant="secondary"
+                size="sm"
+                type="submit"
+                pendingLabel="Preparing..."
+                disabled={reportBlocked}
+              >
                 <Download size={15} aria-hidden="true" />
                 PDF
               </FormSubmitButton>
@@ -75,7 +88,7 @@ export function ReportDetailPage({
           )}
           <form action={sendReportAction}>
             <input type="hidden" name="reportId" value={report.id} />
-            <FormSubmitButton size="sm" type="submit" pendingLabel="Sending...">
+            <FormSubmitButton size="sm" type="submit" pendingLabel="Sending..." disabled={reportBlocked}>
               <Send size={15} aria-hidden="true" />
               Send
             </FormSubmitButton>
@@ -169,6 +182,11 @@ export function ReportDetailPage({
                   <p className="mt-2 text-xs leading-5 text-muted-foreground">{check.detail}</p>
                 </div>
               ))}
+              {reportBlocked ? (
+                <p className="rounded-lg bg-danger-background p-3 text-xs leading-5 text-danger">
+                  Resolve blocked readiness items before exporting or sending this report.
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 

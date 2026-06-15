@@ -35,6 +35,7 @@ export function ReportsPage({
         .sort((left, right) => left.sortOrder - right.sortOrder)
     : [];
   const reportQuality = buildReportQuality({ data, reportId: activeReport?.id });
+  const activeReportBlocked = reportQuality.status === "blocked";
 
   return (
     <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -152,7 +153,12 @@ export function ReportsPage({
             </p>
           </div>
           <div className="flex gap-2">
-            {activeReport?.pdfUrl ? (
+            {activeReportBlocked ? (
+              <Button variant="secondary" size="sm" disabled>
+                <Download size={15} aria-hidden="true" />
+                PDF
+              </Button>
+            ) : activeReport?.pdfUrl ? (
               <a
                 href={activeReport.pdfUrl}
                 download
@@ -166,7 +172,13 @@ export function ReportsPage({
             ) : activeReport ? (
               <form action={generateReportPdfAction}>
                 <input type="hidden" name="reportId" value={activeReport.id} />
-                <FormSubmitButton variant="secondary" size="sm" type="submit" pendingLabel="Preparing...">
+                <FormSubmitButton
+                  variant="secondary"
+                  size="sm"
+                  type="submit"
+                  pendingLabel="Preparing..."
+                  disabled={activeReportBlocked}
+                >
                   <Download size={15} aria-hidden="true" />
                   PDF
                 </FormSubmitButton>
@@ -180,7 +192,7 @@ export function ReportsPage({
             {activeReport ? (
               <form action={sendReportAction}>
                 <input type="hidden" name="reportId" value={activeReport.id} />
-                <FormSubmitButton size="sm" type="submit" pendingLabel="Sending...">
+                <FormSubmitButton size="sm" type="submit" pendingLabel="Sending..." disabled={activeReportBlocked}>
                   <Send size={15} aria-hidden="true" />
                   Send
                 </FormSubmitButton>
@@ -223,6 +235,11 @@ export function ReportsPage({
                 </div>
               ))}
             </div>
+            {activeReportBlocked ? (
+              <p className="mt-3 rounded-lg bg-danger-background p-3 text-xs leading-5 text-danger">
+                Resolve blocked readiness items before exporting or sending this report.
+              </p>
+            ) : null}
           </div>
 
           <div className="rounded-lg bg-muted p-5">

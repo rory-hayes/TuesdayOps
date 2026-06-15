@@ -363,7 +363,9 @@ The PDF is rendered server-side from stored report data, uploaded to the private
 GET /api/reports/:id/download
 ```
 
-The download route requires an authenticated agency member and streams the private PDF with `content-type: application/pdf`.
+The PDF action and download route require report readiness to be `ready` or `review`. Blocked reports return a safe readiness error and cannot be exported.
+
+The download route requires an authenticated agency member and streams the private PDF with `content-type: application/pdf`. If the report has become blocked since PDF generation, the route returns `409` with the first report-readiness blocker.
 
 ### `POST /api/reports/:id/send`
 
@@ -371,7 +373,7 @@ Sends report to configured recipient.
 
 Current server action equivalent: `sendReportAction(reportId)`.
 
-The send action ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error` and mark the report `failed` without exposing raw report data or secrets.
+The send action requires report readiness to be `ready` or `review`, ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error` and mark the report `failed` without exposing raw report data or secrets.
 
 ## Onboarding and sample data
 

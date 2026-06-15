@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
-import { buildReportQuality } from "./quality";
+import { assertReportCanBeExported, buildReportQuality } from "./quality";
 
 describe("buildReportQuality", () => {
   it("marks a report ready when source data, sections, and recommendations are present", () => {
@@ -75,6 +75,22 @@ describe("buildReportQuality", () => {
 
     expect(quality.status).toBe("review");
     expect(quality.warnings).toContain("2 high or critical issues are still open for this client.");
+  });
+
+  it("prevents export and send actions for blocked reports while allowing review reports", () => {
+    const blocked = buildReportQuality({
+      data: buildData({ checksRun: 0, openHighRiskIssues: 0, recommendations: [] }),
+      reportId: "report-1",
+    });
+    const review = buildReportQuality({
+      data: buildData({ checksRun: 12, openHighRiskIssues: 1, recommendations: ["Resolve open risk."] }),
+      reportId: "report-1",
+    });
+
+    expect(() => assertReportCanBeExported(blocked)).toThrow(
+      "Report is blocked: Report has no check runs for this period.",
+    );
+    expect(() => assertReportCanBeExported(review)).not.toThrow();
   });
 });
 
