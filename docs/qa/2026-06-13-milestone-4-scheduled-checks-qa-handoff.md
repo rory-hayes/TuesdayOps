@@ -4,11 +4,14 @@ Date: 2026-06-13
 
 Branch: `codex/milestone-4-scheduled-checks`
 
+Current status: superseded. Production scheduling later moved from Inngest to
+Supabase Cron/Vault calling the protected scheduler route.
+
 ## Scope
 
 This handoff covers T4.1 Background job setup:
 
-- Inngest background job wiring.
+- Inngest background job wiring, later replaced by Supabase Cron/Vault.
 - Scheduled health-check execution.
 - Retry behavior on the per-check scheduled job.
 - Scheduled run persistence and duplicate-window protection.
@@ -22,10 +25,10 @@ Agency -> Client -> Workflow -> Check -> Scheduled Check Run -> Issue
 
 ## Implementation Summary
 
-- Added Inngest app client and functions:
+- Historical implementation added Inngest app client and functions:
   - `scheduled-check-sweep`: cron every five minutes.
   - `run-scheduled-check`: one check execution per event, with `retries: 3`.
-- Added `/api/inngest` route for Inngest function serving.
+- Historical implementation added `/api/inngest`; the active production path now uses Supabase Cron/Vault.
 - Added protected `/api/scheduler/run-due-checks` route for QA and operational smoke testing.
 - Added server-only Supabase admin client using `SUPABASE_SECRET_KEY`.
 - Added `SCHEDULER_SECRET` authorization for the scheduler trigger route.
@@ -196,12 +199,12 @@ Retry branch-scoped preview env setup after pushing the branch if preview E2E is
 
 ## Known Residual Risks
 
-- Inngest cloud scheduling requires the Inngest Vercel integration or equivalent `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY` values. The code route and functions are present, but cloud cron dispatch is not proven until the integration is connected.
+- Superseded risk: the original Inngest cloud scheduling path was removed after this handoff. The active production path uses Supabase Cron/Vault to call `/api/scheduler/run-due-checks`.
 - `npm audit` reports advisories that currently require breaking force upgrades:
   - production moderate PostCSS advisory through `next`/`inngest`; current `next@16.2.9` is the latest published version
   - dev high esbuild/Vite advisory; upgrading the Vite/plugin chain is a separate production-readiness task because the current local Node is `20.18.0` while several packages already require `>=20.19.0`
 - Supabase CLI is `2.75.0`; latest available during testing was `2.106.0`. Commands used here were checked with `--help` before execution.
-- Scheduled jobs currently run due checks sequentially inside the protected QA route. Inngest production fan-out runs one event per check.
+- Scheduled jobs currently run due checks sequentially inside the protected scheduler route.
 
 ## QA Recommendation
 
@@ -222,4 +225,4 @@ Then verify in Supabase:
 - repeated scheduler calls do not create duplicate rows for the same scheduled window
 - failed scheduled runs create or update one active issue per material failure
 
-Before promoting this milestone as fully production-scheduled, connect Inngest to the Vercel project and confirm the `scheduled-check-sweep` cron appears and fires in the Inngest dashboard.
+Before promoting this milestone as fully production-scheduled, confirm Supabase Cron/Vault calls the protected scheduler route with `SCHEDULER_SECRET` and due checks are persisted once per scheduled window.

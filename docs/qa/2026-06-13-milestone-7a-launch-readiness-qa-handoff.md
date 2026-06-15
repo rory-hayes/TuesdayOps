@@ -102,7 +102,7 @@ Covered E2E flows remain:
 
 - Local Node.js `v20.18.0` does not satisfy the updated toolchain engine requirement. Developers should use Node.js `>=20.19.0`.
 - This milestone does not add onboarding/demo flows or billing logic. Those are intentionally moved to Milestones 7B and 7C.
-- Production Inngest and live Resend behavior still require provider env vars and provider-side configuration.
+- Production scheduled checks now use Supabase Cron/Vault; live Resend behavior still requires provider env vars and provider-side configuration.
 - Vercel production deployment should be smoke-tested after merge using `DEPLOYMENT.md`.
 
 ## QA Recommendation

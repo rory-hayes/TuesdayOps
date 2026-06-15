@@ -197,7 +197,7 @@ The suggested `npm audit fix --force` path would install breaking/downgrade vers
 - The assertion builder is intentionally MVP-sized and does not yet support equality assertions, multiple field builders, imports, or AI-judge checks.
 - Passing synthetic runs do not auto-resolve existing synthetic issues; issue resolution remains an explicit user workflow.
 - Test pack pass rate is derived from recent stored `test_runs`, not a stored aggregate.
-- Inngest cloud scheduling and live Resend delivery remain separate production wiring items from Milestone 4.5 readiness.
+- Supabase Cron/Vault scheduling and live Resend delivery remain separate production wiring items from Milestone 4.5 readiness.
 
 ## QA Recommendation
 

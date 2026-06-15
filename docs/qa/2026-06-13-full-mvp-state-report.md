@@ -53,7 +53,7 @@ Build: passed
 | 1 Auth and agency workspace | Done | Supabase Auth, onboarding RPC, memberships, RLS |
 | 2 Clients and workflows | Done | Client/workflow CRUD, encrypted workflow auth config |
 | 3 Endpoint health checks | Done | HTTP runner, assertions, manual run history |
-| 4 Scheduled checks and issues | Done | Inngest route, scheduler trigger, issue dedupe, alerts |
+| 4 Scheduled checks and issues | Done | Supabase Cron scheduler trigger, issue dedupe, alerts |
 | 5 Test packs | Done | Synthetic cases/runs, failure issue creation |
 | 6 Reports | Done | Aggregation, preview, PDF storage/download, send attempts |
 | 7A Launch readiness | Done | Deployment docs, Node floor, clean audit |
@@ -267,10 +267,9 @@ Current limitation: live Stripe payment collection is not verified until product
 ## Known Residual Risks
 
 - Live Resend delivery depends on `RESEND_API_KEY` and `RESEND_FROM_EMAIL`.
-- Inngest cloud scheduling depends on the Vercel integration or production Inngest keys.
+- Scheduled checks depend on Supabase Cron/Vault calling the protected scheduler route with `SCHEDULER_SECRET`.
 - Stripe live checkout depends on `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, Dashboard Customer Portal config, and webhook setup.
-- PostHog and Sentry variables are reserved but product analytics/error tracking are not implemented.
-- Demo data is synthetic and user-triggered; it should not be confused with real client data.
+- Sentry SDK error tracking is implemented; PostHog analytics is intentionally skipped for now.
 - Report PDFs are functional but visually minimal.
 - There is no public client portal or public report URL.
 - Synthetic test packs do not auto-resolve previous synthetic issues after a later pass.
@@ -288,7 +287,7 @@ Before design-partner use, QA should run:
 7. Report PDF generation and authenticated download.
 8. Missing Resend and missing Stripe config safe-failure paths.
 9. Live provider smoke tests after production env vars are configured:
-   - Inngest scheduled sweep
+   - Supabase Cron scheduled sweep
    - Resend email delivery
    - Stripe Checkout
    - Stripe Customer Portal
@@ -297,10 +296,10 @@ Before design-partner use, QA should run:
 ## Next Recommended Milestones
 
 1. Production provider wiring:
-   - Inngest integration
+   - Supabase Cron/Vault scheduler confirmation
    - Resend verified sender
    - Stripe test-mode product/price, portal config, webhook endpoint
-   - Sentry and PostHog
+   - Sentry issue capture confirmation
 
 2. QA hardening:
    - dedicated tenant-isolation E2E for report downloads

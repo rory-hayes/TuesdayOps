@@ -52,7 +52,7 @@ RESEND_API_KEY=
 RESEND_FROM_EMAIL=
 ```
 
-Billing and analytics variables are wired in later milestones, but should be reserved now:
+Billing, observability, and reserved analytics variables:
 
 ```txt
 STRIPE_SECRET_KEY=

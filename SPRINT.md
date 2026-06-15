@@ -63,7 +63,7 @@ Goal: TuesdayOps monitors workflows automatically.
 
 Deliverables:
 
-- Inngest/Trigger.dev setup
+- Supabase Cron/Vault scheduler setup
 - scheduled check jobs
 - issue creation
 - issue dedupe

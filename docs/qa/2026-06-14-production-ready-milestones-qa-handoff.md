@@ -19,14 +19,14 @@ Agency -> Client -> Workflow -> Check -> Check Run -> Issue -> Monthly Report
 
 ## Product State
 
-TuesdayOps now has production-readiness gates in the product UI rather than only in documentation.
+TuesdayOps now has production-readiness gates exposed through the operator health endpoint rather than only in documentation.
 
-- Settings shows provider readiness for app runtime, Supabase, scheduler/Inngest, Resend, Stripe, Sentry, and PostHog.
+- `/api/health` shows provider readiness for app runtime, Supabase, Supabase Cron scheduler, Resend, Stripe, Sentry, and optional PostHog.
 - `/api/health` exposes a public ready/degraded launch payload without secret values.
 - Workflows can be created by manual entry or quick import from URL, cURL, OpenAPI JSON, or Postman collection JSON.
 - Imported workflows use the same tenant, billing-limit, encrypted-auth, endpoint-safety, and health-check creation path as manual workflows.
 - Production workflow endpoints block localhost, loopback, private IPv4 ranges, link-local/metadata ranges, and `.local` hostnames unless `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is explicitly set for local/private testing.
-- Settings shows operational reliability from enabled checks, stale workflows, high-risk open issues, and report queue state.
+- Operational reliability checks cover enabled checks, stale workflows, high-risk open issues, and report queue state.
 - Reports show ready/review/blocked quality scoring before send/export.
 - PDF and report email output now includes a concise monitoring coverage line.
 
@@ -138,7 +138,8 @@ Results:
 
 ## Known Gaps
 
-- Sentry and PostHog are readiness-gated but SDK/client event capture is not implemented in this branch.
+- Sentry SDK error capture is implemented with conservative sampling/privacy defaults and gated smoke-test routes.
+- PostHog analytics is intentionally skipped for now and does not block launch readiness.
 - Slack alerts remain a V1 roadmap item.
 - OpenAPI import currently accepts pasted JSON. Fetching OpenAPI from a URL should wait until SSRF-safe fetch controls are designed.
 - YAML OpenAPI import is not implemented because the repo has no YAML parser dependency and JSON import covers the MVP handoff path.
@@ -148,6 +149,6 @@ Results:
 
 Move next into provider-side production configuration and deployment validation:
 
-- Configure live Sentry/PostHog, Resend sender, Stripe webhook, and Inngest production keys.
+- Confirm live Sentry, Resend sender, Stripe webhook, and Supabase Cron/Vault configuration.
 - Run the full production smoke checklist against the Vercel URL.
 - Keep Slack alerts and deeper native integrations after provider wiring, endpoint import QA, and report readiness pass with a design partner.
