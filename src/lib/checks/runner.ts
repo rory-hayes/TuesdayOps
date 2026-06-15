@@ -218,7 +218,7 @@ function isRedirectResponse(response: Response): boolean {
 }
 
 function summarizeResponse(value: string, options: { truncated?: boolean } = {}): string {
-  const summary = value
+  const summary = normalizeResponseForSummary(value)
     .slice(0, maxResponseSummaryChars)
     .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
@@ -230,4 +230,30 @@ function summarizeResponse(value: string, options: { truncated?: boolean } = {})
 
   const marker = " [truncated]";
   return `${summary.slice(0, maxResponseSummaryChars - marker.length)}${marker}`;
+}
+
+function normalizeResponseForSummary(value: string): string {
+  if (!looksLikeHtml(value)) {
+    return value;
+  }
+
+  const text = value
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+    .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return text || "HTML response received.";
+}
+
+function looksLikeHtml(value: string): boolean {
+  return /<!doctype\s+html|<html\b|<head\b|<body\b|<\/[a-z][\w:-]*>/i.test(value);
 }

@@ -143,6 +143,64 @@ describe("runHttpCheck", () => {
     expect(result.responseSummary).toContain('"token":"[redacted]"');
   });
 
+  it("collapses HTML error pages into readable response summaries", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          `<!doctype html><html><head><title>404: Not Found</title><style>body{}</style><script>window.__secret = "token";</script></head><body><h1>404</h1><p>This page could not be found.</p></body></html>`,
+          { status: 404 },
+        ),
+      ),
+    );
+
+    const result = await runHttpCheck({
+      workflow: {
+        endpointUrl: "https://api.example.com/missing",
+        method: "GET",
+        authType: "none",
+      },
+      check: {
+        configJson: {
+          timeoutMs: 1000,
+          assertions: [{ type: "status_code", expected: 200 }],
+        },
+      },
+      authConfig: { type: "none" },
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.responseSummary).toBe("404: Not Found 404 This page could not be found.");
+    expect(result.responseSummary).not.toContain("<html");
+    expect(result.responseSummary).not.toContain("window.__secret");
+  });
+
+  it("uses a safe placeholder for empty HTML responses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response("<html><script>console.log('only script')</script></html>", { status: 500 }),
+      ),
+    );
+
+    const result = await runHttpCheck({
+      workflow: {
+        endpointUrl: "https://api.example.com/empty-html",
+        method: "GET",
+        authType: "none",
+      },
+      check: {
+        configJson: {
+          timeoutMs: 1000,
+          assertions: [{ type: "status_code", expected: 200 }],
+        },
+      },
+      authConfig: { type: "none" },
+    });
+
+    expect(result.responseSummary).toBe("HTML response received.");
+  });
+
   it("supports API key and basic auth headers", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("ok", { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);

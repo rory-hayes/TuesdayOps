@@ -40,3 +40,4 @@ Track meaningful product and engineering changes here.
 - Continued the Catalyst/Tailwind Plus UI pass with a Headless UI Add Workflow onboarding modal, hydration-safe client/workflow triggers, user-facing Settings cleanup, and stabilized server-action E2E waits.
 - Removed the user-facing demo seeding option, added issue and report detail drill-down pages, improved server-action pending/success feedback, fixed report PDF download anchors, and made plan-limit upgrade prompts route to billing.
 - Added a 95% Vitest coverage gate with expanded unit coverage for MVP service logic and API routes, fixed a path-scoped assertion edge case, and added acceptance coverage for drilldowns, action feedback, and upgrade CTAs.
+- Improved workflow check response summaries so HTML error pages render as readable text in run history and issue details instead of raw markup.
