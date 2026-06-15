@@ -83,6 +83,8 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
 
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("heading", { name: "Recent issues" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Operations readiness" })).toBeVisible();
+  await expect(page.getByText("High-risk issues")).toBeVisible();
   await page.getByRole("link", { name: new RegExp(issue.title) }).click();
   await expect(page).toHaveURL(new RegExp(`/issues/${issue.id}`));
   await expect(page.getByRole("heading", { name: issue.title })).toBeVisible();

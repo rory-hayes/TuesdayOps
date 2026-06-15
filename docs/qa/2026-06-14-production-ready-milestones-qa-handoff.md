@@ -26,7 +26,7 @@ TuesdayOps now has production-readiness gates exposed through the operator healt
 - Workflows can be created by manual entry or quick import from URL, cURL, OpenAPI JSON, or Postman collection JSON.
 - Imported workflows use the same tenant, billing-limit, encrypted-auth, endpoint-safety, and health-check creation path as manual workflows.
 - Production workflow endpoints block localhost, loopback, private IPv4 ranges, link-local/metadata ranges, and `.local` hostnames unless `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is explicitly set for local/private testing.
-- Operational reliability checks cover enabled checks, stale workflows, high-risk open issues, and report queue state.
+- Overview shows operational reliability checks for enabled checks, stale workflows, high-risk open issues, and report queue state.
 - Reports show ready/review/blocked quality scoring before send/export.
 - PDF and report email output now includes a concise monitoring coverage line.
 

@@ -52,3 +52,4 @@ Track meaningful product and engineering changes here.
 - Added visible Checks-page success feedback for test pack creation, test case creation, and test pack runs.
 - Removed the dormant sample-data seeding server action and updated onboarding copy to require a first real report.
 - Sanitized customer-facing billing errors so missing Stripe setup and provider failures do not expose env vars, emails, or tokens.
+- Surfaced operations-readiness checks on Overview so stale workflows, enabled checks, high-risk issues, and report queue state are visible without exposing internal provider readiness.

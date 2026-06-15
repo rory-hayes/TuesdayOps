@@ -463,7 +463,7 @@ Acceptance:
 ### T12.1 Operational gate
 
 - [x] Add tenant operational reliability checks for enabled checks, stale workflows, high-risk open issues, and ready/sent reports.
-- [x] Show operational gate in Settings.
+- [x] Show operational gate on Overview.
 
 Acceptance:
 

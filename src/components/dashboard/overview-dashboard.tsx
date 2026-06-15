@@ -1,12 +1,14 @@
 import Link from "next/link";
-import { Clock3, FileText } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { getOpenIssues, getPortfolioSummary, getWorkflowHealthRows } from "@/lib/domain/summaries";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
+import { buildOperationalReliability } from "@/lib/production/operational-reliability";
 
 export function OverviewDashboard({
   data,
@@ -21,6 +23,7 @@ export function OverviewDashboard({
   const openIssues = getOpenIssues(data);
   const workflowRows = getWorkflowHealthRows(data);
   const scheduledChecks = data.checks.filter((check) => check.enabled).slice(0, 4);
+  const reliability = buildOperationalReliability({ data });
 
   return (
     <div className="flex flex-col gap-10">
@@ -157,6 +160,42 @@ export function OverviewDashboard({
                   No checks are enabled yet.
                 </p>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold">Operations readiness</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Signals to review before a client maintenance report.
+                </p>
+              </div>
+              <Badge variant={reliability.ready ? "success" : "warning"}>
+                {reliability.ready ? "ready" : "review"}
+              </Badge>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {reliability.checks.map((check) => {
+                const Icon = check.status === "ready" ? CheckCircle2 : AlertTriangle;
+
+                return (
+                  <div key={check.id} className="flex items-start gap-3 rounded-lg bg-muted p-3">
+                    <Icon
+                      size={16}
+                      aria-hidden="true"
+                      className={check.status === "ready" ? "mt-0.5 text-success" : "mt-0.5 text-amber-600"}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium">{check.label}</p>
+                        <span className="text-xs text-muted-foreground">{check.value}</span>
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">{check.detail}</p>
+                    </div>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
