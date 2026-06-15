@@ -8,9 +8,9 @@ import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
 const integrations = [
-  { name: "Supabase", status: "planned", detail: "Auth, Postgres, Storage" },
-  { name: "Supabase Cron", status: "planned", detail: "Scheduled checks and jobs" },
-  { name: "Resend", status: "planned", detail: "Issue alerts and report emails" },
+  { name: "Supabase", status: "active", detail: "Auth, Postgres, Storage" },
+  { name: "Supabase Cron", status: "active", detail: "Scheduled checks and jobs" },
+  { name: "Resend", status: "active", detail: "Issue alerts and report emails" },
   { name: "Stripe", status: "active", detail: "Billing gate and customer portal" },
 ];
 
@@ -131,7 +131,7 @@ export function SettingsPage({
                   <p className="text-sm font-medium">{integration.name}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{integration.detail}</p>
                 </div>
-                <Badge variant="muted">{integration.status}</Badge>
+                <Badge variant="success">{integration.status}</Badge>
               </div>
             ))}
           </CardContent>

@@ -71,7 +71,7 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
   ]);
   await expect(page.getByText("Check run completed and history was updated.")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Run history" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "404" })).toBeVisible();
+  await expect(page.getByRole("cell", { name: "404", exact: true })).toBeVisible();
 
   const issue = await poll(async () => {
     const rows = await getRows<IssueRow>(

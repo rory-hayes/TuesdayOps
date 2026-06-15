@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, FileText, Save, Search } from "lucide-react";
+import { Archive, Save, Search } from "lucide-react";
 import { NewClientDialog } from "@/components/clients/new-client-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -134,22 +134,26 @@ export function ClientsPage({
                           <input type="hidden" name="id" value={client.id} />
                           <input type="hidden" name="slug" value={client.slug} />
                           <input
+                            aria-label="Client name"
                             name="name"
                             defaultValue={client.name}
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <input
+                            aria-label="Industry"
                             name="industry"
                             defaultValue={client.industry}
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <input
+                            aria-label="Report email"
                             name="reportRecipientEmail"
                             type="email"
                             defaultValue={client.reportRecipientEmail}
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <input
+                            aria-label="Notes"
                             name="notes"
                             defaultValue={client.notes}
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
@@ -208,10 +212,6 @@ function PageHeader({
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
       </div>
         <div className="flex gap-2">
-          <Button variant="secondary" size="sm">
-            <FileText size={15} aria-hidden="true" />
-            Export view
-          </Button>
           <NewClientDialog action={createClientAction} />
         </div>
     </section>

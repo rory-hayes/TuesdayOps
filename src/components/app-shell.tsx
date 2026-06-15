@@ -64,6 +64,7 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
                   <Link
                     key={client.id}
                     href={`/clients/${client.id}`}
+                    prefetch={false}
                     className="block truncate rounded-lg px-3 py-2 text-sm/6 font-medium text-zinc-700 transition hover:bg-zinc-950/5 hover:text-zinc-950"
                   >
                     {client.name}
@@ -112,6 +113,7 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm/6 font-medium text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/5 hover:text-zinc-950"
               >
                 <item.icon className="size-4 text-zinc-500" aria-hidden="true" />
@@ -145,6 +147,7 @@ function SidebarLink({
   return (
     <Link
       href={href}
+      prefetch={false}
       className="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm/6 font-medium text-zinc-700 transition hover:bg-zinc-950/5 hover:text-zinc-950"
     >
       <Icon className="size-5 text-zinc-500 group-hover:text-zinc-950" aria-hidden="true" />

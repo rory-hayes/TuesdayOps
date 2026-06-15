@@ -41,3 +41,6 @@ Track meaningful product and engineering changes here.
 - Removed the user-facing demo seeding option, added issue and report detail drill-down pages, improved server-action pending/success feedback, fixed report PDF download anchors, and made plan-limit upgrade prompts route to billing.
 - Added a 95% Vitest coverage gate with expanded unit coverage for MVP service logic and API routes, fixed a path-scoped assertion edge case, and added acceptance coverage for drilldowns, action feedback, and upgrade CTAs.
 - Improved workflow check response summaries so HTML error pages render as readable text in run history and issue details instead of raw markup.
+- Removed the inactive Clients export action and added accessible names to inline client edit fields.
+- Updated Settings integration status copy so configured MVP providers display as active instead of planned.
+- Disabled app-shell prefetch for authenticated navigation links to avoid Safari/WebKit protected-route prefetch errors.
