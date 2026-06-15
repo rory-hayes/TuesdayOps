@@ -274,6 +274,7 @@ Current limitation: live Stripe payment collection is not verified until product
 - There is no public client portal or public report URL.
 - Update on 2026-06-15: synthetic test packs now auto-resolve the active synthetic issue for the same test case after a later passing run.
 - Update on 2026-06-15: generated report PDFs now include cover metadata, an operations scorecard, value delivered, report sections, next actions, and a client-safe footer.
+- Update on 2026-06-15: `npm run smoke:production` now checks the deployed app health payload, gated Sentry example routes, and unauthenticated scheduler protection.
 
 ## QA Recommendations
 
@@ -288,6 +289,7 @@ Before design-partner use, QA should run:
 7. Report PDF generation and authenticated download.
 8. Missing Resend and missing Stripe config safe-failure paths.
 9. Live provider smoke tests after production env vars are configured:
+   - `npm run smoke:production`
    - Supabase Cron scheduled sweep
    - Resend email delivery
    - Stripe Checkout
@@ -303,9 +305,7 @@ Before design-partner use, QA should run:
    - Sentry issue capture confirmation
 
 2. QA hardening:
-   - dedicated tenant-isolation E2E for report downloads
-   - webhook signature tests
-   - plan-limit workflow E2E
+   - keep production smoke in the pre-release verification loop
    - report metric reconciliation checklist
 
 3. Design-partner polish:

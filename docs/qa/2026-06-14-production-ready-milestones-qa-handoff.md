@@ -150,5 +150,5 @@ Results:
 Move next into provider-side production configuration and deployment validation:
 
 - Confirm live Sentry, Resend sender, Stripe webhook, and Supabase Cron/Vault configuration.
-- Run the full production smoke checklist against the Vercel URL.
+- Run `npm run smoke:production` and the full production smoke checklist against the Vercel URL.
 - Keep Slack alerts and deeper native integrations after provider wiring, endpoint import QA, and report readiness pass with a design partner.

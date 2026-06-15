@@ -146,7 +146,10 @@ npm run typecheck
 npm run test
 npm run test:coverage
 npm run e2e
+npm run smoke:production
 ```
+
+`npm run smoke:production` checks `https://tuesday-ops.vercel.app` by default. Set `PRODUCTION_SMOKE_URL=https://your-deployment.example.com` to target another deployed URL.
 
 Build for production:
 

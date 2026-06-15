@@ -60,3 +60,4 @@ Track meaningful product and engineering changes here.
 - Sanitized customer-facing client, workflow, check, test-pack, issue, report, and alert action failures through shared safe feedback handling.
 - Added synthetic test recovery handling so passing reruns resolve the matching active synthetic issue while failed reruns still dedupe into one reportable issue.
 - Polished generated report PDFs with a client-ready one-page layout, operations scorecard, value-delivered section, next actions, and a report-safe footer.
+- Added a repeatable production smoke checker for `/api/health`, gated Sentry smoke routes, and scheduler route protection.

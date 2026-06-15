@@ -536,3 +536,14 @@ Acceptance:
 Acceptance:
 
 - Generated PDFs remain downloadable and report-safe while presenting the monthly proof-of-work report in a clearer client-ready structure.
+
+### T16.3 Production smoke checks
+
+- [x] Add a repeatable production smoke checker for the Vercel app URL.
+- [x] Verify public `/api/health` is launch-ready and does not expose secret-shaped values.
+- [x] Verify temporary Sentry example routes stay gated in production.
+- [x] Verify the protected scheduler route rejects unauthenticated production requests.
+
+Acceptance:
+
+- Operators and QA can run `npm run smoke:production` against the Vercel URL and get a readable pass/fail report for public readiness and privileged-route protection.
