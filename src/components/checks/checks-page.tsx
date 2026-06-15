@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import {
@@ -15,9 +16,11 @@ import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/form
 
 export function ChecksPage({
   data,
+  notice,
   error,
 }: {
   data: TuesdayOpsSeedData;
+  notice?: string;
   error?: string;
 }) {
   return (
@@ -35,7 +38,7 @@ export function ChecksPage({
         <Badge variant="muted">{data.checks.length} enabled</Badge>
       </section>
 
-      {error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{error}</p> : null}
+      <PageFeedback notice={notice} error={error} />
 
       <Card>
         <CardHeader>

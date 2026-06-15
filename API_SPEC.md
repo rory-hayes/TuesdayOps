@@ -270,6 +270,7 @@ Creates test pack.
 Current server action equivalent: `createTestPackAction(workflowId, name, description)`.
 
 The created row is scoped by `agency_id` and references the workflow through a tenant-matched foreign key.
+Successful creation redirects back to Checks with a visible success notice.
 
 ```json
 {
@@ -292,12 +293,14 @@ The runner:
 - sends each case `input_json` through the HTTP check runner
 - stores one `test_runs` row per case
 - creates or updates a reportable issue linked to `test_run_id` when a case fails
+- redirects back to Checks with a visible completion notice when the run finishes
 
 ### `POST /api/test-packs/:id/test-cases`
 
 Creates test case.
 
 Current server action equivalent: `createTestCaseAction(testPackId, name, inputJson, expectedStatus, maxLatencyMs, fieldExistsPath, notContainsValue)`.
+Successful creation redirects back to Checks with a visible success notice.
 
 The MVP assertion builder supports:
 

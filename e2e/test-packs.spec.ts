@@ -89,6 +89,7 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
   await packForm.getByLabel("Pack name").fill(packName);
   await packForm.getByLabel("Description").fill("Synthetic regression coverage for the QA handoff.");
   await packForm.getByRole("button", { name: "Add test pack" }).click();
+  await expect(page.getByText("Test pack added.")).toBeVisible();
   await expect(page.getByText(packName)).toBeVisible();
 
   const pack = await poll(async () => {
@@ -108,6 +109,7 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
   await caseForm.getByLabel("Required field").fill("result.id");
   await caseForm.getByLabel("Must not contain").fill("fatal");
   await caseForm.getByRole("button", { name: "Add case" }).click();
+  await expect(page.getByText("Test case added.")).toBeVisible();
   await expect(page.getByText(caseName)).toBeVisible();
 
   const testCase = await poll(async () => {
@@ -127,6 +129,7 @@ test("synthetic test pack run stores a failed result and creates an issue", asyn
 
   const runPackForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Run pack" }) });
   await runPackForm.getByRole("button", { name: "Run pack" }).click();
+  await expect(page.getByText("Test pack run completed.")).toBeVisible();
 
   const testRun = await poll(async () => {
     const rows = await getRows<TestRunRow>(

@@ -95,7 +95,7 @@ export async function createTestPackAction(formData: FormData) {
   }
 
   revalidatePath("/checks");
-  redirect("/checks");
+  redirect(`/checks?notice=${encodeURIComponent("Test pack added.")}`);
 }
 
 export async function createTestCaseAction(formData: FormData) {
@@ -141,7 +141,7 @@ export async function createTestCaseAction(formData: FormData) {
   }
 
   revalidatePath("/checks");
-  redirect("/checks");
+  redirect(`/checks?notice=${encodeURIComponent("Test case added.")}`);
 }
 
 export async function runTestPackAction(formData: FormData) {
@@ -169,7 +169,7 @@ export async function runTestPackAction(formData: FormData) {
   revalidatePath("/issues");
   revalidatePath("/workflows");
   revalidatePath("/");
-  redirect("/checks");
+  redirect(`/checks?notice=${encodeURIComponent("Test pack run completed.")}`);
 }
 
 async function executeTestPackRun({
