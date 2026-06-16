@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   WORKFLOW_ONBOARDING_TEMPLATES,
   maskWorkflowImportSecrets,
+  fetchOpenApiImportPlan,
   parseWorkflowImport,
 } from "./onboarding";
 
@@ -110,6 +111,104 @@ describe("parseWorkflowImport", () => {
       method: "POST",
       authType: "none",
     });
+  });
+
+  it("accepts common OpenAPI YAML text", () => {
+    expect(parseWorkflowImport({
+      source: "openapi",
+      text: `
+openapi: 3.1.0
+servers:
+  - url: https://api.example.com/v2
+paths:
+  /score:
+    post:
+      summary: Score a lead
+      operationId: scoreLead
+`,
+    })).toMatchObject({
+      name: "Score a lead",
+      endpointUrl: "https://api.example.com/v2/score",
+      method: "POST",
+    });
+  });
+
+  it("accepts quoted OpenAPI YAML scalars and root server URL syntax", () => {
+    expect(parseWorkflowImport({
+      source: "openapi",
+      text: `
+openapi: "3.1.0"
+servers:
+  url: "https://api.example.com/root"
+paths:
+  /classify:
+    get:
+      operationId: 'classifyDocument'
+`,
+    })).toMatchObject({
+      name: "classifyDocument",
+      endpointUrl: "https://api.example.com/root/classify",
+      method: "GET",
+    });
+  });
+
+  it("fetches safe public OpenAPI URLs without allowing private endpoints", async () => {
+    const fetcher = async (url: string) => ({
+      ok: true,
+      headers: new Headers({ "content-type": "application/json" }),
+      text: async () => JSON.stringify({
+        servers: [{ url: "https://api.example.com" }],
+        paths: {
+          "/health": {
+            get: { operationId: "healthCheck" },
+          },
+        },
+      }),
+      url,
+    });
+
+    await expect(fetchOpenApiImportPlan({
+      url: "https://docs.example.com/openapi.json",
+      fetcher,
+    })).resolves.toMatchObject({
+      name: "healthCheck",
+      endpointUrl: "https://api.example.com/health",
+      method: "GET",
+    });
+
+    await expect(fetchOpenApiImportPlan({
+      url: "http://127.0.0.1/openapi.json",
+      fetcher,
+    })).rejects.toThrow("Private or local workflow endpoints are blocked in production.");
+  });
+
+  it("rejects unsafe OpenAPI URL fetch responses", async () => {
+    await expect(fetchOpenApiImportPlan({
+      url: "https://docs.example.com/missing.json",
+      fetcher: async () => ({
+        ok: false,
+        headers: new Headers({ "content-type": "application/json" }),
+        text: async () => "{}",
+      }),
+    })).rejects.toThrow("OpenAPI URL could not be fetched.");
+
+    await expect(fetchOpenApiImportPlan({
+      url: "https://docs.example.com/openapi.html",
+      fetcher: async () => ({
+        ok: true,
+        headers: new Headers({ "content-type": "text/html" }),
+        text: async () => "{}",
+      }),
+    })).rejects.toThrow("OpenAPI URL must return JSON or YAML.");
+
+    await expect(fetchOpenApiImportPlan({
+      url: "https://docs.example.com/openapi.yaml",
+      fetcher: async () => ({
+        ok: true,
+        headers: new Headers({ "content-type": "text/yaml" }),
+        text: async () => "x".repeat(200_001),
+      }),
+    })).rejects.toThrow("OpenAPI document is too large for quick import.");
   });
 
   it("uses the first Postman collection request", () => {

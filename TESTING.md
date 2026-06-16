@@ -127,7 +127,7 @@ Current Milestone 8 QA-hardening status:
 Current Milestones 9-14 production-readiness status:
 
 - Milestone 9 added provider readiness checks and public `/api/health` coverage.
-- Milestone 10 added quick workflow import from URL, cURL, OpenAPI JSON, and Postman collection JSON.
+- Milestone 10 added quick workflow import from URL, cURL, OpenAPI JSON/YAML/URL, and Postman collection JSON.
 - Milestone 11 added endpoint safety validation to block localhost/private-network/link-local/metadata endpoints in production.
 - Milestone 12 added operational reliability scoring for enabled checks, stale workflow data, high-risk issues, and report queue state.
 - Milestone 13 added report quality scoring and client-facing monitoring coverage lines in PDF/email artifacts.
@@ -176,6 +176,28 @@ Current P0/P1/P2 continuation status on 2026-06-15:
   - `npm run e2e` (`8 passed`)
   - `npm run smoke:production`
   - `npm audit --audit-level=moderate`
+
+Current design-partner readiness implementation status on 2026-06-16:
+
+- Added workflow/check/test-pack/test-case lifecycle unit coverage for archive, disable, and edit payload shaping.
+- Added public run-log API coverage for hashed workflow keys, invalid auth, payload validation, check-run insertion, workflow summary updates, and issue creation.
+- Added model/prompt comparison coverage and report aggregation coverage for `model_prompt_changes` items.
+- Added dashboard chart helper coverage for pass-rate trends, run-volume series, and issue severity series.
+- Added monthly report scheduler coverage for due-client selection, prior-month period calculation, draft generation, and next-due advancement.
+- Added OpenAPI YAML and safe public URL import coverage.
+- Added public landing-page content coverage that keeps ignored scope out of the logged-out offer.
+- Applied pending remote Supabase migration `20260616193000_design_partner_readiness_lifecycle` after E2E initially failed against the old schema (`workflows.archived_at` missing). A follow-up dry run reported the remote database was up to date.
+- Rendered the public logged-out page from a production build at desktop and mobile widths; the first screenshot caught a black-on-black CTA link caused by the global anchor color rule, and the CTA was fixed with explicit white text.
+- Verification passed:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test` (`54 passed`, `286 passed`)
+  - `npm run test:coverage` (statements `98.78%`, branches `95.08%`, functions `99.67%`, lines `98.82%`)
+  - `npm run build`
+  - `npm run e2e` (`8 passed`)
+  - `npm run smoke:production`
+  - `npm audit --audit-level=moderate` (`found 0 vulnerabilities`)
+- Follow-up provider checks still needed before full paid launch sign-off: one live report email send with a safe recipient/domain, and one Stripe test-mode Checkout/Customer Portal pass.
 
 ## Critical test areas
 

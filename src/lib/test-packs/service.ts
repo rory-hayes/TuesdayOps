@@ -4,12 +4,21 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { runHttpCheck, type WorkflowAuthConfig } from "@/lib/checks/runner";
 import { decryptJsonPayload, type EncryptedJsonPayload } from "@/lib/security/secrets";
 import { formatActionError } from "@/lib/server-actions/feedback";
+import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { syncSyntheticIssueForTestRun } from "@/lib/test-packs/issues";
+import {
+  buildTestCaseArchiveUpdate,
+  buildTestCaseUpdate,
+  buildTestPackDisableUpdate,
+  buildTestPackUpdate,
+} from "@/lib/test-packs/lifecycle";
 import {
   buildSyntheticRunConfig,
   buildTestCaseAssertions,
@@ -37,6 +46,22 @@ const createTestCaseFormSchema = z.object({
 const runTestPackFormSchema = z.object({
   testPackId: z.string().uuid(),
 });
+
+const updateTestPackFormSchema = createTestPackFormSchema
+  .omit({ workflowId: true })
+  .extend({
+    testPackId: z.string().uuid(),
+  });
+
+const testCaseIdFormSchema = z.object({
+  testCaseId: z.string().uuid(),
+});
+
+const updateTestCaseFormSchema = createTestCaseFormSchema
+  .omit({ testPackId: true })
+  .extend({
+    testCaseId: z.string().uuid(),
+  });
 
 type TestPackRow = {
   id: string;
@@ -169,6 +194,163 @@ export async function runTestPackAction(formData: FormData) {
   revalidatePath("/workflows");
   revalidatePath("/");
   redirect(`/checks?notice=${encodeURIComponent("Test pack run completed.")}`);
+}
+
+export async function updateTestPackAction(formData: FormData) {
+  const parsed = updateTestPackFormSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/checks?error=${encodeURIComponent("Test pack update did not pass validation.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const updateResult = await supabase
+    .from("test_packs")
+    .update(buildTestPackUpdate({
+      name: parsed.data.name,
+      description: parsed.data.description,
+    }))
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.testPackId)
+    .select("id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(updateResult, "Test pack was not found or is not accessible.");
+  } catch (error) {
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be saved."))}`);
+  }
+
+  await recordTestPackAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    action: "test_pack.updated",
+    targetId: parsed.data.testPackId,
+  });
+
+  revalidatePath("/checks");
+  redirect(`/checks?notice=${encodeURIComponent("Test pack saved.")}`);
+}
+
+export async function disableTestPackAction(formData: FormData) {
+  const parsed = runTestPackFormSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/checks?error=${encodeURIComponent("Test pack id was invalid.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const disableResult = await supabase
+    .from("test_packs")
+    .update(buildTestPackDisableUpdate())
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.testPackId)
+    .select("id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(disableResult, "Test pack was not found or is not accessible.");
+  } catch (error) {
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be disabled."))}`);
+  }
+
+  await recordTestPackAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    action: "test_pack.disabled",
+    targetId: parsed.data.testPackId,
+  });
+
+  revalidatePath("/checks");
+  redirect(`/checks?notice=${encodeURIComponent("Test pack disabled. Historical synthetic runs were preserved.")}`);
+}
+
+export async function updateTestCaseAction(formData: FormData) {
+  const parsed = updateTestCaseFormSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/checks?error=${encodeURIComponent("Test case update did not pass validation.")}`);
+  }
+
+  let inputJson: unknown;
+
+  try {
+    inputJson = parseJsonInput(parsed.data.inputJson ?? "");
+  } catch {
+    redirect(`/checks?error=${encodeURIComponent("Test case input must be valid JSON.")}`);
+  }
+
+  const assertions = buildTestCaseAssertions({
+    expectedStatus: parsed.data.expectedStatus,
+    maxLatencyMs: parsed.data.maxLatencyMs,
+    fieldExistsPath: parsed.data.fieldExistsPath,
+    notContainsValue: parsed.data.notContainsValue,
+  });
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const updateResult = await supabase
+    .from("test_cases")
+    .update(buildTestCaseUpdate({
+      name: parsed.data.name,
+      inputJson,
+      assertionsJson: assertions,
+    }))
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.testCaseId)
+    .select("id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(updateResult, "Test case was not found or is not accessible.");
+  } catch (error) {
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be saved."))}`);
+  }
+
+  await recordTestCaseAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    action: "test_case.updated",
+    targetId: parsed.data.testCaseId,
+  });
+
+  revalidatePath("/checks");
+  redirect(`/checks?notice=${encodeURIComponent("Test case saved.")}`);
+}
+
+export async function archiveTestCaseAction(formData: FormData) {
+  const parsed = testCaseIdFormSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/checks?error=${encodeURIComponent("Test case id was invalid.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const archiveResult = await supabase
+    .from("test_cases")
+    .update(buildTestCaseArchiveUpdate())
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.testCaseId)
+    .select("id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(archiveResult, "Test case was not found or is not accessible.");
+  } catch (error) {
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be archived."))}`);
+  }
+
+  await recordTestCaseAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    action: "test_case.archived",
+    targetId: parsed.data.testCaseId,
+  });
+
+  revalidatePath("/checks");
+  redirect(`/checks?notice=${encodeURIComponent("Test case archived. Historical synthetic runs were preserved.")}`);
 }
 
 async function executeTestPackRun({
@@ -308,6 +490,7 @@ async function loadTestCases({
     .select("id, agency_id, workflow_id, test_pack_id, name, input_json, assertions_json")
     .eq("agency_id", agencyId)
     .eq("test_pack_id", testPackId)
+    .is("archived_at", null)
     .order("created_at", { ascending: true });
 
   if (error) {
@@ -315,4 +498,56 @@ async function loadTestCases({
   }
 
   return (data ?? []) as TestCaseRow[];
+}
+
+async function recordTestPackAuditEvent({
+  agencyId,
+  actorUserId,
+  action,
+  targetId,
+}: {
+  agencyId: string;
+  actorUserId: string;
+  action: "test_pack.updated" | "test_pack.disabled";
+  targetId: string;
+}) {
+  try {
+    await recordAuditEvent({
+      supabase: createAdminClient(),
+      agencyId,
+      actorUserId,
+      action,
+      targetType: "test_pack",
+      targetId,
+      metadata: {},
+    });
+  } catch {
+    // Audit logging must not block test-pack lifecycle actions.
+  }
+}
+
+async function recordTestCaseAuditEvent({
+  agencyId,
+  actorUserId,
+  action,
+  targetId,
+}: {
+  agencyId: string;
+  actorUserId: string;
+  action: "test_case.updated" | "test_case.archived";
+  targetId: string;
+}) {
+  try {
+    await recordAuditEvent({
+      supabase: createAdminClient(),
+      agencyId,
+      actorUserId,
+      action,
+      targetType: "test_case",
+      targetId,
+      metadata: {},
+    });
+  } catch {
+    // Audit logging must not block test-case lifecycle actions.
+  }
 }

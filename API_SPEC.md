@@ -1,6 +1,6 @@
 # TuesdayOps API Spec — MVP
 
-This document outlines the internal API shape. Milestones 1-3 currently implement these flows with Next.js server actions rather than public JSON API routes. Exact route names may vary as later milestones add route handlers/background jobs.
+This document outlines the internal API shape. Most authenticated mutations are implemented with Next.js server actions rather than public JSON API routes. Public API routes are called out explicitly.
 
 ## Auth
 
@@ -94,7 +94,7 @@ The Workflows page also supports quick import through the server action equivale
 
 - direct URL
 - cURL command
-- OpenAPI JSON
+- OpenAPI JSON, YAML, pasted text, or safe public URL
 - Postman collection JSON
 
 The import path creates a normal workflow plus the first health check. Billing limits, tenant scoping, endpoint safety validation, and encrypted auth handling still apply.
@@ -106,6 +106,8 @@ Workflow check execution does not follow endpoint redirects. If an endpoint retu
 ### `PATCH /api/workflows/:id`
 
 Updates workflow.
+
+Current server action equivalents also include archive support. Archived workflows are removed from active app views and cannot receive public run-log updates, but historical runs/issues/reports remain stored.
 
 ### `POST /api/workflows/:id/run-check`
 
@@ -195,6 +197,29 @@ Response:
   "ok": true,
   "attempted": 1,
   "completed": 1,
+  "skipped": 0,
+  "failed": 0
+}
+```
+
+### `POST /api/scheduler/run-monthly-reports`
+
+Protected operational trigger for monthly report draft automation.
+
+Requires either:
+
+- `Authorization: Bearer <SCHEDULER_SECRET>`
+- `x-scheduler-secret: <SCHEDULER_SECRET>`
+
+The route uses the server-only Supabase secret key, finds active clients with `report_automation_enabled = true` and due `next_report_due_on`, generates prior-month report drafts from stored source data, updates `last_report_generated_at`, and advances the next due date. It does not send report emails.
+
+Response:
+
+```json
+{
+  "ok": true,
+  "attempted": 2,
+  "generated": 2,
   "skipped": 0,
   "failed": 0
 }
@@ -323,6 +348,8 @@ The MVP assertion builder supports:
 }
 ```
 
+Current server action equivalents also support editing/disabling test packs, editing test cases, and archiving test cases. Disabled/archived records are hidden from active run controls without deleting historical test runs or issues.
+
 ## Reports
 
 ### `GET /api/reports`
@@ -353,6 +380,8 @@ The generated report stores:
 
 Source data includes workflow health, check runs, reportable issues, resolutions, and synthetic test runs.
 
+Report items may include `model_prompt_changes`, which compares check runs by stored `model` and `prompt_version` values.
+
 ### `GET /api/reports/:id`
 
 Returns report details.
@@ -381,6 +410,54 @@ Current server action equivalent: `sendReportAction(reportId)`.
 
 The send action requires report readiness to be `ready` or `review`, ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error`, mark the report `failed`, and redirect back to the report detail with a visible error instead of a success-style notice. Error copy is sanitized before it is shown or stored.
 
+## Public run logging
+
+### `POST /api/public/run-log`
+
+Receives workflow run metadata from external systems.
+
+Requires:
+
+- `Authorization: Bearer <workflow-run-log-api-key>`
+
+Run-log API keys are generated from the workflow detail page, shown once, stored only as hashes, and scoped to one workflow. The body `workflowId` must match the key's workflow.
+
+```json
+{
+  "workflowId": "uuid",
+  "status": "failed",
+  "latencyMs": 2100,
+  "statusCode": 500,
+  "model": "gpt-4.1-mini",
+  "promptVersion": "support-triage-v7",
+  "costEstimate": 0.012,
+  "outputSchemaPassed": false,
+  "errorType": "schema_mismatch",
+  "errorMessage": "Missing required answer field"
+}
+```
+
+Allowed `status` values:
+
+- `success`
+- `healthy`
+- `degraded`
+- `failed`
+- `error`
+
+Successful requests create a normal `check_runs` row under an "External run log" check, update the workflow health summary, update key `last_used_at`, and create/update an issue when the mapped status is degraded or failed.
+
+Response:
+
+```json
+{
+  "ok": true,
+  "checkRunId": "uuid",
+  "status": "failed",
+  "issueCreated": true
+}
+```
+
 ## Onboarding
 
 The Overview activation checklist is derived from real tenant data only:
@@ -392,6 +469,8 @@ The Overview activation checklist is derived from real tenant data only:
 - first report exists
 
 There is no production server action for seeding demo records.
+
+Logged-out users visiting `/` see the public TuesdayOps landing page. Authenticated users visiting `/` still see the tenant overview dashboard, and authenticated users without an agency are redirected to onboarding.
 
 ## Billing
 
@@ -450,22 +529,3 @@ workflows: 3
 ```
 
 Design partner workspaces are unrestricted. Existing rows above a limit are preserved; only new create actions are blocked.
-
-## Public/manual logging API — later MVP extension
-
-### `POST /api/public/run-log`
-
-Receives workflow run metadata from external workflow.
-
-Requires API key.
-
-```json
-{
-  "workflowId": "uuid",
-  "status": "success",
-  "latencyMs": 2100,
-  "model": "gpt-4.1-mini",
-  "costEstimate": 0.012,
-  "outputSchemaPassed": true
-}
-```

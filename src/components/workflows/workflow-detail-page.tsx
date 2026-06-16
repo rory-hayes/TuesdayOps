@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { ArrowLeft, LockKeyhole, Play, Plus } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
+import { MiniLineChart } from "@/components/charts/simple-charts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
+import { RunLogKeyPanel } from "@/components/workflows/run-log-key-panel";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
-import { updateWorkflowAction } from "@/lib/workflows/service";
+import { archiveWorkflowAction, updateWorkflowAction } from "@/lib/workflows/service";
 import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/formatting";
+import { buildChangeComparison } from "@/lib/reports/change-comparison";
+import { buildPassRateTrend } from "@/lib/dashboard/charts";
 
 export function WorkflowDetailPage({
   data,
@@ -24,6 +28,17 @@ export function WorkflowDetailPage({
   const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
   const checks = data.checks.filter((check) => check.workflowId === workflow.id);
   const runs = data.checkRuns.filter((run) => run.workflowId === workflow.id);
+  const changeComparison = buildChangeComparison(runs.map((run) => ({
+    status: run.status,
+    latencyMs: run.latencyMs,
+    costEstimate: run.costEstimate,
+    model: run.model,
+    promptVersion: run.promptVersion,
+    completedAt: run.completedAt,
+  })));
+  const activeRunLogKeys = data.workflowApiKeys.filter(
+    (key) => key.workflowId === workflow.id && !key.revokedAt,
+  );
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -38,7 +53,21 @@ export function WorkflowDetailPage({
             {client?.name ?? "Unknown client"} endpoint health, assertions, and manual run history.
           </p>
         </div>
-        <StatusBadge status={workflow.status} />
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusBadge status={workflow.status} />
+          <form action={archiveWorkflowAction}>
+            <input type="hidden" name="id" value={workflow.id} />
+            <FormSubmitButton
+              type="submit"
+              variant="secondary"
+              size="sm"
+              pendingLabel="Archiving..."
+              confirmMessage="Archive this workflow? Historical runs and reports will be preserved."
+            >
+              Archive
+            </FormSubmitButton>
+          </form>
+        </div>
       </section>
 
       <PageFeedback notice={notice} error={error} />
@@ -48,6 +77,10 @@ export function WorkflowDetailPage({
         <Stat label="Latency" value={`${workflow.latencyMs} ms`} />
         <Stat label="Checks" value={checks.length.toString()} />
         <Stat label="Last check" value={formatRelativeTime(workflow.lastCheckAt)} />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <MiniLineChart label="Workflow pass-rate trend" points={buildPassRateTrend(runs)} suffix="%" />
       </section>
 
       <section className="grid items-start gap-6 xl:grid-cols-[0.8fr_1.2fr]">
@@ -149,6 +182,39 @@ export function WorkflowDetailPage({
                   Save workflow
                 </FormSubmitButton>
               </form>
+            </CardContent>
+          </Card>
+
+          <RunLogKeyPanel workflowId={workflow.id} activeKeys={activeRunLogKeys} />
+
+          <Card>
+            <CardHeader>
+              <h2 className="text-base font-semibold">Change validation</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Lightweight model/prompt comparisons from logged runs.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {changeComparison.groups.length ? (
+                changeComparison.groups.slice(0, 3).map((group) => (
+                  <div key={group.label} className="rounded-lg border border-border p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium">{group.label}</p>
+                      <Badge variant={group.passRate >= 90 ? "success" : group.passRate >= 70 ? "warning" : "danger"}>
+                        {group.passRate}% pass
+                      </Badge>
+                    </div>
+                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                      {group.runs} runs · {group.averageLatencyMs}ms average latency
+                      {group.averageCostEstimate === undefined ? "" : ` · ${group.averageCostEstimate} average cost`}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                  Add model or prompt version metadata through the run logging API to compare changes.
+                </p>
+              )}
             </CardContent>
           </Card>
 

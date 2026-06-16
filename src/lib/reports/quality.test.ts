@@ -122,6 +122,7 @@ function buildData({
         owner: "Owner",
         reportRecipientEmail: "client@example.com",
         reportStatus: "not_started",
+        reportAutomationEnabled: false,
         healthScore: 95,
         lastActivityAt: "2026-06-14T08:00:00.000Z",
         notes: "",
@@ -169,6 +170,7 @@ function buildData({
     testPacks: [],
     testCases: [],
     testRuns: [],
+    workflowApiKeys: [],
     reports: [
       {
         id: "report-1",

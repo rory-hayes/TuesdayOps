@@ -19,7 +19,8 @@ import {
 import { encryptJsonPayload } from "@/lib/security/secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { parseWorkflowImport } from "@/lib/workflows/onboarding";
+import { buildWorkflowArchiveUpdate } from "@/lib/workflows/lifecycle";
+import { fetchOpenApiImportPlan, parseWorkflowImport } from "@/lib/workflows/onboarding";
 
 const workflowBaseFormSchema = z.object({
   clientId: z.string().uuid(),
@@ -117,12 +118,15 @@ export async function createWorkflowFromImportAction(formData: FormData) {
   }
 
   let plan;
+  const importText = parsed.data.rawImportText || parsed.data.importText;
 
   try {
-    plan = parseWorkflowImport({
-      source: parsed.data.importSource,
-      text: parsed.data.rawImportText || parsed.data.importText,
-    });
+    plan = parsed.data.importSource === "openapi" && /^https?:\/\//i.test(importText)
+      ? await fetchOpenApiImportPlan({ url: importText })
+      : parseWorkflowImport({
+          source: parsed.data.importSource,
+          text: importText,
+        });
   } catch (error) {
     redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow import could not be parsed."))}`);
   }
@@ -182,6 +186,10 @@ const workflowUpdateFormSchema = workflowBaseFormSchema
     id: z.string().uuid(),
     includedInReports: z.enum(["on"]).optional(),
   });
+
+const workflowIdFormSchema = z.object({
+  id: z.string().uuid(),
+});
 
 export async function updateWorkflowAction(formData: FormData) {
   const parsed = workflowUpdateFormSchema.safeParse(Object.fromEntries(formData));
@@ -245,6 +253,42 @@ export async function updateWorkflowAction(formData: FormData) {
   redirect(`/workflows/${parsed.data.id}?notice=${encodeURIComponent("Workflow saved.")}`);
 }
 
+export async function archiveWorkflowAction(formData: FormData) {
+  const parsed = workflowIdFormSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/workflows?error=${encodeURIComponent("Workflow id was invalid.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const archiveResult = await supabase
+    .from("workflows")
+    .update(buildWorkflowArchiveUpdate())
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.id)
+    .select("id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(archiveResult, "Workflow was not found or is not accessible.");
+  } catch (error) {
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow could not be archived."))}`);
+  }
+
+  await recordWorkflowAuditEvent({
+    workspace,
+    action: "workflow.archived",
+    targetId: parsed.data.id,
+    metadata: {},
+  });
+
+  revalidatePath("/workflows");
+  revalidatePath("/checks");
+  revalidatePath("/");
+  redirect(`/workflows?notice=${encodeURIComponent("Workflow archived. Historical runs and report data were preserved.")}`);
+}
+
 type WorkflowCreateInput = {
   clientId: string;
   name: string;
@@ -274,7 +318,8 @@ async function createWorkflowWithHealthCheck({
   const { count, error: countError } = await supabase
     .from("workflows")
     .select("id", { count: "exact", head: true })
-    .eq("agency_id", workspace.agency.id);
+    .eq("agency_id", workspace.agency.id)
+    .is("archived_at", null);
 
   if (countError) {
     redirect(`/workflows?error=${encodeURIComponent(formatActionError(countError, "Workflow count could not be loaded."))}`);
@@ -401,7 +446,7 @@ async function recordWorkflowAuditEvent({
   metadata,
 }: {
   workspace: WorkspaceContext;
-  action: "workflow.created" | "workflow.updated";
+  action: "workflow.created" | "workflow.updated" | "workflow.archived";
   targetId: string;
   metadata: Record<string, unknown>;
 }) {

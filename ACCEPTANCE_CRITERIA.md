@@ -32,9 +32,11 @@ Every feature must satisfy:
 - User can create a workflow under a client.
 - Workflows opens to the full workflow registry before setup forms.
 - Add workflow opens a guided onboarding modal with quick import and manual endpoint setup.
-- User can import a workflow from URL, cURL, OpenAPI JSON, or Postman collection JSON.
+- User can import a workflow from URL, cURL, OpenAPI JSON/YAML/URL, or Postman collection JSON.
 - User can configure endpoint URL, method, auth type, frequency, and expected status.
 - Auth config is encrypted or stored securely.
+- User can archive a workflow without deleting historical evidence.
+- User can rotate/revoke workflow-scoped run-log API keys without exposing stored key material.
 - Production blocks localhost/private-network workflow endpoints unless private endpoint mode is explicitly enabled for local/private testing.
 - User can manually run a check.
 - Workflow status updates from check results.
@@ -43,14 +45,17 @@ Every feature must satisfy:
 
 - User can create health check config.
 - System validates check config.
+- User can disable a check without deleting run history.
 - Manual check run stores result.
 - Scheduled check run stores result.
+- Public run-log submission stores a check run for the correct workflow only.
 - Failed/degraded check creates or updates issue.
 
 ## Test packs
 
 - User can create test pack.
 - User can create test cases with input and assertions.
+- User can edit/disable test packs and edit/archive test cases.
 - User can run test pack manually.
 - Results show passed/failed counts.
 - Failed test creates issue when configured.
@@ -67,10 +72,12 @@ Every feature must satisfy:
 
 - User can generate report for a client and period.
 - Report aggregates workflows, checks, issues, and resolutions.
+- Report includes model/prompt comparison evidence when run data contains versions.
 - User can preview report.
 - User can generate PDF.
 - PDF is stored and downloadable.
 - Report respects agency branding.
+- Monthly report automation can generate due draft reports without sending them automatically.
 
 ## Alerts
 
@@ -87,6 +94,7 @@ Every feature must satisfy:
 ## Dashboard
 
 - Overview displays active clients, monitored workflows, open issues, check pass rate.
+- Overview, client, and workflow pages show compact pass-rate/run-volume trends.
 - Recent issues list works.
 - Scheduled checks list works.
 - Client workflows table works.
@@ -95,6 +103,7 @@ Every feature must satisfy:
 ## Production readiness
 
 - `/api/health` returns provider readiness without exposing secret values.
+- Logged-out `/` renders a public landing page while authenticated `/` renders the app dashboard.
 - Launch-blocking provider configuration stays in operator-only health/deployment checks, not user-facing Settings.
 - Overview shows operational reliability status from enabled checks, stale workflow data, high-risk open issues, and report queue state.
 - Reports show ready/review/blocked quality state before send/export.

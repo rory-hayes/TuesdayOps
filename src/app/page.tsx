@@ -1,7 +1,9 @@
 import { AppShell } from "@/components/app-shell";
 import { OverviewDashboard } from "@/components/dashboard/overview-dashboard";
+import { MarketingLandingPage } from "@/components/marketing/landing-page";
 import { getOperationalData } from "@/lib/data/operational-data";
-import { requireWorkspace } from "@/lib/auth/workspace";
+import { getWorkspaceContext } from "@/lib/auth/workspace";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +12,16 @@ type HomeProps = {
 };
 
 export default async function Home({ searchParams }: HomeProps) {
-  const workspace = await requireWorkspace();
+  const { user, workspace } = await getWorkspaceContext();
+
+  if (!user) {
+    return <MarketingLandingPage />;
+  }
+
+  if (!workspace) {
+    redirect("/onboarding");
+  }
+
   const [data, params] = await Promise.all([getOperationalData(workspace.agency), searchParams]);
 
   return (

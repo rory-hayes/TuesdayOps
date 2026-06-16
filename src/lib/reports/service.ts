@@ -233,7 +233,7 @@ export async function sendReportAction(formData: FormData) {
   }));
 }
 
-async function saveReportDraft({
+export async function saveReportDraft({
   supabase,
   agencyId,
   draft,

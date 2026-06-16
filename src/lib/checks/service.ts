@@ -7,7 +7,9 @@ import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import { executeCheckRun } from "@/lib/checks/execution";
+import { buildCheckDisableUpdate } from "@/lib/checks/lifecycle";
 import { formatActionError } from "@/lib/server-actions/feedback";
+import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -100,6 +102,47 @@ export async function runCheckAction(formData: FormData) {
   redirect(`/workflows/${workflowId}?notice=${encodeURIComponent("Check run completed and history was updated.")}`);
 }
 
+export async function disableCheckAction(formData: FormData) {
+  const parsed = runCheckFormSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/checks?error=${encodeURIComponent("Check id was invalid.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const disableResult = await supabase
+    .from("checks")
+    .update(buildCheckDisableUpdate())
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.checkId)
+    .select("id, workflow_id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(disableResult, "Check was not found or is not accessible.");
+  } catch (error) {
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be disabled."))}`);
+  }
+
+  const workflowId = (disableResult.data as { workflow_id?: string } | null)?.workflow_id;
+
+  await recordCheckLifecycleAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    checkId: parsed.data.checkId,
+    action: "check.disabled",
+  });
+
+  revalidatePath("/checks");
+  if (workflowId) {
+    revalidatePath(`/workflows/${workflowId}`);
+  }
+  revalidatePath("/workflows");
+  revalidatePath("/");
+  redirect(`/checks?notice=${encodeURIComponent("Check disabled. Historical run data was preserved.")}`);
+}
+
 async function recordCheckRunAuditEvent({
   agencyId,
   actorUserId,
@@ -129,5 +172,31 @@ async function recordCheckRunAuditEvent({
     });
   } catch {
     // Audit logging must not block check execution.
+  }
+}
+
+async function recordCheckLifecycleAuditEvent({
+  agencyId,
+  actorUserId,
+  checkId,
+  action,
+}: {
+  agencyId: string;
+  actorUserId: string;
+  checkId: string;
+  action: "check.disabled";
+}) {
+  try {
+    await recordAuditEvent({
+      supabase: createAdminClient(),
+      agencyId,
+      actorUserId,
+      action,
+      targetType: "check",
+      targetId: checkId,
+      metadata: {},
+    });
+  } catch {
+    // Audit logging must not block check lifecycle actions.
   }
 }

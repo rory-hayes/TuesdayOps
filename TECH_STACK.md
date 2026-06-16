@@ -7,16 +7,16 @@
 | Frontend | Next.js + TypeScript | Fast production SaaS development |
 | UI | Tailwind CSS + shadcn/ui | Clean, fast, customizable UI |
 | DB/Auth/Storage | Supabase | Auth, Postgres, RLS, storage |
-| Jobs | Inngest or Trigger.dev | Scheduled checks, retries, background jobs |
+| Jobs | Supabase Cron/Vault + protected Next.js routes | Scheduled checks and report draft automation without adding another provider |
 | Hosting | Vercel | Fast deployments and previews |
 | Email | Resend | Alerts and reports |
 | Billing | Stripe | Subscriptions and customer portal |
-| Analytics | PostHog | Product analytics and activation funnels |
+| Analytics | Deferred | PostHog is intentionally skipped for the current design-partner plan |
 | Error tracking | Sentry | App and job error visibility |
-| Forms | React Hook Form + Zod | Form handling and validation |
-| Charts | Recharts or Tremor | Dashboard charts |
-| PDF reports | React PDF or Playwright/Puppeteer | Report generation |
-| Icons | Lucide React | Consistent modern icons |
+| Forms | Server actions + Zod | Form handling and validation |
+| Charts | Lightweight SVG components | Dashboard charts without a new dependency |
+| PDF reports | Server-side PDF helper | Report generation |
+| Icons | Heroicons + Lucide where already used | Consistent modern icons |
 
 Runtime requirement:
 
@@ -36,9 +36,9 @@ Do not add Clerk/Auth0 unless Supabase Auth becomes a blocker.
 
 The data model is relational and tenant-scoped. Postgres is the right choice.
 
-### Use Inngest or Trigger.dev
+### Use Supabase Cron/Vault scheduler
 
-Background jobs are central to the product. Use a managed job system instead of building custom cron/retry infrastructure.
+Scheduled checks and monthly report draft generation use Supabase Cron/Vault to call protected Next.js scheduler routes with `SCHEDULER_SECRET`.
 
 ### Use Stripe Billing
 
@@ -61,9 +61,10 @@ Expected MVP env vars:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
 SUPABASE_SECRET_KEY=
-INNGEST_EVENT_KEY=
-INNGEST_SIGNING_KEY=
+SCHEDULER_SECRET=
+SUPABASE_CRON_ENABLED=
 RESEND_API_KEY=
+RESEND_FROM_EMAIL=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID=

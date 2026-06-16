@@ -5,6 +5,7 @@ import type {
   TuesdayOpsSeedData,
 } from "@/lib/domain/types";
 import { sanitizeReportText } from "@/lib/reports/sanitize";
+import { buildChangeComparison, buildChangeComparisonReportItem } from "@/lib/reports/change-comparison";
 
 type BuildReportDraftInput = {
   data: TuesdayOpsSeedData;
@@ -43,6 +44,14 @@ export function buildReportDraft({
     (run) => workflowIds.has(run.workflowId) && isWithinPeriod(run.createdAt, periodStart, periodEnd),
   );
   const healthyRuns = checkRuns.filter((run) => run.status === "healthy").length;
+  const changeComparison = buildChangeComparison(checkRuns.map((run) => ({
+    status: run.status,
+    latencyMs: run.latencyMs,
+    costEstimate: run.costEstimate,
+    model: run.model,
+    promptVersion: run.promptVersion,
+    completedAt: run.completedAt,
+  })));
   const passRate = checkRuns.length
     ? Math.round((healthyRuns / checkRuns.length) * 100)
     : getWorkflowAveragePassRate(clientWorkflows);
@@ -98,6 +107,7 @@ export function buildReportDraft({
         body: `${metrics.testRuns} synthetic test runs completed with ${metrics.testFailures} failed cases.`,
         sortOrder: 40,
       }),
+      buildReportItem(buildChangeComparisonReportItem(changeComparison)),
     ],
   };
 }

@@ -6,12 +6,16 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { JsonTextArea } from "@/components/ui/json-textarea";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { createCheckAction, runCheckAction } from "@/lib/checks/service";
+import { createCheckAction, disableCheckAction, runCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import {
   createTestCaseAction,
   createTestPackAction,
+  archiveTestCaseAction,
+  disableTestPackAction,
   runTestPackAction,
+  updateTestCaseAction,
+  updateTestPackAction,
 } from "@/lib/test-packs/service";
 import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/formatting";
 
@@ -24,6 +28,9 @@ export function ChecksPage({
   notice?: string;
   error?: string;
 }) {
+  const enabledChecks = data.checks.filter((check) => check.enabled);
+  const enabledPacks = data.testPacks.filter((pack) => pack.enabled);
+
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
       <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
@@ -36,7 +43,7 @@ export function ChecksPage({
             Lightweight QA checks that catch broken endpoints, schema drift, latency spikes, and unsafe output.
           </p>
         </div>
-        <Badge variant="muted">{data.checks.length} enabled</Badge>
+        <Badge variant="muted">{enabledChecks.length} enabled</Badge>
       </section>
 
       <PageFeedback notice={notice} error={error} />
@@ -89,7 +96,7 @@ export function ChecksPage({
             <p className="mt-1 text-sm text-muted-foreground">Scheduled monitors attached to workflows.</p>
           </CardHeader>
           <CardContent className="space-y-3">
-            {data.checks.length ? data.checks.map((check) => {
+            {enabledChecks.length ? enabledChecks.map((check) => {
               const workflow = data.workflows.find((candidate) => candidate.id === check.workflowId);
 
               return (
@@ -112,6 +119,18 @@ export function ChecksPage({
                       <FormSubmitButton type="submit" size="sm" pendingLabel="Running...">
                         <Play size={14} aria-hidden="true" />
                         Run
+                      </FormSubmitButton>
+                    </form>
+                    <form action={disableCheckAction}>
+                      <input type="hidden" name="checkId" value={check.id} />
+                      <FormSubmitButton
+                        type="submit"
+                        size="sm"
+                        variant="secondary"
+                        pendingLabel="Disabling..."
+                        confirmMessage="Disable this check? Historical check runs will be preserved."
+                      >
+                        Disable
                       </FormSubmitButton>
                     </form>
                   </div>
@@ -165,8 +184,8 @@ export function ChecksPage({
               </form>
             ) : null}
 
-            {data.testPacks.length ? (
-              data.testPacks.map((pack) => {
+            {enabledPacks.length ? (
+              enabledPacks.map((pack) => {
                 const workflow = data.workflows.find((candidate) => candidate.id === pack.workflowId);
                 const cases = data.testCases.filter((testCase) => testCase.testPackId === pack.id);
                 const runs = data.testRuns.filter((run) => run.testPackId === pack.id);
@@ -194,6 +213,32 @@ export function ChecksPage({
                       </div>
                     </div>
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">{pack.description}</p>
+                    <form action={updateTestPackAction} className="mt-4 grid gap-3 rounded-lg bg-muted p-3 md:grid-cols-2">
+                      <input type="hidden" name="testPackId" value={pack.id} />
+                      <Input label="Pack name" name="name" placeholder="Regression pack" defaultValue={pack.name} required minLength={2} maxLength={120} />
+                      <TextArea
+                        label="Description"
+                        name="description"
+                        placeholder="Core happy-path and guardrail checks"
+                        defaultValue={pack.description}
+                        maxLength={400}
+                      />
+                      <div className="flex flex-wrap gap-2 md:col-span-2">
+                        <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Saving...">
+                          Save pack
+                        </FormSubmitButton>
+                        <FormSubmitButton
+                          formAction={disableTestPackAction}
+                          type="submit"
+                          size="sm"
+                          variant="secondary"
+                          pendingLabel="Disabling..."
+                          confirmMessage="Disable this test pack? Historical synthetic runs will be preserved."
+                        >
+                          Disable pack
+                        </FormSubmitButton>
+                      </div>
+                    </form>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <Badge variant="muted">{pack.caseCount} cases</Badge>
                       <Badge variant="muted">
@@ -226,10 +271,42 @@ export function ChecksPage({
                         <div className="mt-2 space-y-2">
                           {cases.length ? (
                             cases.map((testCase) => (
-                              <div key={testCase.id} className="flex items-center justify-between gap-3 rounded-lg bg-muted px-3 py-2">
-                                <p className="min-w-0 truncate text-sm font-medium">{testCase.name}</p>
-                                <StatusBadge status={testCase.latestStatus} />
-                              </div>
+                              <details key={testCase.id} className="rounded-lg bg-muted px-3 py-2">
+                                <summary className="flex cursor-pointer items-center justify-between gap-3">
+                                  <span className="min-w-0 truncate text-sm font-medium">{testCase.name}</span>
+                                  <StatusBadge status={testCase.latestStatus} />
+                                </summary>
+                                <form action={updateTestCaseAction} className="mt-3 grid gap-3 md:grid-cols-2">
+                                  <input type="hidden" name="testCaseId" value={testCase.id} />
+                                  <Input label="Case name" name="name" placeholder="Happy path lead intake" defaultValue={testCase.name} required minLength={2} maxLength={120} />
+                                  <TextArea
+                                    label="Input JSON"
+                                    name="inputJson"
+                                    placeholder='{"leadId":"qa-001","intent":"book"}'
+                                    defaultValue={formatJsonValue(testCase.inputJson)}
+                                    validateJson
+                                  />
+                                  <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} defaultValue={getStatusAssertionValue(testCase.assertionsJson)} />
+                                  <Input label="Max latency ms" name="maxLatencyMs" placeholder="10000" type="number" required min={100} max={60000} defaultValue={getLatencyAssertionValue(testCase.assertionsJson)} />
+                                  <Input label="Required field" name="fieldExistsPath" placeholder="result.id" maxLength={120} defaultValue={getFieldExistsAssertionValue(testCase.assertionsJson)} />
+                                  <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={120} defaultValue={getNotContainsAssertionValue(testCase.assertionsJson)} />
+                                  <div className="flex flex-wrap gap-2 md:col-span-2">
+                                    <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Saving...">
+                                      Save case
+                                    </FormSubmitButton>
+                                    <FormSubmitButton
+                                      formAction={archiveTestCaseAction}
+                                      type="submit"
+                                      size="sm"
+                                      variant="secondary"
+                                      pendingLabel="Archiving..."
+                                      confirmMessage="Archive this test case? Historical synthetic runs will be preserved."
+                                    >
+                                      Archive case
+                                    </FormSubmitButton>
+                                  </div>
+                                </form>
+                              </details>
                             ))
                           ) : (
                             <p className="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
@@ -288,6 +365,7 @@ function Input({
   placeholder,
   type = "text",
   required = false,
+  defaultValue,
   min,
   max,
   minLength,
@@ -298,6 +376,7 @@ function Input({
   placeholder: string;
   type?: string;
   required?: boolean;
+  defaultValue?: string | number;
   min?: number;
   max?: number;
   minLength?: number;
@@ -310,6 +389,7 @@ function Input({
         required={required}
         name={name}
         type={type}
+        defaultValue={defaultValue}
         min={min}
         max={max}
         minLength={minLength}
@@ -326,6 +406,7 @@ function TextArea({
   name,
   placeholder,
   className = "",
+  defaultValue,
   maxLength,
   validateJson = false,
 }: {
@@ -333,6 +414,7 @@ function TextArea({
   name: string;
   placeholder: string;
   className?: string;
+  defaultValue?: string;
   maxLength?: number;
   validateJson?: boolean;
 }) {
@@ -344,10 +426,45 @@ function TextArea({
       <TextAreaElement
         name={name}
         placeholder={placeholder}
+        defaultValue={defaultValue}
         maxLength={maxLength}
         rows={3}
         className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
       />
     </label>
   );
+}
+
+function formatJsonValue(value: unknown): string {
+  try {
+    return JSON.stringify(value ?? {}, null, 2);
+  } catch {
+    return "{}";
+  }
+}
+
+function getStatusAssertionValue(assertionsJson: unknown): number {
+  const assertion = getAssertions(assertionsJson).find((item) => item.type === "status_code");
+  return typeof assertion?.expected === "number" ? assertion.expected : 200;
+}
+
+function getLatencyAssertionValue(assertionsJson: unknown): number {
+  const assertion = getAssertions(assertionsJson).find((item) => item.type === "latency_under");
+  return typeof assertion?.maxMs === "number" ? assertion.maxMs : 10000;
+}
+
+function getFieldExistsAssertionValue(assertionsJson: unknown): string {
+  const assertion = getAssertions(assertionsJson).find((item) => item.type === "field_exists");
+  return typeof assertion?.path === "string" ? assertion.path : "";
+}
+
+function getNotContainsAssertionValue(assertionsJson: unknown): string {
+  const assertion = getAssertions(assertionsJson).find((item) => item.type === "not_contains");
+  return typeof assertion?.value === "string" ? assertion.value : "";
+}
+
+function getAssertions(value: unknown): Array<Record<string, unknown>> {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    : [];
 }

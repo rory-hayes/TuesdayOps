@@ -63,6 +63,9 @@ logo_url text
 owner_user_id uuid references profiles(id)
 report_recipient_email text
 report_cadence text default 'monthly'
+report_automation_enabled boolean default false
+next_report_due_on date
+last_report_generated_at timestamptz
 notes text
 archived_at timestamptz
 created_at timestamptz default now()
@@ -91,9 +94,32 @@ latency_ms integer default 0
 monthly_cost numeric default 0
 last_check_at timestamptz
 included_in_reports boolean default true
+archived_at timestamptz
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
+
+`archived_at` removes workflows from active app views without deleting historical check runs, issues, or reports.
+
+## workflow_api_keys
+
+Stores workflow-scoped API keys for external run logging.
+
+```txt
+id uuid primary key
+agency_id uuid references agencies(id)
+workflow_id uuid references workflows(id)
+name text not null
+key_prefix text not null
+key_hash text unique not null
+last_used_at timestamptz
+revoked_at timestamptz
+expires_at timestamptz
+created_at timestamptz default now()
+updated_at timestamptz default now()
+```
+
+Plaintext keys are never stored. The UI only displays the plaintext value immediately after rotation, then stores a non-secret prefix for identification.
 
 ## RLS and onboarding helpers
 
@@ -153,6 +179,8 @@ created_at timestamptz default now()
 ```
 
 Milestone 4 scheduled checks add `trigger` and `scheduled_for`. Scheduled runs have a unique database index on `(agency_id, check_id, scheduled_for)` where `trigger = 'scheduled'`, which makes repeated scheduler calls for the same five-minute execution window idempotent.
+
+External run logs are stored as normal manual check runs under an "External run log" check. `model`, `prompt_version`, and `cost_estimate` support model/prompt comparison and monthly report evidence.
 
 ## issues
 
@@ -219,6 +247,7 @@ name text not null
 input_json jsonb not null
 expected_json jsonb
 assertions_json jsonb not null
+archived_at timestamptz
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
@@ -278,7 +307,7 @@ Represents stored, report-safe modules rendered in the preview and PDF.
 id uuid primary key
 agency_id uuid references agencies(id)
 report_id uuid references reports(id)
-category text check in ('workflow_health', 'issues_caught', 'issues_resolved', 'qa_checks', 'recommendation')
+category text check in ('workflow_health', 'issues_caught', 'issues_resolved', 'qa_checks', 'model_prompt_changes', 'recommendation')
 title text not null
 body text not null
 metadata_json jsonb
@@ -299,7 +328,13 @@ actor_user_id uuid references profiles(id)
 action text check in (
   'workflow.created',
   'workflow.updated',
+  'workflow.archived',
   'check.run',
+  'check.disabled',
+  'test_pack.updated',
+  'test_pack.disabled',
+  'test_case.updated',
+  'test_case.archived',
   'issue.assigned',
   'issue.resolved',
   'issue.ignored',
@@ -308,7 +343,7 @@ action text check in (
   'report.send_attempted',
   'billing.webhook_processed'
 )
-target_type text check in ('workflow', 'check', 'issue', 'report', 'billing_event')
+target_type text check in ('workflow', 'check', 'test_pack', 'test_case', 'issue', 'report', 'billing_event')
 target_id text
 metadata_json jsonb default '{}'
 created_at timestamptz default now()
@@ -326,6 +361,8 @@ public.configure_due_check_cron(schedule_expression text default '*/5 * * * *') 
 ```
 
 `trigger_due_check_sweep()` reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, then calls the protected Next.js scheduler route with `pg_net`. Both functions revoke execution from `public`, `anon`, and `authenticated`, and grant execution to `service_role`.
+
+Monthly report draft automation is app-side today. The protected route is `POST /api/scheduler/run-monthly-reports`, and it uses `clients.report_automation_enabled`, `clients.next_report_due_on`, and `clients.last_report_generated_at` to generate due prior-month report drafts.
 
 ## billing_events
 

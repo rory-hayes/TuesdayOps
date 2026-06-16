@@ -45,8 +45,8 @@ const importSources: Array<{
   },
   {
     value: "openapi",
-    label: "OpenAPI JSON",
-    placeholder: '{"openapi":"3.1.0","servers":[{"url":"https://api.example.com"}],"paths":{...}}',
+    label: "OpenAPI JSON/YAML/URL",
+    placeholder: 'https://docs.example.com/openapi.json or {"openapi":"3.1.0","servers":[...]}',
   },
   {
     value: "postman",
@@ -75,6 +75,22 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
     }
 
     try {
+      if (importSource === "openapi" && /^https?:\/\//i.test(importText.trim())) {
+        return {
+          status: "ready",
+          plan: {
+            name: "OpenAPI URL import",
+            type: "custom_api",
+            endpointUrl: importText.trim(),
+            method: "GET",
+            authType: "none",
+            checkFrequencyMinutes: 60,
+            expectedStatus: 200,
+            maxLatencyMs: 5000,
+          },
+        };
+      }
+
       return {
         status: "ready",
         plan: parseWorkflowImport({

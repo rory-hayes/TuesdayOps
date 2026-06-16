@@ -22,9 +22,12 @@ The MVP is intentionally narrow. It should validate whether agencies managing li
 - Scheduled check runs
 - Synthetic test packs
 - Issue creation and resolution
-- Email and/or Slack alerts
+- Email alerts
+- External run logging API with workflow-scoped keys
 - Monthly white-label report preview
 - PDF report export
+- Monthly report draft automation
+- Prompt/model change comparison
 - Simple billing gate
 
 ### Excluded from MVP
@@ -38,6 +41,9 @@ The MVP is intentionally narrow. It should validate whether agencies managing li
 - Agency CRM
 - Invoicing/time tracking
 - Full client portal
+- Slack alerts
+- PostHog analytics
+- Browser synthetic checks
 - Marketplace
 - Dozens of native integrations
 
@@ -128,7 +134,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` are reserved for a later analytics pass and are not launch-blocking while PostHog is intentionally skipped.
 `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is only for local/private test environments. Production should leave it unset so workflow checks cannot call localhost, private networks, or metadata endpoints.
 
-Scheduled checks are triggered by Supabase Cron calling `/api/scheduler/run-due-checks`. The Cron SQL reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, so the scheduler secret is not stored in migrations or client code. Set `SUPABASE_CRON_ENABLED=true` only after the Cron job and Vault secrets are configured.
+Scheduled checks are triggered by Supabase Cron calling `/api/scheduler/run-due-checks`. Monthly report draft automation uses the same scheduler secret on `/api/scheduler/run-monthly-reports`. The Cron SQL reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, so the scheduler secret is not stored in migrations or client code. Set `SUPABASE_CRON_ENABLED=true` only after the Cron job and Vault secrets are configured.
 
 Local Supabase uses the repo `supabase/config.toml` port range `55420-55429` to avoid clashes with other local Supabase projects.
 
@@ -165,6 +171,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 
 - Next.js App Router app
 - TypeScript and Tailwind CSS
+- public logged-out landing page with authenticated dashboard routing preserved
 - TuesdayOps app shell
 - Supabase SSR auth clients and protected app routes
 - agency onboarding through a tenant-safe Supabase RPC
@@ -172,8 +179,9 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - tenant-scoped overview, clients, workflows, checks, issues, reports, and settings screens
 - client create/update/archive server actions
 - registry-first Workflows page with guided Add workflow onboarding for quick import and manual endpoint setup
-- workflow creation with encrypted auth config handling
+- workflow creation with encrypted auth config handling, archive controls, and external run-log API key rotation/revocation
 - endpoint health check creation, manual run execution, assertion evaluation, and check run persistence
+- check disable controls and test-pack/test-case lifecycle controls
 - failed/degraded manual checks create deduped issues with severity mapping
 - issue queue filters, expandable details, assignment, resolution notes, and ignore actions
 - Supabase Cron/Vault scheduled trigger for `/api/scheduler/run-due-checks`
@@ -184,6 +192,10 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - tenant-scoped synthetic test packs, test cases, test runs, and manual pack execution from the Checks page
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
 - tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts
+- monthly report draft automation fields and protected scheduler route
+- model/prompt comparison report items and workflow-level change validation summaries
+- overview, client, and workflow trend charts from stored check-run and issue data
+- OpenAPI import from JSON, YAML, pasted text, or a safe public URL
 - production deployment checklist, Supabase migration checklist, smoke checklist, Node runtime floor, and clean dependency audit
 - GitHub Actions CI plus a production smoke workflow that checks public app/Supabase health, route protections, billing webhook safety, gated Sentry example routes, and browser security headers without requiring provider secrets
 - overview activation checklist for first client, workflow, check run, and report

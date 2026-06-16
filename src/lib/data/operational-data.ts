@@ -13,8 +13,10 @@ import type {
   TestRunStatus,
   TuesdayOpsSeedData,
   Workflow,
+  WorkflowApiKeySummary,
   WorkflowStatus,
 } from "@/lib/domain/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import { createClient } from "@/lib/supabase/server";
 import { buildTestPackSummary } from "@/lib/test-packs/runner";
@@ -26,6 +28,9 @@ type ClientRow = {
   slug: string;
   industry: string;
   report_recipient_email: string;
+  report_automation_enabled: boolean | null;
+  next_report_due_on: string | null;
+  last_report_generated_at: string | null;
   notes: string;
   archived_at: string | null;
   created_at: string;
@@ -49,6 +54,7 @@ type WorkflowRow = {
   monthly_cost: number | string;
   last_check_at: string | null;
   included_in_reports: boolean;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -77,6 +83,9 @@ type CheckRunRow = {
   latency_ms: number;
   response_summary: string;
   error_message: string | null;
+  cost_estimate: number | string | null;
+  model: string | null;
+  prompt_version: string | null;
   started_at: string;
   completed_at: string;
   created_at: string;
@@ -122,6 +131,7 @@ type TestCaseRow = {
   name: string;
   input_json: unknown;
   assertions_json: unknown;
+  archived_at: string | null;
   created_at: string;
 };
 
@@ -136,6 +146,17 @@ type TestRunRow = {
   latency_ms: number;
   response_summary: string;
   error_message: string | null;
+  created_at: string;
+};
+
+type WorkflowApiKeyRow = {
+  id: string;
+  agency_id: string;
+  workflow_id: string;
+  name: string;
+  key_prefix: string;
+  last_used_at: string | null;
+  revoked_at: string | null;
   created_at: string;
 };
 
@@ -170,8 +191,9 @@ type AgencySnapshot = TuesdayOpsSeedData["agency"];
 
 export async function getOperationalData(
   agency: AgencySnapshot,
+  supabaseOverride?: SupabaseClient,
 ): Promise<TuesdayOpsSeedData> {
-  const supabase = await createClient();
+  const supabase = supabaseOverride ?? await createClient();
   const [
     clientsResult,
     workflowsResult,
@@ -181,6 +203,7 @@ export async function getOperationalData(
     testPacksResult,
     testCasesResult,
     testRunsResult,
+    workflowApiKeysResult,
     reportsResult,
     reportItemsResult,
   ] = await Promise.all([
@@ -193,6 +216,7 @@ export async function getOperationalData(
       .from("workflows")
       .select("*")
       .eq("agency_id", agency.id)
+      .is("archived_at", null)
       .order("created_at", { ascending: false }),
     supabase
       .from("checks")
@@ -219,6 +243,7 @@ export async function getOperationalData(
       .from("test_cases")
       .select("*")
       .eq("agency_id", agency.id)
+      .is("archived_at", null)
       .order("created_at", { ascending: false }),
     supabase
       .from("test_runs")
@@ -226,6 +251,11 @@ export async function getOperationalData(
       .eq("agency_id", agency.id)
       .order("created_at", { ascending: false })
       .limit(150),
+    supabase
+      .from("workflow_api_keys")
+      .select("id, agency_id, workflow_id, name, key_prefix, last_used_at, revoked_at, created_at")
+      .eq("agency_id", agency.id)
+      .order("created_at", { ascending: false }),
     supabase
       .from("reports")
       .select("*")
@@ -247,6 +277,7 @@ export async function getOperationalData(
     testPacksResult.error ??
     testCasesResult.error ??
     testRunsResult.error ??
+    workflowApiKeysResult.error ??
     reportsResult.error ??
     reportItemsResult.error;
 
@@ -262,6 +293,7 @@ export async function getOperationalData(
   const testPackRows = (testPacksResult.data ?? []) as TestPackRow[];
   const testCaseRows = (testCasesResult.data ?? []) as TestCaseRow[];
   const testRunRows = (testRunsResult.data ?? []) as TestRunRow[];
+  const workflowApiKeyRows = (workflowApiKeysResult.data ?? []) as WorkflowApiKeyRow[];
   const reportRows = (reportsResult.data ?? []) as ReportRow[];
   const reportItemRows = (reportItemsResult.data ?? []) as ReportItemRow[];
 
@@ -273,6 +305,7 @@ export async function getOperationalData(
   const testPacks = testPackRows.map((row) => mapTestPack(row, testCaseRows, testRunRows));
   const testCases = testCaseRows.map((row) => mapTestCase(row, testRunRows));
   const testRuns = testRunRows.map(mapTestRun);
+  const workflowApiKeys = workflowApiKeyRows.map(mapWorkflowApiKey);
   const reports = reportRows.map((row) => mapReport(row, clientRows));
   const reportItems = reportItemRows.map(mapReportItem);
 
@@ -286,6 +319,7 @@ export async function getOperationalData(
     testPacks,
     testCases,
     testRuns,
+    workflowApiKeys,
     reports,
     reportItems,
   };
@@ -327,6 +361,9 @@ function mapClient(row: ClientRow, workflows: Workflow[]): Client {
     owner: "Unassigned",
     reportRecipientEmail: row.report_recipient_email,
     reportStatus: "not_started",
+    reportAutomationEnabled: Boolean(row.report_automation_enabled),
+    nextReportDueOn: row.next_report_due_on ?? undefined,
+    lastReportGeneratedAt: row.last_report_generated_at ?? undefined,
     healthScore,
     lastActivityAt,
     notes: row.notes,
@@ -391,6 +428,9 @@ function mapCheckRun(row: CheckRunRow): CheckRun {
     latencyMs: row.latency_ms,
     responseSummary: row.response_summary,
     errorMessage: row.error_message ?? undefined,
+    costEstimate: row.cost_estimate == null ? undefined : Number(row.cost_estimate),
+    model: row.model ?? undefined,
+    promptVersion: row.prompt_version ?? undefined,
     startedAt: row.started_at,
     completedAt: row.completed_at,
   };
@@ -476,6 +516,19 @@ function mapTestRun(row: TestRunRow): TestRun {
     latencyMs: row.latency_ms,
     responseSummary: row.response_summary,
     errorMessage: row.error_message ?? undefined,
+    createdAt: row.created_at,
+  };
+}
+
+function mapWorkflowApiKey(row: WorkflowApiKeyRow): WorkflowApiKeySummary {
+  return {
+    id: row.id,
+    agencyId: row.agency_id,
+    workflowId: row.workflow_id,
+    name: row.name,
+    keyPrefix: row.key_prefix,
+    lastUsedAt: row.last_used_at ?? undefined,
+    revokedAt: row.revoked_at ?? undefined,
     createdAt: row.created_at,
   };
 }

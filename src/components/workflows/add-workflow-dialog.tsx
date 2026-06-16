@@ -104,7 +104,7 @@ export function AddWorkflowDialog({
                   <div>
                     <h3 className="text-base/7 font-semibold text-zinc-950">Quick workflow import</h3>
                     <p className="mt-1 text-sm/6 text-zinc-500">
-                      Paste a URL, cURL command, OpenAPI JSON, or Postman collection and review the generated monitor before saving.
+                      Paste a URL, cURL command, OpenAPI JSON/YAML/URL, or Postman collection and review the generated monitor before saving.
                     </p>
                   </div>
                   <WorkflowImportForm clients={clients} action={createWorkflowFromImportAction} />

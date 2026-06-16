@@ -21,6 +21,7 @@ const baseData: TuesdayOpsSeedData = {
       owner: "Owner",
       reportRecipientEmail: "ops@example.com",
       reportStatus: "not_started",
+      reportAutomationEnabled: false,
       healthScore: 90,
       lastActivityAt: "2026-06-12T12:00:00.000Z",
       notes: "",
@@ -151,6 +152,7 @@ const baseData: TuesdayOpsSeedData = {
       createdAt: "2026-06-08T10:02:00.000Z",
     },
   ],
+  workflowApiKeys: [],
   reports: [],
   reportItems: [],
 };
@@ -179,6 +181,7 @@ describe("report aggregation", () => {
       "issues_caught",
       "issues_resolved",
       "qa_checks",
+      "model_prompt_changes",
     ]);
   });
 

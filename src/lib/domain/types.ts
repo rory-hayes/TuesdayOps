@@ -19,6 +19,7 @@ export type ReportItemCategory =
   | "issues_caught"
   | "issues_resolved"
   | "qa_checks"
+  | "model_prompt_changes"
   | "recommendation";
 
 export type Agency = {
@@ -45,6 +46,9 @@ export type Client = {
   owner: string;
   reportRecipientEmail: string;
   reportStatus: "not_started" | "draft" | "ready" | "sent";
+  reportAutomationEnabled: boolean;
+  nextReportDueOn?: string;
+  lastReportGeneratedAt?: string;
   healthScore: number;
   lastActivityAt: string;
   notes: string;
@@ -93,6 +97,9 @@ export type CheckRun = {
   latencyMs: number;
   responseSummary: string;
   errorMessage?: string;
+  costEstimate?: number;
+  model?: string;
+  promptVersion?: string;
   startedAt: string;
   completedAt: string;
 };
@@ -154,6 +161,17 @@ export type TestRun = {
   latencyMs: number;
   responseSummary: string;
   errorMessage?: string;
+  createdAt: string;
+};
+
+export type WorkflowApiKeySummary = {
+  id: string;
+  agencyId: string;
+  workflowId: string;
+  name: string;
+  keyPrefix: string;
+  lastUsedAt?: string;
+  revokedAt?: string;
   createdAt: string;
 };
 
@@ -221,6 +239,7 @@ export type TuesdayOpsSeedData = {
   testPacks: TestPack[];
   testCases: TestCase[];
   testRuns: TestRun[];
+  workflowApiKeys: WorkflowApiKeySummary[];
   reports: ReportSummary[];
   reportItems: ReportItem[];
 };

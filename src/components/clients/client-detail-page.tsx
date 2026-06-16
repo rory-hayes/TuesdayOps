@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { ArrowLeftIcon, PlusIcon } from "@heroicons/react/16/solid";
 import { StatusBadge } from "@/components/status-badge";
+import { MiniBarChart, MiniLineChart } from "@/components/charts/simple-charts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { getOpenIssues } from "@/lib/domain/summaries";
 import type { Client, TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
+import { buildChecksRunSeries, buildPassRateTrend } from "@/lib/dashboard/charts";
 
 export function ClientDetailPage({
   data,
@@ -17,6 +19,7 @@ export function ClientDetailPage({
   const workflows = data.workflows.filter((workflow) => workflow.clientId === client.id);
   const openIssues = getOpenIssues(data).filter((issue) => issue.clientId === client.id);
   const reports = data.reports.filter((report) => report.clientId === client.id);
+  const clientRuns = data.checkRuns.filter((run) => run.clientId === client.id);
 
   return (
     <div className="grid gap-8">
@@ -46,6 +49,11 @@ export function ClientDetailPage({
         <ClientStat label="Health" value={`${client.healthScore}%`} detail="Average workflow pass rate" />
         <ClientStat label="Workflows" value={workflows.length.toString()} detail="Included maintenance surface" />
         <ClientStat label="Open issues" value={openIssues.length.toString()} detail="Needs review before report" />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <MiniLineChart label="Client pass-rate trend" points={buildPassRateTrend(clientRuns)} suffix="%" />
+        <MiniBarChart label="Client checks run" points={buildChecksRunSeries(clientRuns)} />
       </section>
 
       <section className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -113,6 +121,13 @@ export function ClientDetailPage({
               <p className="mt-4 text-sm/6 text-zinc-500">
                 Reports are generated from stored workflow checks, issues, and synthetic test runs.
               </p>
+              <div className="mt-4 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+                <p>
+                  Automation: {client.reportAutomationEnabled ? "draft monthly reports" : "manual drafts"}
+                </p>
+                <p>Next due: {client.nextReportDueOn ?? "not scheduled"}</p>
+                <p>Last generated: {client.lastReportGeneratedAt ? formatRelativeTime(client.lastReportGeneratedAt) : "never"}</p>
+              </div>
             </CardContent>
           </Card>
 

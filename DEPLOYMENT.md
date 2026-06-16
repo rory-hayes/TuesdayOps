@@ -73,6 +73,7 @@ NEXT_PUBLIC_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE=0.25
 Never add service-role keys, Resend keys, Stripe keys, scheduler secrets, or workflow auth material to `NEXT_PUBLIC_` variables.
 `NEXT_PUBLIC_SENTRY_DSN` is intentionally public and is required for browser-side error capture. Leave `SENTRY_EXAMPLE_ENABLED` unset except during a temporary deployed Sentry smoke test.
 Leave `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS` unset in production. It exists only for local/private test environments that intentionally monitor localhost or private-network endpoints.
+PostHog env values can stay empty for the current design-partner plan.
 
 ## Supabase Migration Procedure
 
@@ -121,6 +122,8 @@ select public.configure_due_check_cron();
 
 Then set `SUPABASE_CRON_ENABLED=true` in Vercel production env and redeploy.
 
+Monthly report draft automation is exposed at `POST /api/scheduler/run-monthly-reports` and uses the same `SCHEDULER_SECRET`. If you add a Cron job for it, schedule it no more than daily and verify it only creates drafts for opted-in clients.
+
 Supabase projects created after April 28, 2026 may not expose new public tables to the Data API automatically. For each new public table, migrations must include:
 
 - RLS enabled.
@@ -161,7 +164,9 @@ Run this after the Vercel deployment is ready:
 - Resolve an issue with a report-safe note.
 - Create and run a synthetic test pack.
 - Generate a monthly report.
+- Enable report automation for a test client if available, trigger `/api/scheduler/run-monthly-reports` with the scheduler secret, and confirm it creates a draft without sending email.
 - Generate and download a PDF; response content type must be `application/pdf`.
+- Rotate a workflow run-log API key, post one safe `/api/public/run-log` payload, confirm a check run appears, then revoke the key.
 - Trigger `/api/scheduler/run-due-checks` without a scheduler secret and confirm it returns `401`.
 - Confirm the Supabase Cron job `tuesdayops-run-due-checks` is active and its latest run has no error.
 - Trigger `/api/scheduler/run-due-checks` with the scheduler secret and confirm due checks are processed.
@@ -173,6 +178,7 @@ Run this after the Vercel deployment is ready:
 - Open `/api/health` and confirm `launchReady` is `true`.
 - Confirm Settings shows Operational reliability as `ready` or that remaining attention items are accepted for the design partner.
 - Import a workflow from a cURL command and confirm it creates a normal workflow plus first health check.
+- Import a workflow from OpenAPI YAML and from a safe public OpenAPI URL.
 - Attempt to add a localhost/private endpoint in production and confirm it is blocked.
 - Attempt a workflow endpoint that returns a redirect and confirm the check run fails without following the redirect.
 - Confirm another agency cannot access the first agency's workflow detail URL or report download route.

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Clock3, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { MiniBarChart, MiniLineChart } from "@/components/charts/simple-charts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { PageFeedback } from "@/components/ui/page-feedback";
@@ -9,6 +10,11 @@ import { getOpenIssues, getPortfolioSummary, getWorkflowHealthRows } from "@/lib
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
 import { buildOperationalReliability } from "@/lib/production/operational-reliability";
+import {
+  buildChecksRunSeries,
+  buildIssuesBySeveritySeries,
+  buildPassRateTrend,
+} from "@/lib/dashboard/charts";
 
 export function OverviewDashboard({
   data,
@@ -24,6 +30,9 @@ export function OverviewDashboard({
   const workflowRows = getWorkflowHealthRows(data);
   const scheduledChecks = data.checks.filter((check) => check.enabled).slice(0, 4);
   const reliability = buildOperationalReliability({ data });
+  const passRateTrend = buildPassRateTrend(data.checkRuns);
+  const checkVolume = buildChecksRunSeries(data.checkRuns);
+  const issuesBySeverity = buildIssuesBySeveritySeries(data.issues);
 
   return (
     <div className="flex flex-col gap-10">
@@ -56,6 +65,12 @@ export function OverviewDashboard({
         <OverviewStat label="Monitored workflows" value={summary.monitoredWorkflows.toString()} detail="included in reports" tone="neutral" />
         <OverviewStat label="Open issues" value={summary.openIssues.toString()} detail="reportable maintenance queue" tone={summary.openIssues ? "negative" : "positive"} />
         <OverviewStat label="Check pass rate" value={formatPercentage(summary.checkPassRate)} detail="across monitored workflows" tone="positive" />
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <MiniLineChart label="Pass-rate trend" points={passRateTrend} suffix="%" />
+        <MiniBarChart label="Checks run" points={checkVolume} />
+        <MiniBarChart label="Open issues by severity" points={issuesBySeverity} tone="risk" />
       </section>
 
       <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">

@@ -1,4 +1,5 @@
 import type { Workflow } from "@/lib/domain/types";
+import { assertSafeWorkflowEndpoint } from "@/lib/security/endpoint-url";
 
 export type WorkflowImportSource = "url" | "curl" | "openapi" | "postman";
 
@@ -111,6 +112,39 @@ export function parseWorkflowImport({
   return parsePostmanImport(trimmed);
 }
 
+export async function fetchOpenApiImportPlan({
+  url,
+  fetcher = fetch,
+}: {
+  url: string;
+  fetcher?: (url: string) => Promise<{
+    ok: boolean;
+    headers: Headers;
+    text: () => Promise<string>;
+  }>;
+}): Promise<WorkflowImportPlan> {
+  const safeUrl = assertSafeWorkflowEndpoint(url, { allowPrivateEndpoints: false });
+  const response = await fetcher(safeUrl);
+
+  if (!response.ok) {
+    throw new Error("OpenAPI URL could not be fetched.");
+  }
+
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (contentType && !/json|ya?ml|text\/plain/i.test(contentType)) {
+    throw new Error("OpenAPI URL must return JSON or YAML.");
+  }
+
+  const body = await response.text();
+
+  if (body.length > 200_000) {
+    throw new Error("OpenAPI document is too large for quick import.");
+  }
+
+  return parseOpenApiImport(body);
+}
+
 export function maskWorkflowImportSecrets(text: string): string {
   return text
     .replace(/(Authorization\s*:\s*Bearer\s+)([^"'\s]+)/gi, "$1[redacted]")
@@ -174,7 +208,7 @@ function parseCurlImport(command: string): WorkflowImportPlan {
 }
 
 function parseOpenApiImport(text: string): WorkflowImportPlan {
-  const document = parseJsonObject(text, "OpenAPI");
+  const document = parseOpenApiDocument(text);
   const paths = readRecord(document.paths);
   const serverUrl = readString(readArray(document.servers)[0]?.url) ?? "";
 
@@ -206,6 +240,26 @@ function parseOpenApiImport(text: string): WorkflowImportPlan {
   }
 
   throw new Error("OpenAPI import must include at least one supported operation.");
+}
+
+function parseOpenApiDocument(text: string): Record<string, unknown> {
+  const trimmed = text.trim();
+
+  if (trimmed.startsWith("{")) {
+    return parseJsonObject(trimmed, "OpenAPI");
+  }
+
+  const yaml = parseOpenApiYaml(trimmed);
+
+  if (Object.keys(yaml.paths ?? {}).length) {
+    return yaml;
+  }
+
+  try {
+    return readRecord(JSON.parse(trimmed));
+  } catch {
+    throw new Error("OpenAPI import must be valid JSON.");
+  }
 }
 
 function parsePostmanImport(text: string): WorkflowImportPlan {
@@ -345,6 +399,69 @@ function parseJsonObject(text: string, label: string): Record<string, unknown> {
   } catch {
     throw new Error(`${label} import must be valid JSON.`);
   }
+}
+
+function parseOpenApiYaml(text: string): Record<string, unknown> {
+  const servers: Array<{ url: string }> = [];
+  const paths: Record<string, Record<string, Record<string, unknown>>> = {};
+  let section: "servers" | "paths" | null = null;
+  let currentPath = "";
+  let currentMethod = "";
+
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.replace(/\s+#.*$/, "");
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      continue;
+    }
+
+    if (trimmed === "servers:") {
+      section = "servers";
+      continue;
+    }
+
+    if (trimmed === "paths:") {
+      section = "paths";
+      continue;
+    }
+
+    if (section === "servers") {
+      const url = trimmed.match(/^-\s*url:\s*(.+)$/)?.[1] ?? trimmed.match(/^url:\s*(.+)$/)?.[1];
+      if (url) {
+        servers.push({ url: unquoteYamlScalar(url) });
+      }
+      continue;
+    }
+
+    if (section === "paths") {
+      const pathMatch = line.match(/^\s{2}([^:\s][^:]*):\s*$/);
+      if (pathMatch) {
+        currentPath = pathMatch[1].trim();
+        paths[currentPath] = paths[currentPath] ?? {};
+        currentMethod = "";
+        continue;
+      }
+
+      const methodMatch = line.match(/^\s{4}(get|post|put|patch):\s*$/i);
+      if (methodMatch && currentPath) {
+        currentMethod = methodMatch[1].toLowerCase();
+        paths[currentPath][currentMethod] = paths[currentPath][currentMethod] ?? {};
+        continue;
+      }
+
+      const propertyMatch = line.match(/^\s{6}(summary|operationId):\s*(.+)$/);
+      if (propertyMatch && currentPath && currentMethod) {
+        paths[currentPath][currentMethod][propertyMatch[1]] = unquoteYamlScalar(propertyMatch[2]);
+      }
+    }
+  }
+
+  return { servers, paths };
+}
+
+function unquoteYamlScalar(value: string): string {
+  return value.trim().replace(/^["']|["']$/g, "");
 }
 
 function findFirstPostmanRequest(items: unknown[]): Record<string, unknown> | null {

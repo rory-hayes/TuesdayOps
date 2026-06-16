@@ -3,7 +3,13 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type AuditAction =
   | "workflow.created"
   | "workflow.updated"
+  | "workflow.archived"
+  | "check.disabled"
   | "check.run"
+  | "test_pack.updated"
+  | "test_pack.disabled"
+  | "test_case.updated"
+  | "test_case.archived"
   | "issue.assigned"
   | "issue.resolved"
   | "issue.ignored"
@@ -15,6 +21,8 @@ export type AuditAction =
 export type AuditTargetType =
   | "workflow"
   | "check"
+  | "test_pack"
+  | "test_case"
   | "issue"
   | "report"
   | "billing_event";

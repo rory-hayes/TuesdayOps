@@ -435,7 +435,7 @@ Acceptance:
 
 ### T10.1 Workflow import paths
 
-- [x] Add workflow import parser for URL, cURL, OpenAPI JSON, and Postman collection JSON.
+- [x] Add workflow import parser for URL, cURL, OpenAPI JSON/YAML/URL, and Postman collection JSON.
 - [x] Add quick import UI on Workflows.
 - [x] Keep the workflow registry visible first, with quick import launched from Add workflow.
 - [x] Create imported workflow plus first health check through the same tenant/billing/encryption path as manual creation.
@@ -571,3 +571,90 @@ Acceptance:
 - Full unit, lint, typecheck, build, and Playwright suites pass.
 - Production-build browser audit passes for auth redirects, reset validation, responsive layouts, accessible naming, client creation, workflow import masking, offline feedback, and protected HTTP routes.
 - Local production smoke is expected to remain degraded until deployment-level scheduler, email, billing, and observability env vars are configured.
+
+## Milestone 18 — Design-Partner Readiness
+
+### T18.1 Lifecycle controls
+
+- [x] Add workflow archive behavior.
+- [x] Add check disable behavior.
+- [x] Add test-pack edit/disable behavior.
+- [x] Add test-case edit/archive behavior.
+
+Acceptance:
+
+- active views hide archived/disabled records without deleting historical run, issue, or report evidence
+
+### T18.2 External run logging
+
+- [x] Add workflow-scoped run-log API key generation, hashing, rotation, and revocation.
+- [x] Add `POST /api/public/run-log`.
+- [x] Persist external logs as check runs and create/update issues for degraded/failed logs.
+
+Acceptance:
+
+- external run logs are accepted only with a valid key for the matching workflow
+- plaintext keys are only shown once and are not stored
+
+### T18.3 Change validation and dashboard trends
+
+- [x] Add model/prompt comparison summaries for reports and workflow detail.
+- [x] Add overview, client, and workflow chart helpers/components.
+
+Acceptance:
+
+- stored `model`, `prompt_version`, latency, cost, and pass-rate data can be reviewed before client reporting
+
+### T18.4 Report automation
+
+- [x] Add client report automation schedule fields.
+- [x] Add protected monthly report scheduler route.
+- [x] Generate due prior-month report drafts without sending email automatically.
+
+Acceptance:
+
+- due opted-in clients receive draft reports and retain manual send/export control
+
+### T18.5 Workflow import polish
+
+- [x] Support OpenAPI JSON, YAML, pasted text, and safe public URL imports.
+- [x] Keep endpoint safety validation on imported workflow endpoints.
+
+Acceptance:
+
+- a safe public OpenAPI document can create a normal workflow plus first health check
+
+### T18.6 Public landing page
+
+- [x] Add public logged-out `/` page.
+- [x] Preserve authenticated `/` dashboard behavior and onboarding redirect for authenticated users without workspaces.
+
+Acceptance:
+
+- first-time visitors see a focused TuesdayOps offer without exposing app routes or adding ignored scope
+
+### T18.7 Documentation alignment
+
+- [x] Update README, architecture, data model, API spec, deployment, testing, roadmap, tech stack, changelog, and task docs.
+
+Acceptance:
+
+- docs describe implemented behavior and clearly defer Slack alerts, PostHog, brand-logo work, client portal, and browser synthetic checks
+
+### T18.8 Launch follow-up verification
+
+- [x] Re-test the client table drill-down in browser automation.
+- [!] Verify report email send with a safe production recipient/domain.
+- [x] Verify PDF download in a browser-backed E2E context.
+- [!] Run one Stripe test-mode checkout/customer portal pass.
+
+Acceptance:
+
+- design-partner onboarding can proceed once client drill-down is retested and provider-side checks are either passed or explicitly blocked by missing safe credentials/configuration
+
+Notes:
+
+- `e2e/drilldowns-feedback.spec.ts` passed after applying the design-partner readiness migration to the linked Supabase project.
+- `e2e/reports.spec.ts` verified generated PDF response status, `application/pdf` content type, and PDF bytes from the authenticated browser context.
+- Live production report email delivery still needs a confirmed safe recipient/domain.
+- Stripe Checkout/Customer Portal still needs an explicit test-mode provider pass to avoid unintended billing side effects.
