@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, LockKeyhole, Plus, Timer } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import {
   WORKFLOW_ONBOARDING_TEMPLATES,
+  maskWorkflowImportSecrets,
   parseWorkflowImport,
   type WorkflowImportPlan,
   type WorkflowImportSource,
@@ -56,25 +57,18 @@ const importSources: Array<{
 
 export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps) {
   const sourceRef = useRef<HTMLSelectElement>(null);
-  const displayNameRef = useRef<HTMLInputElement>(null);
-  const importTextRef = useRef<HTMLTextAreaElement>(null);
   const [importSource, setImportSource] = useState<WorkflowImportSource>("url");
   const [importText, setImportText] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [showRawImportText, setShowRawImportText] = useState(false);
   const syncFormState = useCallback((sourceOverride?: WorkflowImportSource) => {
     setImportSource(sourceOverride ?? readImportSource(sourceRef.current?.value));
-    setImportText(importTextRef.current?.value ?? "");
-    setDisplayName(displayNameRef.current?.value ?? "");
   }, []);
 
-  useEffect(() => {
-    syncFormState();
-    const frame = window.requestAnimationFrame(() => syncFormState());
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [syncFormState]);
-
   const selectedSource = importSources.find((source) => source.value === importSource) ?? importSources[0];
+  const maskedImportText = maskWorkflowImportSecrets(importText);
+  const importSecretsHidden = Boolean(importText) && maskedImportText !== importText && !showRawImportText;
+  const visibleImportText = importSecretsHidden ? maskedImportText : importText;
   const preview = useMemo<ImportPreviewState>(() => {
     if (!importText.trim()) {
       return { status: "empty" };
@@ -166,8 +160,9 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
             Display name
             <input
               name="importedWorkflowName"
-              ref={displayNameRef}
-              onInput={() => syncFormState()}
+              value={displayName}
+              onChange={(event) => setDisplayName(event.currentTarget.value)}
+              maxLength={120}
               placeholder="Lead Intake Webhook"
               className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
             />
@@ -178,12 +173,30 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
               required
               minLength={8}
               name="importText"
-              ref={importTextRef}
-              onInput={() => syncFormState()}
+              value={visibleImportText}
+              readOnly={importSecretsHidden}
+              onChange={(event) => {
+                setImportText(event.currentTarget.value);
+                setShowRawImportText(false);
+              }}
               placeholder={selectedSource.placeholder}
               rows={7}
               className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
             />
+            <input type="hidden" name="rawImportText" value={importText} />
+            {importSecretsHidden ? (
+              <span className="mt-2 flex flex-wrap items-center gap-2 rounded-md bg-muted px-3 py-2 text-xs leading-5 text-muted-foreground">
+                <LockKeyhole size={14} className="text-primary" aria-hidden="true" />
+                Pasted secrets are hidden in this field before import.
+                <button
+                  type="button"
+                  className="font-semibold text-foreground underline-offset-2 hover:underline"
+                  onClick={() => setShowRawImportText(true)}
+                >
+                  Edit raw text
+                </button>
+              </span>
+            ) : null}
           </label>
         </div>
 

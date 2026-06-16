@@ -550,3 +550,24 @@ Acceptance:
 Acceptance:
 
 - Operators and QA can run `npm run smoke:production` against the Vercel URL and get a readable pass/fail report for public readiness, auth boundaries, billing webhook protection, privileged-route protection, and browser security headers.
+
+## Milestone 17 — Full E2E QA Hardening
+
+### T17.1 Audit bug table remediation
+
+- [x] Redact report-send provider configuration details from user feedback, report rows, and audit metadata.
+- [x] Sanitize report-safe text across report drafts, PDFs, and email artifacts.
+- [x] Add password reset request/update screens and a Supabase recovery callback.
+- [x] Add assertive error regions, a skip link, accessible client search labeling, and offline status feedback.
+- [x] Add in-context browser validation for client, issue, check, and synthetic test-case forms.
+- [x] Mask visible cURL import secrets before workflow import while preserving encrypted server-side save behavior.
+- [x] Add confirmation prompts for client archive and issue ignore actions.
+- [x] Replace misleading Settings provider status copy with operator-managed integration copy.
+- [x] Fix unrunnable test-pack timestamps to display “never run.”
+- [x] Re-audit production build across Chromium, Firefox, WebKit, desktop, tablet, and mobile logged-out states plus authenticated core flows.
+
+Acceptance:
+
+- Full unit, lint, typecheck, build, and Playwright suites pass.
+- Production-build browser audit passes for auth redirects, reset validation, responsive layouts, accessible naming, client creation, workflow import masking, offline feedback, and protected HTTP routes.
+- Local production smoke is expected to remain degraded until deployment-level scheduler, email, billing, and observability env vars are configured.

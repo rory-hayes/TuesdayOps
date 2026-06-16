@@ -8,10 +8,10 @@ import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
 const integrations = [
-  { name: "Supabase", status: "active", detail: "Auth, Postgres, Storage" },
-  { name: "Supabase Cron", status: "active", detail: "Scheduled checks and jobs" },
-  { name: "Resend", status: "active", detail: "Issue alerts and report emails" },
-  { name: "Stripe", status: "active", detail: "Billing gate and customer portal" },
+  { name: "Supabase", status: "operator managed", detail: "Auth, Postgres, Storage" },
+  { name: "Supabase Cron", status: "operator managed", detail: "Scheduled checks and jobs" },
+  { name: "Resend", status: "operator managed", detail: "Issue alerts and report emails" },
+  { name: "Stripe", status: "operator managed", detail: "Billing gate and customer portal" },
 ];
 
 export function SettingsPage({
@@ -126,7 +126,7 @@ export function SettingsPage({
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <h2 className="text-base font-semibold">Integrations</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Approved MVP services and provider state.</p>
+              <p className="mt-1 text-sm text-muted-foreground">Approved MVP services for this workspace.</p>
             </div>
             <PlugZap size={18} className="text-primary" aria-hidden="true" />
           </CardHeader>
@@ -137,9 +137,12 @@ export function SettingsPage({
                   <p className="text-sm font-medium">{integration.name}</p>
                   <p className="mt-1 text-xs text-muted-foreground">{integration.detail}</p>
                 </div>
-                <Badge variant="success">{integration.status}</Badge>
+                <Badge variant="muted">{integration.status}</Badge>
               </div>
             ))}
+            <p className="rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+              Runtime provider readiness is checked by operators through the health endpoint, not inferred from workspace settings.
+            </p>
           </CardContent>
         </Card>
       </section>

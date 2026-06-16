@@ -212,7 +212,13 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                       </form>
                       <form action={ignoreIssueAction}>
                         <input type="hidden" name="issueId" value={issue.id} />
-                        <FormSubmitButton type="submit" size="sm" variant="ghost" pendingLabel="Ignoring...">
+                        <FormSubmitButton
+                          type="submit"
+                          size="sm"
+                          variant="ghost"
+                          pendingLabel="Ignoring..."
+                          confirmMessage="Ignore this issue and exclude it from reports?"
+                        >
                           <XCircle size={14} aria-hidden="true" />
                           Ignore
                         </FormSubmitButton>
@@ -224,6 +230,8 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                           <textarea
                             name="resolutionNote"
                             rows={2}
+                            minLength={3}
+                            maxLength={600}
                             placeholder="Summarize the fix for the monthly report"
                             className="mt-2 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
                             required

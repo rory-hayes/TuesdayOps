@@ -4,6 +4,7 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { JsonTextArea } from "@/components/ui/json-textarea";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
@@ -64,10 +65,10 @@ export function ChecksPage({
                   ))}
                 </select>
               </label>
-              <Input label="Check name" name="name" placeholder="Endpoint health check" required />
-              <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
-              <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required />
-              <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required />
+              <Input label="Check name" name="name" placeholder="Endpoint health check" required minLength={2} maxLength={120} />
+              <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} />
+              <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required min={100} max={60000} />
+              <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required min={1000} max={60000} />
               <FormSubmitButton type="submit" className="md:col-span-5 md:w-fit" pendingLabel="Adding...">
                 <Plus size={15} aria-hidden="true" />
                 Add check
@@ -149,12 +150,13 @@ export function ChecksPage({
                     ))}
                   </select>
                 </label>
-                <Input label="Pack name" name="name" placeholder="Regression pack" required />
+                <Input label="Pack name" name="name" placeholder="Regression pack" required minLength={2} maxLength={120} />
                 <TextArea
                   className="md:col-span-2"
                   label="Description"
                   name="description"
                   placeholder="Core happy-path and guardrail checks"
+                  maxLength={400}
                 />
                 <FormSubmitButton type="submit" className="md:col-span-2 md:w-fit" pendingLabel="Adding...">
                   <Plus size={15} aria-hidden="true" />
@@ -194,21 +196,24 @@ export function ChecksPage({
                     <p className="mt-3 text-sm leading-6 text-muted-foreground">{pack.description}</p>
                     <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
                       <Badge variant="muted">{pack.caseCount} cases</Badge>
-                      <Badge variant="muted">last run {formatRelativeTime(pack.lastRunAt)}</Badge>
+                      <Badge variant="muted">
+                        {runs.length ? `last run ${formatRelativeTime(pack.lastRunAt)}` : "never run"}
+                      </Badge>
                     </div>
 
                     <form action={createTestCaseAction} className="mt-4 grid gap-3 rounded-lg bg-muted p-3 md:grid-cols-2">
                       <input type="hidden" name="testPackId" value={pack.id} />
-                      <Input label="Case name" name="name" placeholder="Happy path lead intake" required />
+                      <Input label="Case name" name="name" placeholder="Happy path lead intake" required minLength={2} maxLength={120} />
                       <TextArea
                         label="Input JSON"
                         name="inputJson"
                         placeholder='{"leadId":"qa-001","intent":"book"}'
+                        validateJson
                       />
-                      <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
-                      <Input label="Max latency ms" name="maxLatencyMs" placeholder="10000" type="number" required />
-                      <Input label="Required field" name="fieldExistsPath" placeholder="result.id" />
-                      <Input label="Must not contain" name="notContainsValue" placeholder="error" />
+                      <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} />
+                      <Input label="Max latency ms" name="maxLatencyMs" placeholder="10000" type="number" required min={100} max={60000} />
+                      <Input label="Required field" name="fieldExistsPath" placeholder="result.id" maxLength={120} />
+                      <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={120} />
                       <FormSubmitButton type="submit" size="sm" className="md:col-span-2 md:w-fit" pendingLabel="Adding...">
                         <Plus size={14} aria-hidden="true" />
                         Add case
@@ -283,12 +288,20 @@ function Input({
   placeholder,
   type = "text",
   required = false,
+  min,
+  max,
+  minLength,
+  maxLength,
 }: {
   label: string;
   name: string;
   placeholder: string;
   type?: string;
   required?: boolean;
+  min?: number;
+  max?: number;
+  minLength?: number;
+  maxLength?: number;
 }) {
   return (
     <label className="block text-sm font-medium">
@@ -297,6 +310,10 @@ function Input({
         required={required}
         name={name}
         type={type}
+        min={min}
+        max={max}
+        minLength={minLength}
+        maxLength={maxLength}
         placeholder={placeholder}
         className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
       />
@@ -309,18 +326,25 @@ function TextArea({
   name,
   placeholder,
   className = "",
+  maxLength,
+  validateJson = false,
 }: {
   label: string;
   name: string;
   placeholder: string;
   className?: string;
+  maxLength?: number;
+  validateJson?: boolean;
 }) {
+  const TextAreaElement = validateJson ? JsonTextArea : "textarea";
+
   return (
     <label className={`block text-sm font-medium ${className}`}>
       {label}
-      <textarea
+      <TextAreaElement
         name={name}
         placeholder={placeholder}
+        maxLength={maxLength}
         rows={3}
         className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
       />

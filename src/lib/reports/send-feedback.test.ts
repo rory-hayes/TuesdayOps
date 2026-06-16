@@ -18,7 +18,9 @@ describe("buildReportSendRedirect", () => {
         status: "failed",
         message: "Missing RESEND_API_KEY.",
       }),
-    ).toBe("/reports/report-123?error=Missing%20RESEND_API_KEY.");
+    ).toBe(
+      "/reports/report-123?error=Report%20email%20could%20not%20be%20sent%20because%20email%20delivery%20is%20not%20configured.",
+    );
   });
 
   it("uses a safe fallback when a failed send has no message", () => {
@@ -28,5 +30,17 @@ describe("buildReportSendRedirect", () => {
         status: "failed",
       }),
     ).toBe("/reports/report-123?error=Report%20email%20could%20not%20be%20sent.");
+  });
+
+  it("redacts provider details and secret-shaped fragments from report send failures", () => {
+    expect(
+      buildReportSendRedirect({
+        reportId: "report-123",
+        status: "failed",
+        message: "Resend alert failed for ops@example.com with Bearer token_123.",
+      }),
+    ).toBe(
+      "/reports/report-123?error=Report%20email%20could%20not%20be%20sent.%20Check%20the%20recipient%20and%20try%20again.",
+    );
   });
 });

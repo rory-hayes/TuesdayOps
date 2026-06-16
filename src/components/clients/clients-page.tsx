@@ -70,9 +70,11 @@ export function ClientsPage({
           </div>
           <form className="flex flex-col gap-2 sm:flex-row">
             <label className="relative block">
+              <span className="sr-only">Search clients</span>
               <Search size={15} className="pointer-events-none absolute left-3 top-2.5 text-muted-foreground" aria-hidden="true" />
               <input
                 name="q"
+                aria-label="Search clients"
                 defaultValue={query}
                 placeholder="Search clients"
                 className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary sm:w-60"
@@ -137,12 +139,18 @@ export function ClientsPage({
                             aria-label="Client name"
                             name="name"
                             defaultValue={client.name}
+                            required
+                            minLength={2}
+                            maxLength={100}
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <input
                             aria-label="Industry"
                             name="industry"
                             defaultValue={client.industry}
+                            required
+                            minLength={2}
+                            maxLength={80}
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <input
@@ -150,12 +158,14 @@ export function ClientsPage({
                             name="reportRecipientEmail"
                             type="email"
                             defaultValue={client.reportRecipientEmail}
+                            required
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <input
                             aria-label="Notes"
                             name="notes"
                             defaultValue={client.notes}
+                            maxLength={1000}
                             className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
                           />
                           <div className="flex gap-2">
@@ -168,7 +178,13 @@ export function ClientsPage({
                         {!client.archived ? (
                           <form action={archiveClientAction} className="mt-2">
                             <input type="hidden" name="id" value={client.id} />
-                            <FormSubmitButton type="submit" variant="secondary" size="sm" pendingLabel="Archiving...">
+                            <FormSubmitButton
+                              type="submit"
+                              variant="secondary"
+                              size="sm"
+                              pendingLabel="Archiving..."
+                              confirmMessage="Archive this client? Their workflows and reports stay stored, but they leave the active portfolio."
+                            >
                               <Archive size={14} aria-hidden="true" />
                               Archive
                             </FormSubmitButton>

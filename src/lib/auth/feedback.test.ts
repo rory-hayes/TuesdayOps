@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatAgencyError, formatSignInError, formatSignUpError } from "@/lib/auth/feedback";
+import {
+  formatAgencyError,
+  formatPasswordResetError,
+  formatSignInError,
+  formatSignUpError,
+} from "@/lib/auth/feedback";
 
 describe("auth feedback formatting", () => {
   it("keeps sign-in failures generic and free of secret-like fragments", () => {
@@ -29,5 +34,16 @@ describe("auth feedback formatting", () => {
     expect(message).toBe("That workspace slug is already in use. Try another slug.");
     expect(message).not.toContain("agencies_slug_key");
     expect(message).not.toContain("abc123");
+  });
+
+  it("keeps password reset provider failures generic", () => {
+    const message = formatPasswordResetError(
+      new Error("Recovery failed for ops@example.com with token_hash=abc123 and SUPABASE_SECRET_KEY=bad"),
+    );
+
+    expect(message).toBe("Password reset could not be completed. Request a new reset link and try again.");
+    expect(message).not.toContain("ops@example.com");
+    expect(message).not.toContain("abc123");
+    expect(message).not.toContain("SUPABASE_SECRET_KEY");
   });
 });

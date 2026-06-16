@@ -1,4 +1,5 @@
 import type { ReportDraft } from "@/lib/domain/types";
+import { sanitizeReportText } from "@/lib/reports/sanitize";
 
 export function renderReportPdfBytes(report: ReportDraft): Buffer {
   const content = buildPdfContent(report);
@@ -40,7 +41,7 @@ export function buildReportEmail({
   report: ReportDraft;
   downloadUrl: string;
 }) {
-  const subject = `${report.clientName} ${report.periodLabel} maintenance report`;
+  const subject = sanitizeReportText(`${report.clientName} ${report.periodLabel} maintenance report`);
   const coverageLine = buildCoverageLine(report);
   const text = [
     subject,
@@ -308,15 +309,6 @@ function drawLine({
   color: string;
 }): string {
   return `${color} RG\n0.8 w\n${x1} ${y1} m\n${x2} ${y2} l\nS`;
-}
-
-function sanitizeReportText(value: string) {
-  return value
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
-    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
-    .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function escapePdfText(value: string) {

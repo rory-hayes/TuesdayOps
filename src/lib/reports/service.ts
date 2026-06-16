@@ -13,7 +13,7 @@ import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
 import { buildReportEmail, renderReportPdfBytes } from "@/lib/reports/pdf";
 import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
-import { buildReportSendRedirect } from "@/lib/reports/send-feedback";
+import { buildReportSendRedirect, formatReportSendError } from "@/lib/reports/send-feedback";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -206,7 +206,7 @@ export async function sendReportAction(formData: FormData) {
       metadata: { status: "sent" },
     });
   } catch (error) {
-    const safeMessage = formatActionError(error, "Report email could not be sent.");
+    const safeMessage = formatReportSendError(error);
     sendStatus = "failed";
     sendMessage = safeMessage;
     await recordReportSendFailure({

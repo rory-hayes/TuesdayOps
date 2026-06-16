@@ -29,7 +29,11 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         </p>
       </div>
 
-      {error ? <p className="rounded-lg bg-red-50 p-3 text-sm/6 text-red-700">{error}</p> : null}
+      {error ? (
+        <p role="alert" aria-live="assertive" className="rounded-lg bg-red-50 p-3 text-sm/6 text-red-700">
+          {error}
+        </p>
+      ) : null}
 
       <form action={createAgencyAction} className="grid gap-6">
         <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">

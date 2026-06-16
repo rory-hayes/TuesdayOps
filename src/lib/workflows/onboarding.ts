@@ -111,6 +111,17 @@ export function parseWorkflowImport({
   return parsePostmanImport(trimmed);
 }
 
+export function maskWorkflowImportSecrets(text: string): string {
+  return text
+    .replace(/(Authorization\s*:\s*Bearer\s+)([^"'\s]+)/gi, "$1[redacted]")
+    .replace(/((?:X[-_])?API[-_]?Key\s*:\s*)([^"'\s]+)/gi, "$1[redacted]")
+    .replace(/(-u|--user)\s+("[^"]*"|'[^']*'|\S+)/gi, "$1 [redacted]")
+    .replace(
+      /(["'](?:api[_-]?key|token|secret|password)["']\s*:\s*)(["'][^"']*["']|[^,}\s]+)/gi,
+      '$1"[redacted]"',
+    );
+}
+
 function parseCurlImport(command: string): WorkflowImportPlan {
   const tokens = tokenizeCommand(command);
   let endpointUrl = "";

@@ -95,6 +95,36 @@ describe("report PDF helpers", () => {
     expect(email.html).not.toContain("Bearer token_123");
   });
 
+  it("removes script-like report values from email and PDF artifacts", () => {
+    const report = {
+      ...draft,
+      clientName: "ACME <script>alert(1)</script>",
+      summary: 'Resolved <img src=x onerror=alert("xss")> incident without exposing token=secret.',
+      items: [
+        {
+          category: "issues_resolved" as const,
+          title: "<script>alert(1)</script> issue",
+          body: "Latest resolution: <script>alert(1)</script>",
+          sortOrder: 30,
+        },
+      ],
+    };
+    const email = buildReportEmail({
+      report,
+      downloadUrl: "https://app.example.com/api/reports/report-1/download",
+    });
+    const pdfText = renderReportPdfBytes(report).toString("latin1");
+    const serialized = [email.subject, email.text, email.html, pdfText].join("\n");
+
+    expect(serialized).not.toContain("<script");
+    expect(serialized).not.toContain("</script>");
+    expect(serialized).not.toContain("<img");
+    expect(serialized).not.toContain("onerror");
+    expect(serialized).not.toContain("alert(1)");
+    expect(serialized).not.toContain('alert("xss")');
+    expect(serialized).not.toContain("token=secret");
+  });
+
   it("wraps long PDF lines and escapes PDF control characters", () => {
     const bytes = renderReportPdfBytes({
       ...draft,

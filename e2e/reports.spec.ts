@@ -183,7 +183,10 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
     expect(sentReport.send_error).toBeNull();
   } else {
     expect(sentReport.status).toBe("failed");
-    expect(sentReport.send_error ?? "").toMatch(/Missing RESEND_API_KEY|Resend alert failed:/);
+    expect(sentReport.send_error ?? "").toMatch(
+      /Report email could not be sent because email delivery is not configured\.|Report email could not be sent\. Check the recipient and try again\./,
+    );
+    expect(sentReport.send_error ?? "").not.toContain("RESEND_API_KEY");
   }
 });
 

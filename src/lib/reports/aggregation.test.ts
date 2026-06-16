@@ -196,6 +196,35 @@ describe("report aggregation", () => {
     expect(serialized).not.toContain("Expected status 200");
   });
 
+  it("removes HTML-like script content from client-facing report copy", () => {
+    const draft = buildReportDraft({
+      data: {
+        ...baseData,
+        clients: baseData.clients.map((client) => ({
+          ...client,
+          name: "Client <script>alert(1)</script>",
+        })),
+        issues: baseData.issues.map((issue) => ({
+          ...issue,
+          title: '<img src=x onerror=alert(1)> Lead intake failed',
+          resolutionNote: 'Fixed <script>alert("xss")</script> and rotated Bearer token_123.',
+        })),
+      },
+      clientId: "client-1",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+    });
+    const serialized = JSON.stringify(draft);
+
+    expect(serialized).not.toContain("<script");
+    expect(serialized).not.toContain("</script>");
+    expect(serialized).not.toContain("<img");
+    expect(serialized).not.toContain("onerror");
+    expect(serialized).not.toContain("alert(1)");
+    expect(serialized).not.toContain('alert("xss")');
+    expect(serialized).not.toContain("token_123");
+  });
+
   it("throws when the report client is outside the tenant data set", () => {
     expect(() =>
       buildReportDraft({

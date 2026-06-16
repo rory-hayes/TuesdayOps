@@ -39,6 +39,12 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-white text-zinc-950 lg:bg-zinc-100">
+      <a
+        href="#main-content"
+        className="sr-only fixed left-3 top-3 z-[80] rounded-md bg-white px-3 py-2 text-sm font-semibold text-zinc-950 shadow ring-2 ring-primary focus:not-sr-only"
+      >
+        Skip to main content
+      </a>
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex lg:w-64 lg:flex-col lg:border-r lg:border-zinc-950/5 lg:bg-zinc-100">
         <div className="flex h-full flex-col">
           <div className="border-b border-zinc-950/5 px-6 py-5">
@@ -114,13 +120,13 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
               </FormSubmitButton>
             </form>
           </div>
-          <nav className="mt-3 flex gap-2 overflow-x-auto pb-1">
+          <nav className="mt-3 flex flex-wrap gap-2 pb-1">
             {navigation.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 prefetch={false}
-                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm/6 font-medium text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/5 hover:text-zinc-950"
+                className="inline-flex h-9 min-w-[8.25rem] flex-1 items-center justify-center gap-2 rounded-lg px-3 text-sm/6 font-medium text-zinc-700 ring-1 ring-zinc-950/10 hover:bg-zinc-950/5 hover:text-zinc-950 sm:flex-none"
               >
                 <item.icon className="size-4 text-zinc-500" aria-hidden="true" />
                 {item.label}
@@ -129,7 +135,11 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
           </nav>
         </header>
 
-        <main className="min-h-screen bg-white px-5 py-8 shadow-sm ring-1 ring-zinc-950/10 lg:m-2 lg:rounded-xl lg:px-10 lg:py-10">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="min-h-screen bg-white px-5 py-8 shadow-sm ring-1 ring-zinc-950/10 focus:outline-none lg:m-2 lg:rounded-xl lg:px-10 lg:py-10"
+        >
           <div className="mx-auto max-w-7xl">{children}</div>
         </main>
       </div>

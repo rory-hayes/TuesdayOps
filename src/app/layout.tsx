@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { OfflineNotice } from "@/components/offline-notice";
 import "./globals.css";
 
 const inter = Inter({
@@ -22,7 +23,10 @@ export default function RootLayout({
       lang="en"
       className={`${inter.variable} h-full bg-white lg:bg-zinc-100`}
     >
-      <body className="flex min-h-full flex-col antialiased">{children}</body>
+      <body className="flex min-h-full flex-col antialiased">
+        <OfflineNotice />
+        {children}
+      </body>
     </html>
   );
 }

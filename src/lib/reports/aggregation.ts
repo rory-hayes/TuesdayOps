@@ -4,6 +4,7 @@ import type {
   ReportItemCategory,
   TuesdayOpsSeedData,
 } from "@/lib/domain/types";
+import { sanitizeReportText } from "@/lib/reports/sanitize";
 
 type BuildReportDraftInput = {
   data: TuesdayOpsSeedData;
@@ -56,16 +57,17 @@ export function buildReportDraft({
   };
   const periodLabel = formatPeriodLabel(periodStart);
   const recommendations = buildRecommendations({ issuesCaught, issuesResolved, testFailures: metrics.testFailures });
+  const clientName = sanitizeReportText(client.name);
 
   return {
     clientId,
-    clientName: client.name,
+    clientName,
     period: periodStart.slice(0, 7),
     periodLabel,
     periodStart,
     periodEnd,
     summary: buildExecutiveSummary({
-      clientName: client.name,
+      clientName,
       periodLabel,
       metrics,
     }),
@@ -208,15 +210,6 @@ function formatPeriodLabel(periodStart: string) {
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(`${periodStart}T00:00:00.000Z`));
-}
-
-function sanitizeReportText(value: string) {
-  return value
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[redacted-email]")
-    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
-    .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function severityRank(severity: Issue["severity"]): number {

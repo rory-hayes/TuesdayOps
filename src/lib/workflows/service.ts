@@ -106,6 +106,7 @@ const importWorkflowFormSchema = z.object({
   importSource: z.enum(["url", "curl", "openapi", "postman"]),
   importedWorkflowName: z.string().trim().max(120).optional(),
   importText: z.string().trim().min(8),
+  rawImportText: z.string().trim().optional(),
 });
 
 export async function createWorkflowFromImportAction(formData: FormData) {
@@ -120,7 +121,7 @@ export async function createWorkflowFromImportAction(formData: FormData) {
   try {
     plan = parseWorkflowImport({
       source: parsed.data.importSource,
-      text: parsed.data.importText,
+      text: parsed.data.rawImportText || parsed.data.importText,
     });
   } catch (error) {
     redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow import could not be parsed."))}`);

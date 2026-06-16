@@ -12,15 +12,23 @@ export function PageFeedback({
   }
 
   return (
-    <div className="grid gap-2" aria-live="polite">
+    <div className="grid gap-2">
       {notice ? (
-        <p className="inline-flex items-start gap-2 rounded-lg bg-success-background p-3 text-sm text-success">
+        <p
+          role="status"
+          aria-live="polite"
+          className="inline-flex items-start gap-2 rounded-lg bg-success-background p-3 text-sm text-success"
+        >
           <CheckCircle2 size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
           {notice}
         </p>
       ) : null}
       {error ? (
-        <p className="inline-flex items-start gap-2 rounded-lg bg-danger-background p-3 text-sm text-danger">
+        <p
+          role="alert"
+          aria-live="assertive"
+          className="inline-flex items-start gap-2 rounded-lg bg-danger-background p-3 text-sm text-danger"
+        >
           <AlertTriangle size={16} className="mt-0.5 shrink-0" aria-hidden="true" />
           {error}
         </p>

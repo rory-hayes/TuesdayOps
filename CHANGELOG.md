@@ -62,3 +62,4 @@ Track meaningful product and engineering changes here.
 - Polished generated report PDFs with a client-ready one-page layout, operations scorecard, value-delivered section, next actions, and a report-safe footer.
 - Added a repeatable production smoke checker for `/api/health`, gated Sentry smoke routes, app-route auth redirects, scheduler route protection, unsigned Stripe webhook rejection, and browser security headers.
 - Added global browser security headers and disabled framework disclosure on production responses.
+- Completed a full E2E QA hardening pass: added password reset screens and Supabase recovery callback, safer report-send errors, shared report-safe text sanitization, cURL import secret masking, stronger inline validation, destructive-action confirmation, accessible feedback/skip-link/offline states, mobile nav wrapping, and honest Settings integration copy.

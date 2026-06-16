@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   WORKFLOW_ONBOARDING_TEMPLATES,
+  maskWorkflowImportSecrets,
   parseWorkflowImport,
 } from "./onboarding";
 
@@ -67,6 +68,21 @@ describe("parseWorkflowImport", () => {
       authSecret: "secret_123",
       requestBody: '{"ok":true}',
     });
+  });
+
+  it("masks cURL import secrets for shoulder-surfing safety", () => {
+    const masked = maskWorkflowImportSecrets(
+      `curl -X POST "https://hooks.example.com/lead" -H "Authorization: Bearer token_123" -H "X-API-Key: secret_456" -u "user:password" -d '{"email":"lead@example.com","token":"payload-token"}'`,
+    );
+
+    expect(masked).toContain("Authorization: Bearer [redacted]");
+    expect(masked).toContain("X-API-Key: [redacted]");
+    expect(masked).toContain("-u [redacted]");
+    expect(masked).toContain('"token":"[redacted]"');
+    expect(masked).not.toContain("token_123");
+    expect(masked).not.toContain("secret_456");
+    expect(masked).not.toContain("user:password");
+    expect(masked).not.toContain("payload-token");
   });
 
 

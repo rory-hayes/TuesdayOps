@@ -3,11 +3,25 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSlug } from "@/lib/domain/slug";
-import { formatAgencyError, formatSignInError, formatSignUpError } from "@/lib/auth/feedback";
+import {
+  formatAgencyError,
+  formatPasswordResetError,
+  formatSignInError,
+  formatSignUpError,
+} from "@/lib/auth/feedback";
+import { getAppUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
 const authSchema = z.object({
   email: z.string().trim().email(),
+  password: z.string().min(8),
+});
+
+const resetRequestSchema = z.object({
+  email: z.string().trim().email(),
+});
+
+const passwordUpdateSchema = z.object({
   password: z.string().min(8),
 });
 
@@ -64,6 +78,59 @@ export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/sign-in");
+}
+
+export async function requestPasswordResetAction(formData: FormData) {
+  const parsed = resetRequestSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/forgot-password?error=${encodeURIComponent("Enter a valid email address.")}`);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+    redirectTo: `${getAppUrl()}/auth/callback?next=/reset-password`,
+  });
+
+  if (error) {
+    redirect(`/forgot-password?error=${encodeURIComponent(formatPasswordResetError(error))}`);
+  }
+
+  redirect(
+    `/forgot-password?notice=${encodeURIComponent(
+      "If an account exists for that email, a reset link will arrive shortly.",
+    )}`,
+  );
+}
+
+export async function updatePasswordAction(formData: FormData) {
+  const parsed = passwordUpdateSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/reset-password?error=${encodeURIComponent("Use a password of at least 8 characters.")}`);
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(
+      `/forgot-password?error=${encodeURIComponent(
+        "Request a new reset link before choosing a password.",
+      )}`,
+    );
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+
+  if (error) {
+    redirect(`/reset-password?error=${encodeURIComponent(formatPasswordResetError(error))}`);
+  }
+
+  await supabase.auth.signOut();
+  redirect(`/sign-in?notice=${encodeURIComponent("Password updated. Sign in with your new password.")}`);
 }
 
 export async function createAgencyAction(formData: FormData) {

@@ -71,9 +71,9 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
             </div>
 
             <form action={action} className="mt-6 grid gap-5">
-              <Field label="Client name" name="name" placeholder="Nova Dental Group" required />
-              <Field label="Slug" name="slug" placeholder="nova-dental" />
-              <Field label="Industry" name="industry" placeholder="Healthcare" required />
+              <Field label="Client name" name="name" placeholder="Nova Dental Group" required minLength={2} maxLength={100} />
+              <Field label="Slug" name="slug" placeholder="nova-dental" maxLength={100} />
+              <Field label="Industry" name="industry" placeholder="Healthcare" required minLength={2} maxLength={80} />
               <Field
                 label="Report email"
                 name="reportRecipientEmail"
@@ -86,6 +86,7 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
                 <textarea
                   name="notes"
                   rows={3}
+                  maxLength={1000}
                   placeholder="Workflow scope"
                   className="rounded-lg border border-zinc-950/10 bg-white px-3 py-2 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
                 />
@@ -113,12 +114,16 @@ function Field({
   placeholder,
   type = "text",
   required = false,
+  minLength,
+  maxLength,
 }: {
   label: string;
   name: string;
   placeholder: string;
   type?: string;
   required?: boolean;
+  minLength?: number;
+  maxLength?: number;
 }) {
   return (
     <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
@@ -127,6 +132,8 @@ function Field({
         required={required}
         name={name}
         type={type}
+        minLength={minLength}
+        maxLength={maxLength}
         placeholder={placeholder}
         className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />

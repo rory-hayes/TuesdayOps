@@ -3,6 +3,7 @@ const SIGN_UP_ERROR = "Account could not be created. Check the details and try a
 const EXISTING_ACCOUNT_ERROR = "An account with this email already exists. Sign in instead.";
 const AGENCY_ERROR = "Workspace could not be created. Check the details and try again.";
 const DUPLICATE_AGENCY_SLUG_ERROR = "That workspace slug is already in use. Try another slug.";
+const PASSWORD_RESET_ERROR = "Password reset could not be completed. Request a new reset link and try again.";
 
 export function formatSignInError(error: unknown): string {
   const message = error instanceof Error ? error.message.toLowerCase() : "";
@@ -40,4 +41,14 @@ export function formatAgencyError(error: unknown): string {
   }
 
   return AGENCY_ERROR;
+}
+
+export function formatPasswordResetError(error: unknown): string {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (message.includes("rate limit") || message.includes("too many")) {
+    return "Too many attempts. Try again in a few minutes.";
+  }
+
+  return PASSWORD_RESET_ERROR;
 }
