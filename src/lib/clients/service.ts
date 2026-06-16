@@ -5,17 +5,24 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { canCreateClient } from "@/lib/billing/limits";
-import { createSlug } from "@/lib/domain/slug";
+import { sanitizeUserText } from "@/lib/domain/input-sanitization";
+import { parseOptionalSlug } from "@/lib/domain/slug";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createClient } from "@/lib/supabase/server";
 
+const sanitizedText = (schema: z.ZodString) =>
+  z.preprocess(
+    (value) => (typeof value === "string" ? sanitizeUserText(value) : value),
+    schema,
+  );
+
 const clientFormSchema = z.object({
-  name: z.string().trim().min(2).max(100),
+  name: sanitizedText(z.string().min(2).max(100)),
   slug: z.string().trim().max(100).optional(),
-  industry: z.string().trim().min(2).max(80),
+  industry: sanitizedText(z.string().min(2).max(80)),
   reportRecipientEmail: z.string().trim().email(),
-  notes: z.string().trim().max(1000).optional(),
+  notes: sanitizedText(z.string().max(1000)).optional(),
 });
 
 const clientIdSchema = z.object({
@@ -51,11 +58,20 @@ export async function createClientAction(formData: FormData) {
     redirect(`/clients?error=${encodeURIComponent(limitDecision.upgradeMessage ?? "Upgrade required.")}`);
   }
 
-  const slug = createSlug(parsed.data.slug || parsed.data.name, "client");
+  const parsedSlug = parseOptionalSlug({
+    value: parsed.data.slug,
+    source: parsed.data.name,
+    fallback: "client",
+  });
+
+  if (!parsedSlug.success) {
+    redirect(`/clients?error=${encodeURIComponent(parsedSlug.message)}`);
+  }
+
   const { error } = await supabase.from("clients").insert({
     agency_id: workspace.agency.id,
     name: parsed.data.name,
-    slug,
+    slug: parsedSlug.slug,
     industry: parsed.data.industry,
     report_recipient_email: parsed.data.reportRecipientEmail,
     notes: parsed.data.notes ?? "",
@@ -83,12 +99,21 @@ export async function updateClientAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const slug = createSlug(parsed.data.slug || parsed.data.name, "client");
+  const parsedSlug = parseOptionalSlug({
+    value: parsed.data.slug,
+    source: parsed.data.name,
+    fallback: "client",
+  });
+
+  if (!parsedSlug.success) {
+    redirect(`/clients?error=${encodeURIComponent(parsedSlug.message)}`);
+  }
+
   const updateResult = await supabase
     .from("clients")
     .update({
       name: parsed.data.name,
-      slug,
+      slug: parsedSlug.slug,
       industry: parsed.data.industry,
       report_recipient_email: parsed.data.reportRecipientEmail,
       notes: parsed.data.notes ?? "",

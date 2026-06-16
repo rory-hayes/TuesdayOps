@@ -70,15 +70,21 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
               </button>
             </div>
 
-            <form action={action} className="mt-6 grid gap-5">
-              <Field label="Client name" name="name" placeholder="Nova Dental Group" required minLength={2} maxLength={100} />
-              <Field label="Slug" name="slug" placeholder="nova-dental" maxLength={100} />
-              <Field label="Industry" name="industry" placeholder="Healthcare" required minLength={2} maxLength={80} />
+            <form action={action} aria-label="Create client" noValidate className="mt-6 grid gap-5">
+              <Field label="Client name" name="name" placeholder="Client company" required minLength={2} maxLength={100} />
+              <Field
+                label="Slug"
+                name="slug"
+                placeholder="client-company"
+                maxLength={100}
+                pattern="[a-z0-9]+(-[a-z0-9]+)*"
+              />
+              <Field label="Industry" name="industry" placeholder="Operations" required minLength={2} maxLength={80} />
               <Field
                 label="Report email"
                 name="reportRecipientEmail"
                 type="email"
-                placeholder="ops@example.com"
+                placeholder="reports@client.example"
                 required
               />
               <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
@@ -87,7 +93,7 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
                   name="notes"
                   rows={3}
                   maxLength={1000}
-                  placeholder="Workflow scope"
+                  placeholder="Monitoring scope and reporting notes"
                   className="rounded-lg border border-zinc-950/10 bg-white px-3 py-2 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
                 />
               </label>
@@ -116,6 +122,7 @@ function Field({
   required = false,
   minLength,
   maxLength,
+  pattern,
 }: {
   label: string;
   name: string;
@@ -124,6 +131,7 @@ function Field({
   required?: boolean;
   minLength?: number;
   maxLength?: number;
+  pattern?: string;
 }) {
   return (
     <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
@@ -134,6 +142,7 @@ function Field({
         type={type}
         minLength={minLength}
         maxLength={maxLength}
+        pattern={pattern}
         placeholder={placeholder}
         className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />

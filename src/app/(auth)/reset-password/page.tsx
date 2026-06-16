@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { updatePasswordAction } from "@/lib/auth/actions";
+import { PASSWORD_REQUIREMENTS } from "@/lib/auth/password";
 
 type ResetPasswordPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -26,13 +27,33 @@ export default async function ResetPasswordPage({ searchParams }: ResetPasswordP
         </p>
       ) : null}
 
-      <form action={updatePasswordAction} className="grid gap-6">
+      <form
+        action={updatePasswordAction}
+        aria-label="Update TuesdayOps password"
+        noValidate
+        className="grid gap-6"
+      >
         <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
           New password
           <input
             required
-            minLength={8}
+            minLength={12}
             name="password"
+            type="password"
+            autoComplete="new-password"
+            aria-describedby="password-help"
+            className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
+          />
+          <span id="password-help" className="text-xs/5 font-normal text-zinc-500">
+            {PASSWORD_REQUIREMENTS}
+          </span>
+        </label>
+        <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
+          Confirm password
+          <input
+            required
+            minLength={12}
+            name="confirmPassword"
             type="password"
             autoComplete="new-password"
             className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"

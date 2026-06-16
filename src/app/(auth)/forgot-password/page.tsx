@@ -32,7 +32,12 @@ export default async function ForgotPasswordPage({ searchParams }: ForgotPasswor
         </p>
       ) : null}
 
-      <form action={requestPasswordResetAction} className="grid gap-6">
+      <form
+        action={requestPasswordResetAction}
+        aria-label="Request password reset"
+        noValidate
+        className="grid gap-6"
+      >
         <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
           Email
           <input

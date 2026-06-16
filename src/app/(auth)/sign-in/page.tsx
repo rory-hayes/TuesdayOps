@@ -32,7 +32,7 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
         </p>
       ) : null}
 
-      <form action={signInAction} className="grid gap-6">
+      <form action={signInAction} aria-label="Sign in to TuesdayOps" noValidate className="grid gap-6">
         <Field label="Email" name="email" type="email" autoComplete="email" />
         <Field label="Password" name="password" type="password" autoComplete="current-password" />
         <FormSubmitButton type="submit" className="w-full" pendingLabel="Signing in...">

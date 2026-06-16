@@ -132,7 +132,7 @@ export function ClientsPage({
                     <td className="px-5 py-4">
                       <details className="min-w-72">
                         <summary className="cursor-pointer text-sm font-medium text-primary">Edit</summary>
-                        <form action={updateClientAction} className="mt-3 grid gap-2 rounded-lg bg-muted p-3">
+                        <form action={updateClientAction} noValidate className="mt-3 grid gap-2 rounded-lg bg-muted p-3">
                           <input type="hidden" name="id" value={client.id} />
                           <input type="hidden" name="slug" value={client.slug} />
                           <input

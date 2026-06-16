@@ -83,6 +83,10 @@ Redact common sensitive values:
 - secrets in headers
 - provider/database internals before showing server-action, auth, billing, onboarding, alert, or report errors to users
 
+User-entered agency/client free-text fields strip script/style blocks, HTML tags, event-handler attributes, and `javascript:` URLs before storage. Explicit slugs are accepted only when they already match lowercase letters, numbers, and single hyphens; blank slug fields are generated from the sanitized name.
+
+Sign-up and password reset require confirmed passwords with at least 12 characters, including uppercase, lowercase, number, and symbol characters.
+
 ## Report safety
 
 Reports should include:

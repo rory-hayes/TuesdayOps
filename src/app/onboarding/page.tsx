@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
+import { AgencyOnboardingForm } from "@/components/auth/agency-onboarding-form";
 import { AuthLayout } from "@/components/auth/auth-layout";
-import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { createAgencyAction } from "@/lib/auth/actions";
 import { getWorkspaceContext } from "@/lib/auth/workspace";
 
@@ -35,31 +35,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         </p>
       ) : null}
 
-      <form action={createAgencyAction} className="grid gap-6">
-        <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
-          Agency name
-          <input
-            required
-            name="name"
-            minLength={2}
-            maxLength={80}
-            placeholder="Northstar Automation"
-            className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
-          />
-        </label>
-        <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
-          Slug
-          <input
-            name="slug"
-            maxLength={80}
-            placeholder="northstar-automation"
-            className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
-          />
-        </label>
-        <FormSubmitButton type="submit" className="w-full" pendingLabel="Creating...">
-          Create workspace
-        </FormSubmitButton>
-      </form>
+      <AgencyOnboardingForm action={createAgencyAction} />
     </AuthLayout>
   );
 }

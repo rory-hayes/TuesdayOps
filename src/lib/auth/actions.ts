@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createSlug } from "@/lib/domain/slug";
+import { validatePasswordCredentials } from "@/lib/auth/password";
+import { sanitizeUserText } from "@/lib/domain/input-sanitization";
+import { parseOptionalSlug } from "@/lib/domain/slug";
 import {
   formatAgencyError,
   formatPasswordResetError,
@@ -17,16 +19,26 @@ const authSchema = z.object({
   password: z.string().min(8),
 });
 
+const signUpSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string(),
+  confirmPassword: z.string(),
+});
+
 const resetRequestSchema = z.object({
   email: z.string().trim().email(),
 });
 
 const passwordUpdateSchema = z.object({
-  password: z.string().min(8),
+  password: z.string(),
+  confirmPassword: z.string(),
 });
 
 const agencySchema = z.object({
-  name: z.string().trim().min(2).max(80),
+  name: z.preprocess(
+    (value) => (typeof value === "string" ? sanitizeUserText(value) : value),
+    z.string().min(2).max(80),
+  ),
   slug: z.string().trim().max(80).optional(),
   primaryColor: z
     .string()
@@ -53,15 +65,22 @@ export async function signInAction(formData: FormData) {
 }
 
 export async function signUpAction(formData: FormData) {
-  const parsed = authSchema.safeParse(Object.fromEntries(formData));
+  const parsed = signUpSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/sign-up?error=${encodeURIComponent("Use a valid email and a password of at least 8 characters.")}`);
+    redirect(`/sign-up?error=${encodeURIComponent("Use a valid email and complete both password fields.")}`);
+  }
+
+  const password = validatePasswordCredentials(parsed.data);
+
+  if (!password.success) {
+    redirect(`/sign-up?error=${encodeURIComponent(password.message)}`);
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signUp({
-    ...parsed.data,
+    email: parsed.data.email,
+    password: password.password,
     options: {
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/onboarding`,
     },
@@ -107,7 +126,13 @@ export async function updatePasswordAction(formData: FormData) {
   const parsed = passwordUpdateSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/reset-password?error=${encodeURIComponent("Use a password of at least 8 characters.")}`);
+    redirect(`/reset-password?error=${encodeURIComponent("Complete both password fields.")}`);
+  }
+
+  const password = validatePasswordCredentials(parsed.data);
+
+  if (!password.success) {
+    redirect(`/reset-password?error=${encodeURIComponent(password.message)}`);
   }
 
   const supabase = await createClient();
@@ -123,7 +148,7 @@ export async function updatePasswordAction(formData: FormData) {
     );
   }
 
-  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  const { error } = await supabase.auth.updateUser({ password: password.password });
 
   if (error) {
     redirect(`/reset-password?error=${encodeURIComponent(formatPasswordResetError(error))}`);
@@ -149,10 +174,19 @@ export async function createAgencyAction(formData: FormData) {
     redirect("/sign-in");
   }
 
-  const slug = createSlug(parsed.data.slug || parsed.data.name, "agency");
+  const parsedSlug = parseOptionalSlug({
+    value: parsed.data.slug,
+    source: parsed.data.name,
+    fallback: "agency",
+  });
+
+  if (!parsedSlug.success) {
+    redirect(`/onboarding?error=${encodeURIComponent(parsedSlug.message)}`);
+  }
+
   const { error } = await supabase.rpc("create_agency_for_current_user", {
     agency_name: parsed.data.name,
-    agency_slug: slug,
+    agency_slug: parsedSlug.slug,
     agency_primary_color: parsed.data.primaryColor,
   });
 
