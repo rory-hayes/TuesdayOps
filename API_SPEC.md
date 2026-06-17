@@ -141,13 +141,17 @@ Creates check.
 }
 ```
 
-Supported assertion types in Milestone 3:
+Supported assertion types:
 
 - `status_code`
 - `latency_under`
 - `field_exists`
+- `field_not_empty`
 - `equals`
+- `contains_text`
 - `not_contains`
+- `matches_regex`
+- `valid_json`
 
 ## Check runs
 
@@ -170,7 +174,7 @@ Requires either:
 
 The route uses the server-only Supabase secret key, loads enabled due health checks, runs them, persists scheduled `check_runs`, and creates or updates issues through the same service path as manual checks.
 
-The route also applies a fixed-window per-IP limiter. Excess attempts receive:
+The route applies a fixed-window per-IP limiter before authorization and a DB-backed service-role limiter after authorization so limits survive multiple Vercel instances. Excess attempts receive:
 
 ```json
 {
@@ -212,6 +216,8 @@ Requires either:
 - `x-scheduler-secret: <SCHEDULER_SECRET>`
 
 The route uses the server-only Supabase secret key, finds active clients with `report_automation_enabled = true` and due `next_report_due_on`, generates prior-month report drafts from stored source data, updates `last_report_generated_at`, and advances the next due date. It does not send report emails.
+
+The route uses the same DB-backed scheduler limiter pattern as due checks. Excess attempts receive HTTP `429` with `Retry-After`, `X-RateLimit-Limit`, and `X-RateLimit-Remaining` headers.
 
 Response:
 
@@ -325,14 +331,18 @@ The runner:
 
 Creates test case.
 
-Current server action equivalent: `createTestCaseAction(testPackId, name, inputJson, expectedStatus, maxLatencyMs, fieldExistsPath, notContainsValue)`.
+Current server action equivalent: `createTestCaseAction(testPackId, name, inputJson, expectedStatus, maxLatencyMs, fieldExistsPath, fieldNotEmptyPath, containsTextValue, matchesRegexPattern, requireValidJson, notContainsValue)`.
 Successful creation redirects back to Checks with a visible success notice.
 
 The MVP assertion builder supports:
 
 - required status code
 - latency threshold
+- optional valid JSON requirement
 - optional JSON field existence path
+- optional non-empty JSON field path
+- optional required response text
+- optional regex match
 - optional forbidden response text
 
 ```json
@@ -342,7 +352,11 @@ The MVP assertion builder supports:
   "assertions": [
     { "type": "status_code", "expected": 200 },
     { "type": "latency_under", "maxMs": 5000 },
+    { "type": "valid_json" },
     { "type": "field_exists", "path": "result.id" },
+    { "type": "field_not_empty", "path": "result.answer" },
+    { "type": "contains_text", "value": "approved" },
+    { "type": "matches_regex", "pattern": "case-[0-9]+" },
     { "type": "not_contains", "value": "fatal" }
   ]
 }
@@ -408,7 +422,7 @@ Sends report to configured recipient.
 
 Current server action equivalent: `sendReportAction(reportId)`.
 
-The send action requires report readiness to be `ready` or `review`, ensures a PDF exists, then emails a download link with Resend. Missing Resend config or delivery errors are stored in `reports.send_error`, mark the report `failed`, and redirect back to the report detail with a visible error instead of a success-style notice. Error copy is sanitized before it is shown or stored.
+The send action requires report readiness to be `ready` or `review`, ensures a PDF exists, then emails the report through Resend with the PDF attached and the authenticated app download link included for app users. Missing Resend config or delivery errors are stored in `reports.send_error`, mark the report `failed`, and redirect back to the report detail with a visible error instead of a success-style notice. Error copy is sanitized before it is shown or stored.
 
 ## Public run logging
 
@@ -447,6 +461,8 @@ Allowed `status` values:
 
 Successful requests create a normal `check_runs` row under an "External run log" check, update the workflow health summary, update key `last_used_at`, and create/update an issue when the mapped status is degraded or failed.
 
+The route applies a DB-backed rate limit keyed by a hash of the bearer API key. The plaintext key is never stored in rate-limit state. Excess requests receive HTTP `429` with `Retry-After`, `X-RateLimit-Limit`, and `X-RateLimit-Remaining` headers.
+
 Response:
 
 ```json
@@ -474,7 +490,7 @@ Logged-out users visiting `/` see the public TuesdayOps landing page. Authentica
 
 ## Billing
 
-### `createCheckoutSessionAction()`
+### `createCheckoutSessionAction(formData?: FormData)`
 
 Server action used from Settings to start a Stripe Checkout subscription session.
 
@@ -482,10 +498,12 @@ The action:
 
 - requires an authenticated agency workspace
 - requires owner or admin role
+- applies a DB-backed per-user checkout-start rate limit before contacting Stripe
+- accepts a server-validated `plan` value of `starter`, `growth`, `scale`, or `agency_plus`
 - creates a Stripe customer if the agency does not have one
 - stores `agencies.billing_customer_id`
 - creates a Checkout Session with `mode = subscription`
-- uses `STRIPE_PRICE_ID`
+- maps the selected plan to `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_GROWTH`, `STRIPE_PRICE_ID_SCALE`, or `STRIPE_PRICE_ID_AGENCY_PLUS`
 - redirects to Stripe's hosted Checkout URL
 - redirects back to Settings with sanitized billing errors if provider setup or Checkout fails
 
@@ -499,6 +517,7 @@ The action:
 
 - requires owner or admin role
 - requires an existing `billing_customer_id`
+- applies a DB-backed per-user portal-start rate limit before contacting Stripe
 - creates a short-lived Stripe customer portal session
 - redirects to Stripe's hosted portal URL
 - redirects back to Settings with sanitized billing errors if provider setup or Portal creation fails
@@ -521,11 +540,13 @@ Security and behavior:
 
 Client and workflow creation server actions enforce plan limits before inserting new records.
 
-Starter limits:
+Current plan limits:
 
 ```txt
-clients: 1
-workflows: 3
+Starter: 3 clients, 10 workflows
+Growth: 10 clients, 50 workflows
+Scale: 30 clients, 150 workflows
+Agency+: custom limits
 ```
 
 Design partner workspaces are unrestricted. Existing rows above a limit are preserved; only new create actions are blocked.

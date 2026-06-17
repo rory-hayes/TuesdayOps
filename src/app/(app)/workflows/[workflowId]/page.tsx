@@ -21,10 +21,11 @@ export default async function WorkflowDetailRoute({
   const workflow = data.workflows.find((candidate) => candidate.id === routeParams.workflowId);
   const error = Array.isArray(query.error) ? query.error[0] : query.error;
   const notice = Array.isArray(query.notice) ? query.notice[0] : query.notice;
+  const tab = Array.isArray(query.tab) ? query.tab[0] : query.tab;
 
   if (!workflow) {
     notFound();
   }
 
-  return <WorkflowDetailPage data={data} workflow={workflow} notice={notice} error={error} />;
+  return <WorkflowDetailPage data={data} workflow={workflow} notice={notice} error={error} activeTab={tab} />;
 }

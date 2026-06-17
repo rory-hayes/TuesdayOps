@@ -351,6 +351,19 @@ created_at timestamptz default now()
 
 The code hardening migration also adds a service-only `delete_old_check_runs(older_than interval, max_delete integer)` retention helper and indexes for workflow health summaries, due checks, check history, issue queues, report lists, test runs, and audit history.
 
+## rate_limit_buckets
+
+Stores hashed fixed-window counters for sensitive actions and public/protected routes. Bucket keys include a normalized scope plus a SHA-256 hash of the identifier, so API keys, emails, and user identifiers are not stored in plaintext.
+
+```txt
+bucket_key text primary key
+request_count integer default 0
+window_started_at timestamptz default now()
+updated_at timestamptz default now()
+```
+
+`rate_limit_buckets` has RLS enabled and is granted only to `service_role`. App code consumes counters through `public.consume_rate_limit(bucket_key, limit, window_seconds)`, which runs as `security invoker` with a fixed empty search path and is executable only by `service_role`.
+
 ## Scheduler functions
 
 Supabase Cron triggers scheduled checks through database functions rather than a separate job provider.

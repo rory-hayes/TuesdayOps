@@ -6,6 +6,7 @@ import { rotateWorkflowRunLogKeyAction, revokeWorkflowRunLogKeysAction } from "@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import type { WorkflowApiKeySummary } from "@/lib/domain/types";
 import { formatRelativeTime } from "@/lib/formatting";
 
@@ -18,9 +19,12 @@ export function RunLogKeyPanel({
 }) {
   const [rotateState, rotateAction] = useActionState(rotateWorkflowRunLogKeyAction, null);
   const [revokeState, revokeAction] = useActionState(revokeWorkflowRunLogKeysAction, null);
+  const notice = rotateState?.notice ?? revokeState?.notice;
+  const error = rotateState?.error ?? revokeState?.error;
 
   return (
     <Card>
+      <PageFeedback notice={notice} error={error} />
       <CardHeader className="flex flex-row items-start justify-between gap-3">
         <div>
           <h2 className="text-base font-semibold">Run logging API</h2>
@@ -67,11 +71,6 @@ export function RunLogKeyPanel({
             />
           </label>
         ) : null}
-
-        {rotateState?.notice ? <p className="rounded-lg bg-success-background p-3 text-sm text-success">{rotateState.notice}</p> : null}
-        {rotateState?.error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{rotateState.error}</p> : null}
-        {revokeState?.notice ? <p className="rounded-lg bg-success-background p-3 text-sm text-success">{revokeState.notice}</p> : null}
-        {revokeState?.error ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{revokeState.error}</p> : null}
 
         <div className="flex flex-wrap gap-2">
           <form action={rotateAction}>

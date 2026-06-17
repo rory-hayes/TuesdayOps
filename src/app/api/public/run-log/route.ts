@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { parseRunLogPayload, recordExternalRunLog, RunLogAuthError } from "@/lib/run-logs/service";
+import { buildRateLimitHeaders, consumePersistentRateLimit } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
@@ -8,6 +9,25 @@ export async function POST(request: Request) {
 
   if (!apiKey) {
     return NextResponse.json({ error: "Run log API key is required." }, { status: 401 });
+  }
+
+  const supabase = createAdminClient();
+  const rateLimit = await consumePersistentRateLimit({
+    scope: "public-run-log",
+    identifier: apiKey,
+    limit: 120,
+    windowSeconds: 60,
+    supabase,
+  });
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many run log requests." },
+      {
+        status: 429,
+        headers: buildRateLimitHeaders(rateLimit),
+      },
+    );
   }
 
   let payload;
@@ -24,7 +44,7 @@ export async function POST(request: Request) {
 
   try {
     const result = await recordExternalRunLog({
-      supabase: createAdminClient(),
+      supabase,
       apiKey,
       payload,
     });

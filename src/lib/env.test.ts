@@ -4,8 +4,11 @@ import {
   getPublicSupabaseEnv,
   getResendApiKey,
   getResendFromEmail,
+  getStripePlanForPriceId,
   getSchedulerSecret,
   getStripePriceId,
+  getStripePriceIdForPlan,
+  getStripePriceIdsByPlan,
   getStripeSecretKey,
   getStripeWebhookSecret,
   getSupabaseSecretKey,
@@ -68,6 +71,10 @@ describe("required provider environment helpers", () => {
     delete process.env.STRIPE_SECRET_KEY;
     delete process.env.STRIPE_WEBHOOK_SECRET;
     delete process.env.STRIPE_PRICE_ID;
+    delete process.env.STRIPE_PRICE_ID_STARTER;
+    delete process.env.STRIPE_PRICE_ID_GROWTH;
+    delete process.env.STRIPE_PRICE_ID_SCALE;
+    delete process.env.STRIPE_PRICE_ID_AGENCY_PLUS;
 
     expect(() => getPublicSupabaseEnv()).toThrow("Missing Supabase environment");
     expect(() => getSupabaseSecretKey()).toThrow("Missing SUPABASE_SECRET_KEY");
@@ -76,7 +83,7 @@ describe("required provider environment helpers", () => {
     expect(() => getResendFromEmail()).toThrow("Missing RESEND_FROM_EMAIL");
     expect(() => getStripeSecretKey()).toThrow("Missing STRIPE_SECRET_KEY");
     expect(() => getStripeWebhookSecret()).toThrow("Missing STRIPE_WEBHOOK_SECRET");
-    expect(() => getStripePriceId()).toThrow("Missing STRIPE_PRICE_ID");
+    expect(() => getStripePriceId()).toThrow("Missing STRIPE_PRICE_ID_GROWTH");
   });
 
   it("returns configured server-only provider values", () => {
@@ -86,7 +93,10 @@ describe("required provider environment helpers", () => {
     process.env.RESEND_FROM_EMAIL = "alerts@example.com";
     process.env.STRIPE_SECRET_KEY = "stripe-secret";
     process.env.STRIPE_WEBHOOK_SECRET = "stripe-webhook";
-    process.env.STRIPE_PRICE_ID = "price_growth";
+    process.env.STRIPE_PRICE_ID_STARTER = "price_starter";
+    process.env.STRIPE_PRICE_ID_GROWTH = "price_growth";
+    process.env.STRIPE_PRICE_ID_SCALE = "price_scale";
+    process.env.STRIPE_PRICE_ID_AGENCY_PLUS = "price_agency_plus";
 
     expect(getSupabaseSecretKey()).toBe("service-role");
     expect(getSchedulerSecret()).toBe("scheduler-secret");
@@ -95,5 +105,25 @@ describe("required provider environment helpers", () => {
     expect(getStripeSecretKey()).toBe("stripe-secret");
     expect(getStripeWebhookSecret()).toBe("stripe-webhook");
     expect(getStripePriceId()).toBe("price_growth");
+    expect(getStripePriceIdForPlan("starter")).toBe("price_starter");
+    expect(getStripePriceIdForPlan("scale")).toBe("price_scale");
+    expect(getStripePriceIdForPlan("agency_plus")).toBe("price_agency_plus");
+    expect(getStripePriceIdsByPlan()).toEqual({
+      starter: "price_starter",
+      growth: "price_growth",
+      scale: "price_scale",
+      agency_plus: "price_agency_plus",
+    });
+    expect(getStripePlanForPriceId("price_scale")).toBe("scale");
+    expect(getStripePlanForPriceId("price_unknown")).toBeNull();
+  });
+
+  it("keeps the legacy single Stripe price ID as a Growth fallback", () => {
+    process.env.STRIPE_PRICE_ID = "price_legacy_growth";
+    delete process.env.STRIPE_PRICE_ID_GROWTH;
+
+    expect(getStripePriceId()).toBe("price_legacy_growth");
+    expect(getStripePriceIdForPlan("growth")).toBe("price_legacy_growth");
+    expect(getStripePlanForPriceId("price_legacy_growth")).toBe("growth");
   });
 });

@@ -7,24 +7,24 @@ import {
 } from "@/lib/billing/limits";
 
 describe("billing plan limits", () => {
-  it("allows starter agencies to create the first client and blocks the second", () => {
+  it("allows starter agencies to create up to three clients", () => {
     expect(
       canCreateClient({
         plan: "starter",
         billingStatus: "trialing",
-        activeClients: 0,
+        activeClients: 2,
       }),
-    ).toMatchObject({ allowed: true, limit: 1 });
+    ).toMatchObject({ allowed: true, limit: 3 });
 
     expect(
       canCreateClient({
         plan: "starter",
         billingStatus: "trialing",
-        activeClients: 1,
+        activeClients: 3,
       }),
     ).toMatchObject({
       allowed: false,
-      limit: 1,
+      limit: 3,
       upgradeMessage: "Upgrade to add more clients.",
     });
   });
@@ -33,13 +33,22 @@ describe("billing plan limits", () => {
     const result = canCreateWorkflow({
       plan: "starter",
       billingStatus: "active",
-      workflows: 3,
+      workflows: 10,
     });
 
     expect(result).toMatchObject({
       allowed: false,
-      limit: 3,
-      current: 3,
+      limit: 10,
+      current: 10,
+    });
+  });
+
+  it("enforces the agreed paid plan tiers", () => {
+    expect(getPlanLimits("growth", "active")).toEqual({ clients: 10, workflows: 50 });
+    expect(getPlanLimits("scale", "active")).toEqual({ clients: 30, workflows: 150 });
+    expect(getPlanLimits("agency_plus", "active")).toEqual({
+      clients: Number.POSITIVE_INFINITY,
+      workflows: Number.POSITIVE_INFINITY,
     });
   });
 
@@ -58,8 +67,8 @@ describe("billing plan limits", () => {
   });
 
   it("falls back to starter limits for unknown or inactive paid plans", () => {
-    expect(getPlanLimits("enterprise", "active")).toEqual({ clients: 1, workflows: 3 });
-    expect(getPlanLimits("growth", "past_due")).toEqual({ clients: 1, workflows: 3 });
+    expect(getPlanLimits("enterprise", "active")).toEqual({ clients: 3, workflows: 10 });
+    expect(getPlanLimits("growth", "past_due")).toEqual({ clients: 3, workflows: 10 });
   });
 
   it("formats finite and unlimited limits for billing UI copy", () => {

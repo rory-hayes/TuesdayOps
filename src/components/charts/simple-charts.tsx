@@ -5,21 +5,26 @@ export function MiniLineChart({
   label,
   points,
   suffix = "",
+  className,
+  chartClassName,
 }: {
   label: string;
   points: ChartPoint[];
   suffix?: string;
+  className?: string;
+  chartClassName?: string;
 }) {
   const path = buildLinePath(points);
+  const plotClassName = cn("mt-3 h-24 w-full", chartClassName);
 
   return (
-    <figure className="rounded-lg border border-border p-3">
+    <figure className={cn("rounded-lg border border-border p-3", className)}>
       <figcaption className="flex items-center justify-between gap-3 text-sm">
         <span className="font-medium">{label}</span>
         <span className="text-xs text-muted-foreground">{points.at(-1)?.value ?? 0}{suffix}</span>
       </figcaption>
       {points.length ? (
-        <svg role="img" aria-label={label} viewBox="0 0 240 80" className="mt-3 h-24 w-full">
+        <svg role="img" aria-label={label} viewBox="0 0 240 80" className={plotClassName}>
           <path d={path.area} fill="rgba(124,108,242,0.12)" />
           <path d={path.line} fill="none" stroke="rgb(124,108,242)" strokeWidth="3" strokeLinecap="round" />
           {path.points.map((point) => (
@@ -27,7 +32,9 @@ export function MiniLineChart({
           ))}
         </svg>
       ) : (
-        <p className="mt-3 rounded-md bg-muted p-3 text-xs text-muted-foreground">No chart data yet.</p>
+        <p className={cn("mt-3 flex h-24 items-center rounded-md bg-muted p-3 text-xs text-muted-foreground", chartClassName)}>
+          No chart data yet.
+        </p>
       )}
     </figure>
   );

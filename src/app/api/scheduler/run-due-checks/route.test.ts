@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runDueScheduledChecks } from "@/lib/checks/scheduled-runner";
+import { consumePersistentRateLimit } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { POST } from "./route";
 
@@ -15,10 +16,27 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(() => ({ admin: true })),
 }));
 
+vi.mock("@/lib/security/rate-limit", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/security/rate-limit")>();
+
+  return {
+    ...actual,
+    consumePersistentRateLimit: vi.fn(),
+  };
+});
+
 describe("scheduler run-due-checks route", () => {
   beforeEach(() => {
     vi.mocked(runDueScheduledChecks).mockReset();
+    vi.mocked(consumePersistentRateLimit).mockReset();
     vi.mocked(createAdminClient).mockClear();
+    vi.mocked(consumePersistentRateLimit).mockResolvedValue({
+      allowed: true,
+      limit: 30,
+      remaining: 29,
+      resetAt: Date.now() + 60_000,
+      retryAfterSeconds: 60,
+    });
     vi.mocked(runDueScheduledChecks).mockResolvedValue({
       attempted: 2,
       completed: 1,
@@ -95,6 +113,29 @@ describe("scheduler run-due-checks route", () => {
       supabase: { admin: true },
       checkId: undefined,
     });
+  });
+
+  it("applies persistent scheduler rate limits after authentication", async () => {
+    vi.mocked(consumePersistentRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      limit: 30,
+      remaining: 0,
+      resetAt: Date.now() + 45_000,
+      retryAfterSeconds: 45,
+    });
+
+    const response = await POST(
+      buildRequest({
+        ip: "203.0.113.16",
+        authorization: "Bearer scheduler-secret",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("45");
+    await expect(response.json()).resolves.toEqual({ error: "Too many scheduler trigger attempts." });
+    expect(runDueScheduledChecks).not.toHaveBeenCalled();
   });
 
   it("rate limits repeated scheduler trigger attempts before any privileged work runs", async () => {

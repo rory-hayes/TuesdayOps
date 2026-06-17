@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReportDraft } from "@/lib/domain/types";
-import { buildReportEmail, renderReportPdfBytes } from "@/lib/reports/pdf";
+import { buildReportEmail, buildReportPdfAttachment, renderReportPdfBytes } from "@/lib/reports/pdf";
 
 const draft: ReportDraft = {
   clientId: "client-1",
@@ -66,6 +66,24 @@ describe("report PDF helpers", () => {
     ).toMatchObject({
       subject: "Client One June 2026 maintenance report",
       text: expect.stringContaining("Monitoring coverage: 2 workflows, 12 checks, 4 synthetic runs"),
+    });
+  });
+
+  it("builds a PDF attachment with a safe filename", () => {
+    const bytes = renderReportPdfBytes(draft);
+
+    expect(
+      buildReportPdfAttachment({
+        report: {
+          ...draft,
+          clientName: "Client One / Support <Team>",
+        },
+        pdfBytes: bytes,
+      }),
+    ).toEqual({
+      filename: "client-one-support-team-2026-06-maintenance-report.pdf",
+      content: bytes,
+      contentType: "application/pdf",
     });
   });
 

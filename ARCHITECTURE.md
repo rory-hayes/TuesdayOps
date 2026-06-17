@@ -42,10 +42,10 @@ Browser
 - A scheduled sweep finds enabled due health checks and runs them through the shared scheduled runner.
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
-- The scheduler trigger route is protected by `SCHEDULER_SECRET` and an in-memory fixed-window limiter to reduce abuse before provider-side firewalling is configured.
+- The scheduler trigger routes are protected by `SCHEDULER_SECRET`, cheap in-memory throttling for unauthorized due-check attempts, and DB-backed service-role rate limits for authorized scheduler calls.
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
-- Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
-- Monthly reports aggregate stored workflow, check, issue, synthetic run, and model/prompt comparison data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts.
+- Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, support required JSON/text/regex/field assertions, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
+- Monthly reports aggregate stored workflow, check, issue, synthetic run, and model/prompt comparison data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts that attach the generated PDF.
 - Monthly report draft automation can generate prior-month report drafts for clients that opt in. It does not send email automatically.
 - Overview, client, and workflow pages render lightweight SVG trend charts from stored pass-rate, run-volume, and severity data.
 - The Workflows page is registry-first; the Add workflow dialog contains quick import and manual setup so agencies can find existing workflows before starting a new onboarding path.
@@ -170,6 +170,7 @@ User creates test pack
   -> each test has input and assertions
   -> runner sends input to workflow endpoint
   -> evaluates output
+  -> evaluates status, latency, JSON, field, text, and regex assertions
   -> stores result
   -> derives test pack pass rate from stored test runs
   -> creates or updates a reportable issue when a test case fails
@@ -189,7 +190,7 @@ User selects client + month
   -> generate PDF from stored report data
   -> store PDF in private Supabase Storage
   -> download through tenant-authenticated route
-  -> send report link by Resend when configured
+  -> send report email by Resend when configured, including the PDF attachment and app download link
 ```
 
 ## 9. Security architecture
@@ -199,6 +200,7 @@ User selects client + month
 - Auth headers are encrypted at rest. Run-log API keys are generated once, shown once, and stored only as hashes plus non-secret prefixes.
 - Raw responses redacted by default.
 - Workflow check responses are bounded before summarization to avoid retaining or buffering large payloads.
+- Sensitive actions and exposed routes use DB-backed rate limits with hashed identifiers rather than raw API keys or emails.
 - Report-safe data allowlisted.
 - Audit metadata is recursively redacted before persistence.
 - Background jobs run with service role but enforce agency boundaries manually.

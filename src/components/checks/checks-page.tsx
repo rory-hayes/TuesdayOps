@@ -257,7 +257,11 @@ export function ChecksPage({
                       />
                       <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} />
                       <Input label="Max latency ms" name="maxLatencyMs" placeholder="10000" type="number" required min={100} max={60000} />
+                      <CheckboxInput label="Require valid JSON" name="requireValidJson" />
                       <Input label="Required field" name="fieldExistsPath" placeholder="result.id" maxLength={120} />
+                      <Input label="Required non-empty field" name="fieldNotEmptyPath" placeholder="result.answer" maxLength={120} />
+                      <Input label="Must contain text" name="containsTextValue" placeholder="approved" maxLength={240} />
+                      <Input label="Must match regex" name="matchesRegexPattern" placeholder="case-[0-9]+" maxLength={500} />
                       <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={120} />
                       <FormSubmitButton type="submit" size="sm" className="md:col-span-2 md:w-fit" pendingLabel="Adding...">
                         <Plus size={14} aria-hidden="true" />
@@ -288,7 +292,11 @@ export function ChecksPage({
                                   />
                                   <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} defaultValue={getStatusAssertionValue(testCase.assertionsJson)} />
                                   <Input label="Max latency ms" name="maxLatencyMs" placeholder="10000" type="number" required min={100} max={60000} defaultValue={getLatencyAssertionValue(testCase.assertionsJson)} />
+                                  <CheckboxInput label="Require valid JSON" name="requireValidJson" defaultChecked={hasValidJsonAssertion(testCase.assertionsJson)} />
                                   <Input label="Required field" name="fieldExistsPath" placeholder="result.id" maxLength={120} defaultValue={getFieldExistsAssertionValue(testCase.assertionsJson)} />
+                                  <Input label="Required non-empty field" name="fieldNotEmptyPath" placeholder="result.answer" maxLength={120} defaultValue={getFieldNotEmptyAssertionValue(testCase.assertionsJson)} />
+                                  <Input label="Must contain text" name="containsTextValue" placeholder="approved" maxLength={240} defaultValue={getContainsTextAssertionValue(testCase.assertionsJson)} />
+                                  <Input label="Must match regex" name="matchesRegexPattern" placeholder="case-[0-9]+" maxLength={500} defaultValue={getMatchesRegexAssertionValue(testCase.assertionsJson)} />
                                   <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={120} defaultValue={getNotContainsAssertionValue(testCase.assertionsJson)} />
                                   <div className="flex flex-wrap gap-2 md:col-span-2">
                                     <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Saving...">
@@ -401,6 +409,28 @@ function Input({
   );
 }
 
+function CheckboxInput({
+  label,
+  name,
+  defaultChecked = false,
+}: {
+  label: string;
+  name: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <label className="flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium">
+      <input
+        type="checkbox"
+        name={name}
+        defaultChecked={defaultChecked}
+        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+      />
+      {label}
+    </label>
+  );
+}
+
 function TextArea({
   label,
   name,
@@ -456,6 +486,25 @@ function getLatencyAssertionValue(assertionsJson: unknown): number {
 function getFieldExistsAssertionValue(assertionsJson: unknown): string {
   const assertion = getAssertions(assertionsJson).find((item) => item.type === "field_exists");
   return typeof assertion?.path === "string" ? assertion.path : "";
+}
+
+function getFieldNotEmptyAssertionValue(assertionsJson: unknown): string {
+  const assertion = getAssertions(assertionsJson).find((item) => item.type === "field_not_empty");
+  return typeof assertion?.path === "string" ? assertion.path : "";
+}
+
+function getContainsTextAssertionValue(assertionsJson: unknown): string {
+  const assertion = getAssertions(assertionsJson).find((item) => item.type === "contains_text");
+  return typeof assertion?.value === "string" ? assertion.value : "";
+}
+
+function getMatchesRegexAssertionValue(assertionsJson: unknown): string {
+  const assertion = getAssertions(assertionsJson).find((item) => item.type === "matches_regex");
+  return typeof assertion?.pattern === "string" ? assertion.pattern : "";
+}
+
+function hasValidJsonAssertion(assertionsJson: unknown): boolean {
+  return getAssertions(assertionsJson).some((item) => item.type === "valid_json");
 }
 
 function getNotContainsAssertionValue(assertionsJson: unknown): string {

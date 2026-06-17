@@ -12,6 +12,7 @@ import {
   Squares2X2Icon,
 } from "@heroicons/react/20/solid";
 import { BrandLogo } from "@/components/brand-logo";
+import { PUBLIC_BILLING_PLANS } from "@/lib/billing/plans";
 import { getLandingContent } from "@/lib/marketing/landing";
 
 const workflowRows = [
@@ -103,6 +104,7 @@ export function MarketingLandingPage() {
           <nav aria-label="Public navigation" className="hidden items-center gap-6 md:flex">
             <HeaderAnchor href="#product">Product</HeaderAnchor>
             <HeaderAnchor href="#loop">Proof loop</HeaderAnchor>
+            <HeaderAnchor href="#pricing">Pricing</HeaderAnchor>
             <HeaderAnchor href="#reports">Reports</HeaderAnchor>
           </nav>
           <div className="flex items-center gap-2">
@@ -230,6 +232,67 @@ export function MarketingLandingPage() {
               );
             })}
           </ol>
+        </div>
+      </section>
+
+      <section id="pricing" className="border-y border-zinc-950/10 bg-white px-5 py-16 sm:px-8 lg:py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <div>
+              <p className="text-sm/6 font-semibold text-[#6f5f99]">Simple agency pricing</p>
+              <h2 className="mt-3 text-3xl/10 font-semibold tracking-normal text-zinc-950 sm:text-4xl/11">
+                Pick the client capacity that matches your maintenance bench.
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm/6 text-zinc-500">
+              Pricing scales by client and workflow volume, not by seats, so operators can keep monitoring work moving.
+            </p>
+          </div>
+
+          <div className="mt-10 grid gap-4 lg:grid-cols-4">
+            {PUBLIC_BILLING_PLANS.map((plan) => (
+              <article
+                key={plan.key}
+                className={[
+                  "relative flex min-h-[21rem] flex-col rounded-lg border p-5 shadow-[var(--shadow-soft)]",
+                  plan.featured
+                    ? "border-zinc-950 bg-zinc-950 text-white"
+                    : "border-zinc-950/10 bg-[#fbfafc] text-zinc-950",
+                ].join(" ")}
+              >
+                {plan.featured ? (
+                  <span className="absolute right-4 top-4 rounded-md bg-white/10 px-2.5 py-1 text-xs/5 font-semibold text-white">
+                    Main plan
+                  </span>
+                ) : null}
+                <h3 className="text-lg/7 font-semibold">{plan.name}</h3>
+                <p className={["mt-2 text-sm/6", plan.featured ? "text-zinc-300" : "text-zinc-600"].join(" ")}>
+                  {plan.purpose}
+                </p>
+                <div className="mt-6 flex items-end gap-1">
+                  <p className="text-4xl/10 font-semibold tracking-normal">{plan.priceLabel}</p>
+                  <p className={["pb-1 text-sm/6", plan.featured ? "text-zinc-300" : "text-zinc-500"].join(" ")}>
+                    {plan.cadence}
+                  </p>
+                </div>
+                <div className={["mt-6 rounded-lg p-3 text-sm/6", plan.featured ? "bg-white/10 text-zinc-200" : "bg-white text-zinc-700 ring-1 ring-zinc-950/5"].join(" ")}>
+                  {plan.limitLabel}
+                </div>
+                <Link
+                  href="/sign-up"
+                  prefetch={false}
+                  className={[
+                    "mt-auto inline-flex h-10 items-center justify-center rounded-lg px-3 text-sm/6 font-semibold transition focus:outline-none focus:ring-2",
+                    plan.featured
+                      ? "bg-white !text-zinc-950 hover:bg-zinc-100 focus:ring-white/50"
+                      : "bg-zinc-950 !text-white hover:bg-zinc-800 focus:ring-zinc-950/20",
+                  ].join(" ")}
+                >
+                  Start with {plan.name}
+                </Link>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
 

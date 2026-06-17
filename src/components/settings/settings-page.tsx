@@ -1,9 +1,11 @@
 import { CreditCard, FileText, PlugZap, ShieldCheck } from "lucide-react";
 import { createCheckoutSessionAction, createCustomerPortalSessionAction } from "@/lib/billing/service";
 import { formatLimit, getPlanLimits } from "@/lib/billing/limits";
+import { getBillingPlanName, PUBLIC_BILLING_PLANS } from "@/lib/billing/plans";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
@@ -41,8 +43,7 @@ export function SettingsPage({
         </p>
       </section>
 
-      {billingNotice ? <p className="rounded-lg bg-success-background p-3 text-sm text-success">{billingNotice}</p> : null}
-      {billingError ? <p className="rounded-lg bg-danger-background p-3 text-sm text-danger">{billingError}</p> : null}
+      <PageFeedback notice={billingNotice} error={billingError} />
 
       <section className="grid gap-6 xl:grid-cols-2">
         <Card>
@@ -56,7 +57,7 @@ export function SettingsPage({
           <CardContent className="space-y-4">
             <SettingRow label="Agency" value={workspace.agency.name} />
             <SettingRow label="Slug" value={workspace.agency.slug} />
-            <SettingRow label="Plan" value={workspace.agency.plan} />
+            <SettingRow label="Plan" value={getBillingPlanName(workspace.agency.plan)} />
             <SettingRow label="Billing status" value={workspace.agency.billingStatus} />
             <SettingRow label="Trial ends" value={formatDate(workspace.agency.trialEndsAt)} />
           </CardContent>
@@ -75,13 +76,33 @@ export function SettingsPage({
               <UsageTile label="Clients" value={activeClients} limit={limits.clients} />
               <UsageTile label="Workflows" value={workflows} limit={limits.workflows} />
             </div>
+            <div className="grid gap-3">
+              {PUBLIC_BILLING_PLANS.map((plan) => (
+                <div key={plan.key} className="rounded-lg border border-border p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold">{plan.name}</p>
+                        {plan.featured ? <Badge variant="muted">main plan</Badge> : null}
+                        {workspace.agency.plan === plan.key ? <Badge variant="success">current</Badge> : null}
+                      </div>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        {plan.priceLabel}
+                        {plan.cadence} - {plan.limitLabel}
+                      </p>
+                    </div>
+                    <form action={createCheckoutSessionAction}>
+                      <input type="hidden" name="plan" value={plan.key} />
+                      <FormSubmitButton type="submit" size="sm" pendingLabel="Opening...">
+                        <CreditCard size={15} aria-hidden="true" />
+                        Choose
+                      </FormSubmitButton>
+                    </form>
+                  </div>
+                </div>
+              ))}
+            </div>
             <div className="flex flex-wrap gap-2">
-              <form action={createCheckoutSessionAction}>
-                <FormSubmitButton type="submit" size="sm" pendingLabel="Opening...">
-                  <CreditCard size={15} aria-hidden="true" />
-                  Upgrade
-                </FormSubmitButton>
-              </form>
               <form action={createCustomerPortalSessionAction}>
                 <FormSubmitButton
                   type="submit"

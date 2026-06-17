@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { AgencyOnboardingForm } from "@/components/auth/agency-onboarding-form";
 import { AuthLayout } from "@/components/auth/auth-layout";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { createAgencyAction } from "@/lib/auth/actions";
 import { getWorkspaceContext } from "@/lib/auth/workspace";
 
@@ -29,11 +30,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         </p>
       </div>
 
-      {error ? (
-        <p role="alert" aria-live="assertive" className="rounded-lg bg-red-50 p-3 text-sm/6 text-red-700">
-          {error}
-        </p>
-      ) : null}
+      <PageFeedback error={error} />
 
       <AgencyOnboardingForm action={createAgencyAction} />
     </AuthLayout>

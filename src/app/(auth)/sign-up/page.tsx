@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { signUpAction } from "@/lib/auth/actions";
 import { PASSWORD_REQUIREMENTS } from "@/lib/auth/password";
 
@@ -21,11 +22,7 @@ export default async function SignUpPage({ searchParams }: AuthPageProps) {
         </p>
       </div>
 
-      {error ? (
-        <p role="alert" aria-live="assertive" className="rounded-lg bg-red-50 p-3 text-sm/6 text-red-700">
-          {error}
-        </p>
-      ) : null}
+      <PageFeedback error={error} />
 
       <form
         action={signUpAction}

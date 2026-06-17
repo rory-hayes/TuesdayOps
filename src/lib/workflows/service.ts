@@ -186,6 +186,7 @@ const workflowUpdateFormSchema = workflowBaseFormSchema
   .extend({
     id: z.string().uuid(),
     includedInReports: z.enum(["on"]).optional(),
+    returnTab: z.enum(["overview", "checks", "api", "endpoint", "settings"]).optional(),
   });
 
 const workflowIdFormSchema = z.object({
@@ -208,11 +209,10 @@ export async function updateWorkflowAction(formData: FormData) {
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
   } catch (error) {
-    redirect(
-      `/workflows/${parsed.data.id}?error=${encodeURIComponent(
-        formatActionError(error, "Workflow endpoint did not pass safety validation."),
-      )}`,
-    );
+    redirect(buildWorkflowRedirect(parsed.data.id, {
+      error: formatActionError(error, "Workflow endpoint did not pass safety validation."),
+      tab: parsed.data.returnTab,
+    }));
   }
 
   const updateResult = await supabase
@@ -251,7 +251,10 @@ export async function updateWorkflowAction(formData: FormData) {
   revalidatePath("/workflows");
   revalidatePath(`/workflows/${parsed.data.id}`);
   revalidatePath("/");
-  redirect(`/workflows/${parsed.data.id}?notice=${encodeURIComponent("Workflow saved.")}`);
+  redirect(buildWorkflowRedirect(parsed.data.id, {
+    notice: "Workflow saved.",
+    tab: parsed.data.returnTab,
+  }));
 }
 
 export async function archiveWorkflowAction(formData: FormData) {
@@ -464,4 +467,29 @@ async function recordWorkflowAuditEvent({
   } catch {
     // Audit logging must not block workflow onboarding or updates.
   }
+}
+
+function buildWorkflowRedirect(
+  workflowId: string,
+  values: {
+    error?: string;
+    notice?: string;
+    tab?: string;
+  },
+): string {
+  const params = new URLSearchParams();
+
+  if (values.tab) {
+    params.set("tab", values.tab);
+  }
+
+  if (values.notice) {
+    params.set("notice", values.notice);
+  }
+
+  if (values.error) {
+    params.set("error", values.error);
+  }
+
+  return `/workflows/${workflowId}?${params.toString()}`;
 }

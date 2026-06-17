@@ -67,3 +67,7 @@ Track meaningful product and engineering changes here.
 - Added design-partner readiness phases: workflow/check/test-pack lifecycle controls, workflow-scoped public run logging API keys, model/prompt comparison report evidence, lightweight dashboard charts, monthly report draft automation, OpenAPI YAML/URL import support, a public logged-out landing page, and updated implementation docs.
 - Improved first-time UX with an onboarding guide modal, clearer next-step dashboard state, compact Add Workflow setup with sticky submit actions, truthful "Not run yet" workflow timestamps, readable run-history summaries, and mobile workflow-health cards.
 - Redesigned the public logged-out landing page into a polished product-led site for AI agency workflow maintenance, with a dashboard preview, proof loop, report evidence section, and focused CTAs.
+- Updated billing to the four agreed TuesdayOps tiers, added Stripe price-ID mapping per plan, exposed plan-specific checkout from Settings, and added public landing-page pricing.
+- Completed synthetic assertion coverage for go-live test packs with valid JSON, required text, regex, and non-empty field assertions exposed in the Checks UI.
+- Attached generated PDFs to report send emails so external recipients can read reports without an app login.
+- Added DB-backed hashed rate limits for manual check/test-pack runs, report sends, public run-log ingestion, Stripe billing starts, and scheduler triggers.

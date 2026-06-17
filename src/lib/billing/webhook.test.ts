@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   buildAgencyBillingUpdate,
   getAgencyIdFromCheckoutSession,
@@ -6,7 +6,13 @@ import {
   normalizeStripeSubscriptionStatus,
 } from "@/lib/billing/webhook";
 
+const originalEnv = { ...process.env };
+
 describe("Stripe webhook helpers", () => {
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
   it("maps Stripe subscription states into agency billing states", () => {
     expect(normalizeStripeSubscriptionStatus("trialing")).toBe("trialing");
     expect(normalizeStripeSubscriptionStatus("active")).toBe("active");
@@ -18,6 +24,8 @@ describe("Stripe webhook helpers", () => {
   });
 
   it("builds a safe agency update from a subscription object", () => {
+    process.env.STRIPE_PRICE_ID_GROWTH = "price_123";
+
     const update = buildAgencyBillingUpdate({
       id: "sub_123",
       customer: "cus_123",
@@ -90,5 +98,18 @@ describe("Stripe webhook helpers", () => {
         type: "checkout.session.completed",
       } as never),
     ).toBe(false);
+  });
+
+  it("falls back to starter when Stripe sends an unknown active price", () => {
+    const update = buildAgencyBillingUpdate({
+      id: "sub_unknown",
+      customer: "cus_unknown",
+      status: "active",
+      current_period_end: null,
+      items: { data: [{ price: { id: "price_unknown" } }] },
+    });
+
+    expect(update.plan).toBe("starter");
+    expect(update.billing_price_id).toBe("price_unknown");
   });
 });

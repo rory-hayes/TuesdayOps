@@ -32,7 +32,7 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
           type="button"
           aria-label="Add client"
           className={cn(
-            "grid size-6 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-950/5 hover:text-zinc-950 disabled:pointer-events-none disabled:opacity-50",
+            "grid size-6 place-items-center rounded-md text-zinc-600 transition hover:bg-zinc-950/5 hover:text-zinc-950 disabled:pointer-events-none disabled:opacity-50",
             className,
           )}
           disabled={!ready}

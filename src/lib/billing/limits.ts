@@ -1,9 +1,12 @@
+import {
+  DESIGN_PARTNER_LIMITS,
+  PUBLIC_BILLING_PLANS,
+  type PlanLimits,
+} from "@/lib/billing/plans";
+
 export type BillingStatus = "trialing" | "active" | "past_due" | "canceled" | "incomplete";
 
-export type PlanLimits = {
-  clients: number;
-  workflows: number;
-};
+export type { PlanLimits };
 
 export type LimitDecision = {
   allowed: boolean;
@@ -12,19 +15,13 @@ export type LimitDecision = {
   upgradeMessage?: string;
 };
 
-const PLAN_LIMITS: Record<string, PlanLimits> = {
-  starter: { clients: 1, workflows: 3 },
-  growth: { clients: 5, workflows: 20 },
-  pro: { clients: 15, workflows: 75 },
-  design_partner: {
-    clients: Number.POSITIVE_INFINITY,
-    workflows: Number.POSITIVE_INFINITY,
-  },
-};
+const PLAN_LIMITS: Record<string, PlanLimits> = Object.fromEntries(
+  PUBLIC_BILLING_PLANS.map((plan) => [plan.key, plan.limits]),
+);
 
 export function getPlanLimits(plan: string, billingStatus: BillingStatus | string): PlanLimits {
   if (plan === "design_partner") {
-    return PLAN_LIMITS.design_partner;
+    return DESIGN_PARTNER_LIMITS;
   }
 
   if (!["trialing", "active"].includes(billingStatus)) {

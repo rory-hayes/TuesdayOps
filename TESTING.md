@@ -110,7 +110,7 @@ Current Milestone 7C billing/limits status:
 - Added unit coverage for plan-limit decisions and Stripe webhook mapping helpers.
 - Applied the billing and plan limits Supabase migration to the linked remote project.
 - `npm run e2e -- e2e/billing-limits.spec.ts` passed against the local app and remote Supabase project.
-- Covered flow: confirmed QA user sign-in, agency onboarding, Settings billing usage display, missing Stripe config handled safely, first starter client creation, and second starter client blocked with upgrade copy.
+- Covered flow: confirmed QA user sign-in, agency onboarding, Settings billing usage display, missing Stripe config handled safely, starter client creation, and starter limit enforcement with upgrade copy.
 - Full Playwright suite passed with onboarding, billing limits, scheduled checks, alerts, test packs, and reports: `6 passed`.
 
 Current Milestone 8 QA-hardening status:
@@ -199,6 +199,14 @@ Current design-partner readiness implementation status on 2026-06-16:
   - `npm audit --audit-level=moderate` (`found 0 vulnerabilities`)
 - Follow-up provider checks still needed before full paid launch sign-off: one live report email send with a safe recipient/domain, and one Stripe test-mode Checkout/Customer Portal pass.
 
+Current go-live hardening implementation status on 2026-06-17:
+
+- Added assertion engine coverage for `valid_json`, `contains_text`, `matches_regex`, and `field_not_empty`.
+- Added synthetic test-pack helper coverage for the extended assertion builder fields.
+- Added report PDF attachment helper coverage so sent report emails include the generated PDF.
+- Added DB-backed rate-limit helper coverage and route coverage for public run-log and scheduler throttling.
+- Full verification for this hardening pass should include `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, production smoke, and a provider-side Stripe Checkout/Portal pass after migrations and env vars are deployed.
+
 ## Critical test areas
 
 ### Assertion engine
@@ -206,8 +214,12 @@ Current design-partner readiness implementation status on 2026-06-16:
 Test:
 
 - field exists
+- field not empty
 - field equals
+- contains text
 - not contains
+- matches regex
+- valid JSON
 - status code expected
 - latency under threshold
 - JSON parse failure

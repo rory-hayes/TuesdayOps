@@ -3,15 +3,29 @@
 import { redirect } from "next/navigation";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { formatBillingError } from "@/lib/billing/feedback";
-import { getAppUrl, getStripePriceId } from "@/lib/env";
+import { isBillingPlanKey, type BillingPlanKey } from "@/lib/billing/plans";
+import { getAppUrl, getStripePriceIdForPlan } from "@/lib/env";
 import { getStripeClient } from "@/lib/billing/stripe";
+import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
 import { createClient } from "@/lib/supabase/server";
 
-export async function createCheckoutSessionAction() {
+export async function createCheckoutSessionAction(formData?: FormData) {
   const workspace = await requireWorkspace();
+  const plan = readCheckoutPlan(formData);
 
   if (!["owner", "admin"].includes(workspace.role)) {
     redirect(`/settings?billing_error=${encodeURIComponent("Only owners and admins can manage billing.")}`);
+  }
+
+  try {
+    await assertPersistentRateLimit({
+      scope: "stripe-checkout-start",
+      identifier: `${workspace.agency.id}:${workspace.user.id}`,
+      limit: 5,
+      windowSeconds: 600,
+    });
+  } catch (error) {
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Too many checkout attempts. Try again later."))}`);
   }
 
   let stripe;
@@ -20,7 +34,7 @@ export async function createCheckoutSessionAction() {
 
   try {
     stripe = getStripeClient();
-    priceId = getStripePriceId();
+    priceId = getStripePriceIdForPlan(plan);
     appUrl = getAppUrl();
   } catch (error) {
     redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error))}`);
@@ -65,10 +79,12 @@ export async function createCheckoutSessionAction() {
       cancel_url: `${appUrl}/settings?billing=checkout-canceled`,
       metadata: {
         agency_id: workspace.agency.id,
+        plan,
       },
       subscription_data: {
         metadata: {
           agency_id: workspace.agency.id,
+          plan,
         },
       },
     });
@@ -84,6 +100,12 @@ export async function createCheckoutSessionAction() {
   redirect(checkoutUrl);
 }
 
+function readCheckoutPlan(formData?: FormData): BillingPlanKey {
+  const plan = formData?.get("plan");
+
+  return isBillingPlanKey(plan) ? plan : "growth";
+}
+
 export async function createCustomerPortalSessionAction() {
   const workspace = await requireWorkspace();
 
@@ -93,6 +115,17 @@ export async function createCustomerPortalSessionAction() {
 
   if (!workspace.agency.billingCustomerId) {
     redirect(`/settings?billing_error=${encodeURIComponent("Start a subscription before opening the customer portal.")}`);
+  }
+
+  try {
+    await assertPersistentRateLimit({
+      scope: "stripe-portal-start",
+      identifier: `${workspace.agency.id}:${workspace.user.id}`,
+      limit: 10,
+      windowSeconds: 600,
+    });
+  } catch (error) {
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Too many billing portal attempts. Try again later."))}`);
   }
 
   let stripe;

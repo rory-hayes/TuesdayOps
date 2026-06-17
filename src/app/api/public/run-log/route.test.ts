@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { recordExternalRunLog, RunLogAuthError } from "@/lib/run-logs/service";
+import { consumePersistentRateLimit } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { POST } from "./route";
 
@@ -16,10 +17,27 @@ vi.mock("@/lib/supabase/admin", () => ({
   createAdminClient: vi.fn(() => ({ admin: true })),
 }));
 
+vi.mock("@/lib/security/rate-limit", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/security/rate-limit")>();
+
+  return {
+    ...actual,
+    consumePersistentRateLimit: vi.fn(),
+  };
+});
+
 describe("public run-log route", () => {
   beforeEach(() => {
     vi.mocked(recordExternalRunLog).mockReset();
+    vi.mocked(consumePersistentRateLimit).mockReset();
     vi.mocked(createAdminClient).mockClear();
+    vi.mocked(consumePersistentRateLimit).mockResolvedValue({
+      allowed: true,
+      limit: 120,
+      remaining: 119,
+      resetAt: Date.now() + 60_000,
+      retryAfterSeconds: 60,
+    });
     vi.mocked(recordExternalRunLog).mockResolvedValue({
       checkRunId: "run-1",
       status: "healthy",
@@ -89,6 +107,29 @@ describe("public run-log route", () => {
       },
     });
     expect(createAdminClient).toHaveBeenCalledTimes(1);
+  });
+
+  it("rate limits run-log submissions before payload work is recorded", async () => {
+    vi.mocked(consumePersistentRateLimit).mockResolvedValueOnce({
+      allowed: false,
+      limit: 120,
+      remaining: 0,
+      resetAt: Date.now() + 30_000,
+      retryAfterSeconds: 30,
+    });
+
+    const response = await POST(buildRequest({
+      key: "tops_key",
+      body: JSON.stringify({
+        workflowId: "550e8400-e29b-41d4-a716-446655440000",
+        status: "success",
+      }),
+    }));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("30");
+    await expect(response.json()).resolves.toEqual({ error: "Too many run log requests." });
+    expect(recordExternalRunLog).not.toHaveBeenCalled();
   });
 
   it("returns a safe auth error when the key is invalid", async () => {

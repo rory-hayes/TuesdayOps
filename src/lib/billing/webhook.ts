@@ -1,5 +1,6 @@
 import type Stripe from "stripe";
 import type { BillingStatus } from "@/lib/billing/limits";
+import { getStripePlanForPriceId } from "@/lib/env";
 
 type SubscriptionLike = {
   id: string;
@@ -77,5 +78,5 @@ function planForPriceId(priceId: string | null, billingStatus: BillingStatus): s
     return "starter";
   }
 
-  return "growth";
+  return getStripePlanForPriceId(priceId) ?? "starter";
 }

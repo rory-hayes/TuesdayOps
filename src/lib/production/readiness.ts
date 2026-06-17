@@ -13,6 +13,10 @@ export type ReadinessEnv = Record<string, string | undefined> & Partial<Record<
   | "STRIPE_SECRET_KEY"
   | "STRIPE_WEBHOOK_SECRET"
   | "STRIPE_PRICE_ID"
+  | "STRIPE_PRICE_ID_STARTER"
+  | "STRIPE_PRICE_ID_GROWTH"
+  | "STRIPE_PRICE_ID_SCALE"
+  | "STRIPE_PRICE_ID_AGENCY_PLUS"
   | "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY"
   | "SENTRY_DSN"
   | "NEXT_PUBLIC_SENTRY_DSN"
@@ -93,7 +97,10 @@ export function buildProductionReadiness(env: ReadinessEnv = process.env): Produ
       keys: [
         ["STRIPE_SECRET_KEY", "Secret key"],
         ["STRIPE_WEBHOOK_SECRET", "Webhook signing secret"],
-        ["STRIPE_PRICE_ID", "Subscription price"],
+        ["STRIPE_PRICE_ID_STARTER", "Starter subscription price"],
+        ["STRIPE_PRICE_ID_GROWTH", "Growth subscription price"],
+        ["STRIPE_PRICE_ID_SCALE", "Scale subscription price"],
+        ["STRIPE_PRICE_ID_AGENCY_PLUS", "Agency+ subscription price"],
         ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "Publishable key"],
       ],
     }),

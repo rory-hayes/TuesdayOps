@@ -8,6 +8,7 @@ import { requireWorkspace } from "@/lib/auth/workspace";
 import { checkConfigSchema } from "@/lib/checks/assertions";
 import { executeCheckRun } from "@/lib/checks/execution";
 import { buildCheckDisableUpdate } from "@/lib/checks/lifecycle";
+import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -19,10 +20,12 @@ const createCheckFormSchema = z.object({
   expectedStatus: z.coerce.number().int().min(100).max(599).default(200),
   maxLatencyMs: z.coerce.number().int().min(100).max(60000).default(5000),
   timeoutMs: z.coerce.number().int().min(1000).max(60000).default(10000),
+  returnTab: z.enum(["overview", "checks", "api", "endpoint", "settings"]).optional(),
 });
 
 const runCheckFormSchema = z.object({
   checkId: z.string().uuid(),
+  returnTab: z.enum(["overview", "checks", "api", "endpoint", "settings"]).optional(),
 });
 
 export async function createCheckAction(formData: FormData) {
@@ -57,7 +60,10 @@ export async function createCheckAction(formData: FormData) {
 
   revalidatePath("/checks");
   revalidatePath(`/workflows/${parsed.data.workflowId}`);
-  redirect(`/workflows/${parsed.data.workflowId}?notice=${encodeURIComponent("Check added.")}`);
+  redirect(buildWorkflowRedirect(parsed.data.workflowId, {
+    notice: "Check added.",
+    tab: parsed.data.returnTab,
+  }));
 }
 
 export async function runCheckAction(formData: FormData) {
@@ -71,6 +77,12 @@ export async function runCheckAction(formData: FormData) {
   const supabase = await createClient();
   let workflowId: string | undefined;
   try {
+    await assertPersistentRateLimit({
+      scope: "manual-check-run",
+      identifier: `${workspace.agency.id}:${workspace.user.id}`,
+      limit: 20,
+      windowSeconds: 600,
+    });
     const result = await executeCheckRun({
       supabase,
       agencyId: workspace.agency.id,
@@ -99,7 +111,10 @@ export async function runCheckAction(formData: FormData) {
   revalidatePath("/workflows");
   revalidatePath("/issues");
   revalidatePath("/");
-  redirect(`/workflows/${workflowId}?notice=${encodeURIComponent("Check run completed and history was updated.")}`);
+  redirect(buildWorkflowRedirect(workflowId, {
+    notice: "Check run completed and history was updated.",
+    tab: parsed.data.returnTab,
+  }));
 }
 
 export async function disableCheckAction(formData: FormData) {
@@ -199,4 +214,24 @@ async function recordCheckLifecycleAuditEvent({
   } catch {
     // Audit logging must not block check lifecycle actions.
   }
+}
+
+function buildWorkflowRedirect(
+  workflowId: string,
+  values: {
+    notice?: string;
+    tab?: string;
+  },
+): string {
+  const params = new URLSearchParams();
+
+  if (values.tab) {
+    params.set("tab", values.tab);
+  }
+
+  if (values.notice) {
+    params.set("notice", values.notice);
+  }
+
+  return `/workflows/${workflowId}?${params.toString()}`;
 }

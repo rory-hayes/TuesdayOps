@@ -22,6 +22,10 @@ export type TestCaseAssertionInput = {
   expectedStatus: number;
   maxLatencyMs: number;
   fieldExistsPath?: string;
+  fieldNotEmptyPath?: string;
+  containsTextValue?: string;
+  matchesRegexPattern?: string;
+  requireValidJson?: boolean;
   notContainsValue?: string;
 };
 
@@ -47,6 +51,10 @@ export function buildTestCaseAssertions({
   expectedStatus,
   maxLatencyMs,
   fieldExistsPath,
+  fieldNotEmptyPath,
+  containsTextValue,
+  matchesRegexPattern,
+  requireValidJson,
   notContainsValue,
 }: TestCaseAssertionInput): CheckAssertion[] {
   const assertions: CheckAssertion[] = [
@@ -54,10 +62,29 @@ export function buildTestCaseAssertions({
     { type: "latency_under", maxMs: maxLatencyMs },
   ];
   const normalizedFieldPath = fieldExistsPath?.trim();
+  const normalizedNotEmptyPath = fieldNotEmptyPath?.trim();
+  const normalizedRequiredText = containsTextValue?.trim();
+  const normalizedRegexPattern = matchesRegexPattern?.trim();
   const normalizedForbiddenValue = notContainsValue?.trim();
+
+  if (requireValidJson) {
+    assertions.push({ type: "valid_json" });
+  }
 
   if (normalizedFieldPath) {
     assertions.push({ type: "field_exists", path: normalizedFieldPath });
+  }
+
+  if (normalizedNotEmptyPath) {
+    assertions.push({ type: "field_not_empty", path: normalizedNotEmptyPath });
+  }
+
+  if (normalizedRequiredText) {
+    assertions.push({ type: "contains_text", value: normalizedRequiredText });
+  }
+
+  if (normalizedRegexPattern) {
+    assertions.push({ type: "matches_regex", pattern: normalizedRegexPattern });
   }
 
   if (normalizedForbiddenValue) {

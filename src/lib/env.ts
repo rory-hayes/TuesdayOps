@@ -1,3 +1,9 @@
+import {
+  BILLING_PLAN_KEYS,
+  STRIPE_PRICE_ENV_BY_PLAN,
+  type BillingPlanKey,
+} from "@/lib/billing/plans";
+
 type PublicSupabaseEnv = {
   url: string;
   publishableKey: string;
@@ -97,11 +103,37 @@ export function getStripeWebhookSecret(): string {
 }
 
 export function getStripePriceId(): string {
-  const priceId = process.env.STRIPE_PRICE_ID;
+  return getStripePriceIdForPlan("growth");
+}
+
+export function getStripePriceIdForPlan(plan: BillingPlanKey, env: NodeJS.ProcessEnv = process.env): string {
+  const envName = STRIPE_PRICE_ENV_BY_PLAN[plan];
+  const priceId = env[envName] ?? (plan === "growth" ? env.STRIPE_PRICE_ID : undefined);
 
   if (!priceId) {
-    throw new Error("Missing STRIPE_PRICE_ID. This price is required for subscription checkout.");
+    throw new Error(`Missing ${envName}. This price is required for ${plan} subscription checkout.`);
   }
 
   return priceId;
+}
+
+export function getStripePriceIdsByPlan(env: NodeJS.ProcessEnv = process.env): Partial<Record<BillingPlanKey, string>> {
+  return Object.fromEntries(
+    BILLING_PLAN_KEYS
+      .map((plan) => [plan, env[STRIPE_PRICE_ENV_BY_PLAN[plan]] ?? (plan === "growth" ? env.STRIPE_PRICE_ID : undefined)] as const)
+      .filter((entry): entry is [BillingPlanKey, string] => Boolean(entry[1])),
+  );
+}
+
+export function getStripePlanForPriceId(
+  priceId: string | null | undefined,
+  env: NodeJS.ProcessEnv = process.env,
+): BillingPlanKey | null {
+  if (!priceId) {
+    return null;
+  }
+
+  const match = Object.entries(getStripePriceIdsByPlan(env)).find(([, configuredPriceId]) => configuredPriceId === priceId);
+
+  return (match?.[0] as BillingPlanKey | undefined) ?? null;
 }

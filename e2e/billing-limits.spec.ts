@@ -158,7 +158,7 @@ async function createConfirmedUser({ email, password }: { email: string; passwor
 async function waitForCheckoutOrBillingError(
   page: import("@playwright/test").Page,
 ): Promise<"checkout" | "config-error"> {
-  const billingError = page.getByText(/Missing STRIPE_(SECRET_KEY|PRICE_ID)|Billing is not configured/);
+  const billingError = page.getByText(/Missing STRIPE_(SECRET_KEY|PRICE_ID(?:_[A-Z_]+)?)|Billing is not configured/);
 
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const url = new URL(page.url());

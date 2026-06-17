@@ -103,12 +103,20 @@ describe("synthetic test runner helpers", () => {
         expectedStatus: 201,
         maxLatencyMs: 2500,
         fieldExistsPath: "result.id",
+        fieldNotEmptyPath: "result.answer",
+        containsTextValue: "approved",
+        matchesRegexPattern: "case-[0-9]+",
+        requireValidJson: true,
         notContainsValue: "error",
       }),
     ).toEqual([
       { type: "status_code", expected: 201 },
       { type: "latency_under", maxMs: 2500 },
+      { type: "valid_json" },
       { type: "field_exists", path: "result.id" },
+      { type: "field_not_empty", path: "result.answer" },
+      { type: "contains_text", value: "approved" },
+      { type: "matches_regex", pattern: "case-[0-9]+" },
       { type: "not_contains", value: "error" },
     ]);
   });

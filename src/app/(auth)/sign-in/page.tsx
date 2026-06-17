@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { signInAction } from "@/lib/auth/actions";
 
 type AuthPageProps = {
@@ -21,16 +22,7 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
         </p>
       </div>
 
-      {notice ? (
-        <p role="status" aria-live="polite" className="rounded-lg bg-lime-50 p-3 text-sm/6 text-lime-700">
-          {notice}
-        </p>
-      ) : null}
-      {error ? (
-        <p role="alert" aria-live="assertive" className="rounded-lg bg-red-50 p-3 text-sm/6 text-red-700">
-          {error}
-        </p>
-      ) : null}
+      <PageFeedback notice={notice} error={error} />
 
       <form action={signInAction} aria-label="Sign in to TuesdayOps" noValidate className="grid gap-6">
         <Field label="Email" name="email" type="email" autoComplete="email" />

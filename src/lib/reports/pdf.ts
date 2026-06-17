@@ -63,6 +63,20 @@ export function buildReportEmail({
   return { subject, text, html };
 }
 
+export function buildReportPdfAttachment({
+  report,
+  pdfBytes,
+}: {
+  report: ReportDraft;
+  pdfBytes: Buffer;
+}) {
+  return {
+    filename: `${buildSafeFilenameStem(`${report.clientName}-${report.period}-maintenance-report`)}.pdf`,
+    content: pdfBytes,
+    contentType: "application/pdf",
+  };
+}
+
 function buildPdfContent(report: ReportDraft): string {
   const commands = [
     fillRect({ x: 0, y: 0, width: 612, height: 792, color: "0.985 0.982 0.975" }),
@@ -192,6 +206,16 @@ function buildCoverageLine(report: ReportDraft): string {
 
 function pluralize(noun: string, count: number): string {
   return count === 1 ? noun : `${noun}s`;
+}
+
+function buildSafeFilenameStem(value: string): string {
+  const stem = sanitizeReportText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96);
+
+  return stem || "maintenance-report";
 }
 
 function wrapLine(line: string): string[] {

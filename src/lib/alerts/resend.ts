@@ -7,6 +7,11 @@ export type SendEmailInput = {
   text: string;
   html: string;
   idempotencyKey: string;
+  attachments?: Array<{
+    filename: string;
+    content: string | Buffer;
+    contentType?: string;
+  }>;
 };
 
 export type SendEmailResult = {
@@ -19,6 +24,7 @@ export async function sendResendEmail({
   text,
   html,
   idempotencyKey,
+  attachments,
 }: SendEmailInput): Promise<SendEmailResult> {
   const resend = new Resend(getResendApiKey());
   const { data, error } = await resend.emails.send(
@@ -28,6 +34,7 @@ export async function sendResendEmail({
       subject,
       text,
       html,
+      attachments,
     },
     { idempotencyKey },
   );

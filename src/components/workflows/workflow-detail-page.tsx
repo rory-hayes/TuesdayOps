@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, LockKeyhole, Play, Plus } from "lucide-react";
+import { ArrowLeft, Cog, LockKeyhole, Play, Plus } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { MiniLineChart } from "@/components/charts/simple-charts";
 import { Badge } from "@/components/ui/badge";
@@ -8,23 +8,45 @@ import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { RunLogKeyPanel } from "@/components/workflows/run-log-key-panel";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
-import type { CheckRun, TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
+import type {
+  Check,
+  CheckRun,
+  Client,
+  TuesdayOpsSeedData,
+  Workflow,
+  WorkflowApiKeySummary,
+} from "@/lib/domain/types";
 import { archiveWorkflowAction, updateWorkflowAction } from "@/lib/workflows/service";
 import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/formatting";
 import { buildChangeComparison } from "@/lib/reports/change-comparison";
 import { buildPassRateTrend } from "@/lib/dashboard/charts";
+import { cn } from "@/lib/utils";
+
+type WorkflowDetailTab = "overview" | "checks" | "api" | "endpoint" | "settings";
+type ChangeComparison = ReturnType<typeof buildChangeComparison>;
+
+const workflowDetailTabs: Array<{ id: WorkflowDetailTab; label: string }> = [
+  { id: "overview", label: "Overview" },
+  { id: "checks", label: "Checks" },
+  { id: "api", label: "API & validation" },
+  { id: "endpoint", label: "Endpoint" },
+  { id: "settings", label: "Settings" },
+];
 
 export function WorkflowDetailPage({
   data,
   workflow,
   notice,
   error,
+  activeTab,
 }: {
   data: TuesdayOpsSeedData;
   workflow: Workflow;
   notice?: string;
   error?: string;
+  activeTab?: string;
 }) {
+  const tab = getActiveTab(activeTab);
   const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
   const checks = data.checks.filter((check) => check.workflowId === workflow.id);
   const runs = data.checkRuns.filter((run) => run.workflowId === workflow.id);
@@ -48,7 +70,20 @@ export function WorkflowDetailPage({
             <ArrowLeft size={15} aria-hidden="true" />
             Workflows
           </Link>
-          <h1 className="mt-3 text-2xl font-semibold tracking-normal md:text-3xl">{workflow.name}</h1>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-semibold tracking-normal md:text-3xl">{workflow.name}</h1>
+            <Link
+              href={`/workflows/${workflow.id}?tab=settings`}
+              aria-label="Workflow settings"
+              aria-current={tab === "settings" ? "page" : undefined}
+              className={cn(
+                "grid size-9 place-items-center rounded-lg border border-zinc-950/10 bg-white text-zinc-600 shadow-sm transition hover:bg-zinc-50 hover:text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-950/10",
+                tab === "settings" && "border-zinc-950 bg-zinc-950 text-white hover:bg-zinc-800 hover:text-white",
+              )}
+            >
+              <Cog size={17} aria-hidden="true" />
+            </Link>
+          </div>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
             {client?.name ?? "Unknown client"} endpoint health, assertions, and manual run history.
           </p>
@@ -79,257 +114,435 @@ export function WorkflowDetailPage({
         <Stat label="Last check" value={formatWorkflowLastCheck(workflow.lastCheckAt)} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <MiniLineChart label="Workflow pass-rate trend" points={buildPassRateTrend(runs)} suffix="%" />
-      </section>
+      <WorkflowTabs workflowId={workflow.id} activeTab={tab} />
 
-      <section className="grid items-start gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-        <div className="grid content-start gap-6">
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-semibold">Endpoint</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Stored workflow connection metadata.</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Info label="Client" value={client?.name ?? "Unknown"} />
-              <Info label="URL" value={workflow.endpointUrl} />
-              <div className="grid gap-3 md:grid-cols-2">
-                <Info label="Method" value={workflow.method} />
-                <Info label="Environment" value={workflow.environment} />
-                <Info label="Type" value={workflow.type.replaceAll("_", " ")} />
-                <Info label="Frequency" value={`${workflow.checkFrequencyMinutes} minutes`} />
-              </div>
-              <div className="flex items-start gap-3 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                <LockKeyhole size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
-                Workflow auth config is encrypted at rest and never displayed in the UI.
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-semibold">Workflow settings</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Update endpoint metadata and report inclusion.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <form action={updateWorkflowAction} className="grid gap-3">
-                <input type="hidden" name="id" value={workflow.id} />
-                <Input label="Name" name="name" placeholder="Workflow name" defaultValue={workflow.name} required />
-                <Input label="Endpoint URL" name="endpointUrl" placeholder="https://example.com/api/health" type="url" defaultValue={workflow.endpointUrl} required />
-                <div className="grid gap-3 md:grid-cols-2">
-                  <label className="block text-sm font-medium">
-                    Type
-                    <select
-                      name="type"
-                      defaultValue={workflow.type}
-                      className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                    >
-                      <option value="http_endpoint">HTTP endpoint</option>
-                      <option value="webhook">Webhook</option>
-                      <option value="n8n">n8n</option>
-                      <option value="make">Make</option>
-                      <option value="zapier">Zapier</option>
-                      <option value="mcp_server">MCP server</option>
-                      <option value="custom_api">Custom API</option>
-                    </select>
-                  </label>
-                  <label className="block text-sm font-medium">
-                    Environment
-                    <select
-                      name="environment"
-                      defaultValue={workflow.environment}
-                      className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                    >
-                      <option value="production">Production</option>
-                      <option value="staging">Staging</option>
-                      <option value="development">Development</option>
-                    </select>
-                  </label>
-                  <label className="block text-sm font-medium">
-                    Method
-                    <select
-                      name="method"
-                      defaultValue={workflow.method}
-                      className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                    >
-                      <option value="GET">GET</option>
-                      <option value="POST">POST</option>
-                      <option value="PUT">PUT</option>
-                      <option value="PATCH">PATCH</option>
-                    </select>
-                  </label>
-                  <Input
-                    label="Frequency minutes"
-                    name="checkFrequencyMinutes"
-                    placeholder="60"
-                    type="number"
-                    defaultValue={workflow.checkFrequencyMinutes.toString()}
-                    required
-                  />
-                </div>
-                <label className="flex items-center gap-2 text-sm font-medium">
-                  <input
-                    name="includedInReports"
-                    type="checkbox"
-                    defaultChecked={workflow.includedInReports}
-                    className="size-4 rounded border-border"
-                  />
-                  Include in reports
-                </label>
-                <FormSubmitButton type="submit" className="w-fit" pendingLabel="Saving...">
-                  Save workflow
-                </FormSubmitButton>
-              </form>
-            </CardContent>
-          </Card>
-
-          <RunLogKeyPanel workflowId={workflow.id} activeKeys={activeRunLogKeys} />
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-semibold">Change validation</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Lightweight model/prompt comparisons from logged runs.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {changeComparison.groups.length ? (
-                changeComparison.groups.slice(0, 3).map((group) => (
-                  <div key={group.label} className="rounded-lg border border-border p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <p className="text-sm font-medium">{group.label}</p>
-                      <Badge variant={group.passRate >= 90 ? "success" : group.passRate >= 70 ? "warning" : "danger"}>
-                        {group.passRate}% pass
-                      </Badge>
-                    </div>
-                    <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                      {group.runs} runs · {group.averageLatencyMs}ms average latency
-                      {group.averageCostEstimate === undefined ? "" : ` · ${group.averageCostEstimate} average cost`}
-                    </p>
-                  </div>
-                ))
-              ) : (
-                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                  Add model or prompt version metadata through the run logging API to compare changes.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-semibold">Add check</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Create another lightweight assertion pack.</p>
-            </CardHeader>
-            <CardContent>
-              <form action={createCheckAction} className="grid gap-3">
-                <input type="hidden" name="workflowId" value={workflow.id} />
-                <Input label="Name" name="name" placeholder="Endpoint responds with 200" required />
-                <div className="grid gap-3 md:grid-cols-3">
-                  <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
-                  <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required />
-                  <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required />
-                </div>
-                <FormSubmitButton type="submit" className="w-fit" pendingLabel="Adding...">
-                  <Plus size={15} aria-hidden="true" />
-                  Add check
-                </FormSubmitButton>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="grid content-start gap-6">
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-semibold">Checks</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Manual runs save status, latency, and assertions.</p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {checks.length ? (
-                checks.map((check) => (
-                  <div key={check.id} className="rounded-lg border border-border p-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <p className="font-medium">{check.name}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant="muted">{check.schedule}</Badge>
-                          <Badge variant="muted">{check.assertionCount} assertions</Badge>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <StatusBadge status={check.latestStatus} />
-                        <form action={runCheckAction}>
-                          <input type="hidden" name="checkId" value={check.id} />
-                          <FormSubmitButton type="submit" size="sm" pendingLabel="Running...">
-                            <Play size={14} aria-hidden="true" />
-                            Run
-                          </FormSubmitButton>
-                        </form>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                  No checks are attached to this workflow yet.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-base font-semibold">Run history</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Latest stored check runs for this endpoint.</p>
-            </CardHeader>
-            <CardContent className="overflow-x-auto p-0">
-              <table className="w-full min-w-[620px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
-                    <th className="px-5 py-3 font-medium">Status</th>
-                    <th className="px-5 py-3 font-medium">Code</th>
-                    <th className="px-5 py-3 font-medium">Latency</th>
-                    <th className="px-5 py-3 font-medium">Completed</th>
-                    <th className="px-5 py-3 font-medium">Summary</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {runs.length ? (
-                    runs.slice(0, 10).map((run) => (
-                      <tr key={run.id} className="border-b border-border last:border-0">
-                        <td className="px-5 py-4">
-                          <StatusBadge status={run.status} />
-                        </td>
-                        <td className="px-5 py-4">{run.statusCode ?? "-"}</td>
-                        <td className="px-5 py-4">{run.latencyMs} ms</td>
-                        <td className="px-5 py-4 text-muted-foreground">{formatDateTime(run.completedAt)}</td>
-                        <td className="px-5 py-4 text-muted-foreground">
-                          <span
-                            className="block max-w-80 whitespace-normal break-words"
-                            title={run.errorMessage ?? run.responseSummary}
-                          >
-                            {formatRunSummary(run)}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td className="px-5 py-8 text-sm text-muted-foreground" colSpan={5}>
-                        Run a check to create the first history entry.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      {tab === "overview" ? <OverviewTab runs={runs} /> : null}
+      {tab === "checks" ? <ChecksTab workflow={workflow} checks={checks} /> : null}
+      {tab === "api" ? (
+        <ApiValidationTab
+          workflowId={workflow.id}
+          activeRunLogKeys={activeRunLogKeys}
+          changeComparison={changeComparison}
+        />
+      ) : null}
+      {tab === "endpoint" ? <EndpointTab workflow={workflow} client={client} /> : null}
+      {tab === "settings" ? <WorkflowSettingsTab workflow={workflow} /> : null}
     </div>
+  );
+}
+
+function getActiveTab(value?: string): WorkflowDetailTab {
+  return workflowDetailTabs.some((tab) => tab.id === value) ? (value as WorkflowDetailTab) : "overview";
+}
+
+function WorkflowTabs({
+  workflowId,
+  activeTab,
+}: {
+  workflowId: string;
+  activeTab: WorkflowDetailTab;
+}) {
+  return (
+    <nav aria-label="Workflow detail sections" className="-mb-2 flex gap-2 overflow-x-auto border-b border-zinc-950/10">
+      {workflowDetailTabs.map((tab) => {
+        const active = tab.id === activeTab;
+
+        return (
+          <Link
+            key={tab.id}
+            href={`/workflows/${workflowId}?tab=${tab.id}`}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "whitespace-nowrap border-b-2 px-3 py-3 text-sm font-semibold transition-colors",
+              active
+                ? "border-zinc-950 text-zinc-950"
+                : "border-transparent text-zinc-500 hover:border-zinc-950/20 hover:text-zinc-950",
+            )}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function OverviewTab({ runs }: { runs: CheckRun[] }) {
+  const latestRun = runs[0];
+
+  return (
+    <section className="grid gap-6">
+      <MiniLineChart
+        label="Workflow pass-rate trend"
+        points={buildPassRateTrend(runs)}
+        suffix="%"
+        className="bg-white p-5 shadow-[var(--shadow-soft)]"
+        chartClassName="h-52 sm:h-64"
+      />
+
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)]">
+        <Card>
+          <CardHeader>
+            <h2 className="text-base font-semibold">Latest run</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              The most recent stored health signal for this workflow.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {latestRun ? (
+              <>
+                <div className="flex items-center justify-between gap-3">
+                  <StatusBadge status={latestRun.status} />
+                  <span className="text-sm text-muted-foreground">{formatDateTime(latestRun.completedAt)}</span>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Info label="Status code" value={latestRun.statusCode?.toString() ?? "-"} />
+                  <Info label="Latency" value={`${latestRun.latencyMs} ms`} />
+                </div>
+                <p className="rounded-lg bg-muted p-3 text-sm leading-6 text-muted-foreground">
+                  {formatRunSummary(latestRun)}
+                </p>
+              </>
+            ) : (
+              <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                Run a check to create the first workflow history entry.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <RunHistoryCard runs={runs} />
+      </div>
+    </section>
+  );
+}
+
+function ChecksTab({
+  workflow,
+  checks,
+}: {
+  workflow: Workflow;
+  checks: Check[];
+}) {
+  return (
+    <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(22rem,0.8fr)]">
+      <ChecksCard checks={checks} />
+      <AddCheckCard workflowId={workflow.id} />
+    </section>
+  );
+}
+
+function ApiValidationTab({
+  workflowId,
+  activeRunLogKeys,
+  changeComparison,
+}: {
+  workflowId: string;
+  activeRunLogKeys: WorkflowApiKeySummary[];
+  changeComparison: ChangeComparison;
+}) {
+  return (
+    <section className="grid items-start gap-6 xl:grid-cols-2">
+      <RunLogKeyPanel workflowId={workflowId} activeKeys={activeRunLogKeys} />
+      <ChangeValidationCard changeComparison={changeComparison} />
+    </section>
+  );
+}
+
+function EndpointTab({
+  workflow,
+  client,
+}: {
+  workflow: Workflow;
+  client?: Client;
+}) {
+  return (
+    <section className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]">
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold">Endpoint</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Stored connection metadata for the monitored workflow.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Info label="URL" value={workflow.endpointUrl} />
+          <div className="grid gap-3 md:grid-cols-2">
+            <Info label="Client" value={client?.name ?? "Unknown"} />
+            <Info label="Method" value={workflow.method} />
+            <Info label="Environment" value={workflow.environment} />
+            <Info label="Type" value={workflow.type.replaceAll("_", " ")} />
+            <Info label="Frequency" value={`${workflow.checkFrequencyMinutes} minutes`} />
+            <Info label="Auth type" value={workflow.authType.replaceAll("_", " ")} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold">Secret handling</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Endpoint credentials are intentionally not displayed here.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-3 rounded-lg bg-muted p-3 text-sm leading-6 text-muted-foreground">
+            <LockKeyhole size={16} className="mt-0.5 shrink-0 text-primary" aria-hidden="true" />
+            Workflow auth config is encrypted at rest, redacted from reports, and never returned to the browser.
+          </div>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+function WorkflowSettingsTab({ workflow }: { workflow: Workflow }) {
+  return (
+    <section className="max-w-4xl">
+      <Card>
+        <CardHeader>
+          <h2 className="text-base font-semibold">Workflow settings</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Update endpoint metadata, schedule, and report inclusion.
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form action={updateWorkflowAction} className="grid gap-4">
+            <input type="hidden" name="id" value={workflow.id} />
+            <input type="hidden" name="returnTab" value="settings" />
+            <Input label="Name" name="name" placeholder="Workflow name" defaultValue={workflow.name} required />
+            <Input
+              label="Endpoint URL"
+              name="endpointUrl"
+              placeholder="https://example.com/api/health"
+              type="url"
+              defaultValue={workflow.endpointUrl}
+              required
+            />
+            <div className="grid gap-3 md:grid-cols-2">
+              <label className="block text-sm font-medium">
+                Type
+                <select
+                  name="type"
+                  defaultValue={workflow.type}
+                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                >
+                  <option value="http_endpoint">HTTP endpoint</option>
+                  <option value="webhook">Webhook</option>
+                  <option value="n8n">n8n</option>
+                  <option value="make">Make</option>
+                  <option value="zapier">Zapier</option>
+                  <option value="mcp_server">MCP server</option>
+                  <option value="custom_api">Custom API</option>
+                </select>
+              </label>
+              <label className="block text-sm font-medium">
+                Environment
+                <select
+                  name="environment"
+                  defaultValue={workflow.environment}
+                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                >
+                  <option value="production">Production</option>
+                  <option value="staging">Staging</option>
+                  <option value="development">Development</option>
+                </select>
+              </label>
+              <label className="block text-sm font-medium">
+                Method
+                <select
+                  name="method"
+                  defaultValue={workflow.method}
+                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="PATCH">PATCH</option>
+                </select>
+              </label>
+              <Input
+                label="Frequency minutes"
+                name="checkFrequencyMinutes"
+                placeholder="60"
+                type="number"
+                defaultValue={workflow.checkFrequencyMinutes.toString()}
+                required
+              />
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium">
+              <input
+                name="includedInReports"
+                type="checkbox"
+                defaultChecked={workflow.includedInReports}
+                className="size-4 rounded border-border"
+              />
+              Include in reports
+            </label>
+            <FormSubmitButton type="submit" className="w-fit" pendingLabel="Saving...">
+              Save workflow
+            </FormSubmitButton>
+          </form>
+        </CardContent>
+      </Card>
+    </section>
+  );
+}
+
+function ChecksCard({ checks }: { checks: Check[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold">Checks</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Manual runs save status, latency, and assertions.</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {checks.length ? (
+          checks.map((check) => (
+            <div key={check.id} className="rounded-lg border border-border p-4">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="font-medium">{check.name}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Badge variant="muted">{check.schedule}</Badge>
+                    <Badge variant="muted">{check.assertionCount} assertions</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={check.latestStatus} />
+                  <form action={runCheckAction}>
+                    <input type="hidden" name="checkId" value={check.id} />
+                    <input type="hidden" name="returnTab" value="checks" />
+                    <FormSubmitButton type="submit" size="sm" pendingLabel="Running...">
+                      <Play size={14} aria-hidden="true" />
+                      Run
+                    </FormSubmitButton>
+                  </form>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+            No checks are attached to this workflow yet.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AddCheckCard({ workflowId }: { workflowId: string }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold">Add check</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Create another lightweight assertion pack.</p>
+      </CardHeader>
+      <CardContent>
+        <form action={createCheckAction} className="grid gap-3">
+          <input type="hidden" name="workflowId" value={workflowId} />
+          <input type="hidden" name="returnTab" value="checks" />
+          <Input label="Name" name="name" placeholder="Endpoint responds with 200" required />
+          <div className="grid gap-3">
+            <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
+            <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required />
+            <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required />
+          </div>
+          <FormSubmitButton type="submit" className="w-fit" pendingLabel="Adding...">
+            <Plus size={15} aria-hidden="true" />
+            Add check
+          </FormSubmitButton>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ChangeValidationCard({ changeComparison }: { changeComparison: ChangeComparison }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold">Change validation</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Lightweight model and prompt comparisons from logged runs.
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {changeComparison.groups.length ? (
+          changeComparison.groups.slice(0, 3).map((group) => (
+            <div key={group.label} className="rounded-lg border border-border p-3">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium">{group.label}</p>
+                <Badge variant={group.passRate >= 90 ? "success" : group.passRate >= 70 ? "warning" : "danger"}>
+                  {group.passRate}% pass
+                </Badge>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                {group.runs} runs - {group.averageLatencyMs}ms average latency
+                {group.averageCostEstimate === undefined ? "" : ` - ${group.averageCostEstimate} average cost`}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+            Add model or prompt version metadata through the run logging API to compare changes.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function RunHistoryCard({ runs }: { runs: CheckRun[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold">Run history</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Latest stored check runs for this endpoint.</p>
+      </CardHeader>
+      <CardContent className="overflow-x-auto p-0">
+        <table className="w-full min-w-[620px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-xs uppercase text-muted-foreground">
+              <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Code</th>
+              <th className="px-5 py-3 font-medium">Latency</th>
+              <th className="px-5 py-3 font-medium">Completed</th>
+              <th className="px-5 py-3 font-medium">Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {runs.length ? (
+              runs.slice(0, 10).map((run) => (
+                <tr key={run.id} className="border-b border-border last:border-0">
+                  <td className="px-5 py-4">
+                    <StatusBadge status={run.status} />
+                  </td>
+                  <td className="px-5 py-4">{run.statusCode ?? "-"}</td>
+                  <td className="px-5 py-4">{run.latencyMs} ms</td>
+                  <td className="px-5 py-4 text-muted-foreground">{formatDateTime(run.completedAt)}</td>
+                  <td className="px-5 py-4 text-muted-foreground">
+                    <span
+                      className="block max-w-80 whitespace-normal break-words"
+                      title={run.errorMessage ?? run.responseSummary}
+                    >
+                      {formatRunSummary(run)}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td className="px-5 py-8 text-sm text-muted-foreground" colSpan={5}>
+                  Run a check to create the first history entry.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
   );
 }
 

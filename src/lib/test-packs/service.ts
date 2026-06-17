@@ -7,6 +7,7 @@ import { z } from "zod";
 import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { runHttpCheck, type WorkflowAuthConfig } from "@/lib/checks/runner";
+import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
 import { decryptJsonPayload, type EncryptedJsonPayload } from "@/lib/security/secrets";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
@@ -40,6 +41,10 @@ const createTestCaseFormSchema = z.object({
   expectedStatus: z.coerce.number().int().min(100).max(599).default(200),
   maxLatencyMs: z.coerce.number().int().min(100).max(60000).default(10000),
   fieldExistsPath: z.string().trim().max(120).optional(),
+  fieldNotEmptyPath: z.string().trim().max(120).optional(),
+  containsTextValue: z.string().trim().max(240).optional(),
+  matchesRegexPattern: z.string().trim().max(500).optional(),
+  requireValidJson: z.literal("on").optional(),
   notContainsValue: z.string().trim().max(120).optional(),
 });
 
@@ -149,6 +154,10 @@ export async function createTestCaseAction(formData: FormData) {
     expectedStatus: parsed.data.expectedStatus,
     maxLatencyMs: parsed.data.maxLatencyMs,
     fieldExistsPath: parsed.data.fieldExistsPath,
+    fieldNotEmptyPath: parsed.data.fieldNotEmptyPath,
+    containsTextValue: parsed.data.containsTextValue,
+    matchesRegexPattern: parsed.data.matchesRegexPattern,
+    requireValidJson: parsed.data.requireValidJson === "on",
     notContainsValue: parsed.data.notContainsValue,
   });
 
@@ -180,6 +189,12 @@ export async function runTestPackAction(formData: FormData) {
   const supabase = await createClient();
 
   try {
+    await assertPersistentRateLimit({
+      scope: "synthetic-test-pack-run",
+      identifier: `${workspace.agency.id}:${workspace.user.id}`,
+      limit: 10,
+      windowSeconds: 600,
+    });
     await executeTestPackRun({
       supabase,
       agencyId: workspace.agency.id,
@@ -286,6 +301,10 @@ export async function updateTestCaseAction(formData: FormData) {
     expectedStatus: parsed.data.expectedStatus,
     maxLatencyMs: parsed.data.maxLatencyMs,
     fieldExistsPath: parsed.data.fieldExistsPath,
+    fieldNotEmptyPath: parsed.data.fieldNotEmptyPath,
+    containsTextValue: parsed.data.containsTextValue,
+    matchesRegexPattern: parsed.data.matchesRegexPattern,
+    requireValidJson: parsed.data.requireValidJson === "on",
     notContainsValue: parsed.data.notContainsValue,
   });
   const workspace = await requireWorkspace();

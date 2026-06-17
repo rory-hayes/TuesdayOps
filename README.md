@@ -118,7 +118,10 @@ RESEND_API_KEY=
 RESEND_FROM_EMAIL=
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
-STRIPE_PRICE_ID=
+STRIPE_PRICE_ID_STARTER=
+STRIPE_PRICE_ID_GROWTH=
+STRIPE_PRICE_ID_SCALE=
+STRIPE_PRICE_ID_AGENCY_PLUS=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 SENTRY_DSN=
 NEXT_PUBLIC_SENTRY_DSN=
@@ -187,11 +190,11 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - Supabase Cron/Vault scheduled trigger for `/api/scheduler/run-due-checks`
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
 - scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
-- bounded workflow check response reads, blocked redirect following, and fixed-window protection on the scheduler trigger route
+- bounded workflow check response reads, blocked redirect following, and DB-backed rate limits for manual checks, public run logging, report sends, billing starts, and scheduler triggers
 - high/critical issue email alert service with Resend delivery and alert-safe redacted copy
-- tenant-scoped synthetic test packs, test cases, test runs, and manual pack execution from the Checks page
+- tenant-scoped synthetic test packs, test cases, test runs, extended assertion types, and manual pack execution from the Checks page
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
-- tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts
+- tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts with PDF attachments
 - monthly report draft automation fields and protected scheduler route
 - model/prompt comparison report items and workflow-level change validation summaries
 - overview, client, and workflow trend charts from stored check-run and issue data

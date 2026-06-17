@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { runDueScheduledChecks } from "@/lib/checks/scheduled-runner";
 import { getSchedulerSecret } from "@/lib/env";
-import { createMemoryRateLimiter } from "@/lib/security/rate-limit";
+import { buildRateLimitHeaders, consumePersistentRateLimit, createMemoryRateLimiter } from "@/lib/security/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -41,6 +41,24 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createAdminClient();
+  const persistentRateLimit = await consumePersistentRateLimit({
+    scope: "scheduler-run-due-checks",
+    identifier: "global",
+    limit: 30,
+    windowSeconds: 60,
+    supabase,
+  });
+
+  if (!persistentRateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many scheduler trigger attempts." },
+      {
+        status: 429,
+        headers: buildRateLimitHeaders(persistentRateLimit),
+      },
+    );
+  }
+
   const result = await runDueScheduledChecks({ supabase, checkId: parsedBody.data.checkId });
 
   return NextResponse.json({ ok: true, ...result });

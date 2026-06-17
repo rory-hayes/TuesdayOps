@@ -11,9 +11,10 @@ import { getOperationalData } from "@/lib/data/operational-data";
 import type { ReportDraft, ReportItemCategory } from "@/lib/domain/types";
 import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
-import { buildReportEmail, renderReportPdfBytes } from "@/lib/reports/pdf";
+import { buildReportEmail, buildReportPdfAttachment, renderReportPdfBytes } from "@/lib/reports/pdf";
 import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
 import { buildReportSendRedirect, formatReportSendError } from "@/lib/reports/send-feedback";
+import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -152,11 +153,17 @@ export async function sendReportAction(formData: FormData) {
   let sendMessage: string | undefined;
 
   try {
+    await assertPersistentRateLimit({
+      scope: "report-send",
+      identifier: `${workspace.agency.id}:${workspace.user.id}`,
+      limit: 10,
+      windowSeconds: 3600,
+    });
     assertReportCanBeExported(buildReportQuality({
       data: await getOperationalData(workspace.agency),
       reportId: parsed.data.reportId,
     }));
-    const draft = await generateAndStoreReportPdf({
+    const { draft, pdfBytes } = await generateAndStoreReportPdf({
       supabase,
       admin,
       agencyId: workspace.agency.id,
@@ -181,6 +188,12 @@ export async function sendReportAction(formData: FormData) {
       subject: email.subject,
       text: email.text,
       html: email.html,
+      attachments: [
+        buildReportPdfAttachment({
+          report: draft,
+          pdfBytes,
+        }),
+      ],
       idempotencyKey: `report:${parsed.data.reportId}`,
     });
 
@@ -336,7 +349,7 @@ async function generateAndStoreReportPdf({
     throw new Error(`Report PDF status could not be saved: ${updateError.message}`);
   }
 
-  return draft;
+  return { draft, pdfBytes: bytes };
 }
 
 async function loadReportDraftFromDatabase({

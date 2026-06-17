@@ -18,6 +18,7 @@ vi.mock("@/lib/billing/stripe", () => ({
 
 vi.mock("@/lib/env", () => ({
   getStripeWebhookSecret: () => "whsec_test",
+  getStripePlanForPriceId: (priceId: string | null | undefined) => (priceId === "price_growth" ? "growth" : null),
 }));
 
 vi.mock("@/lib/supabase/admin", () => ({
