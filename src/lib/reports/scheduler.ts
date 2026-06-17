@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Agency, Client } from "@/lib/domain/types";
-import { getOperationalData } from "@/lib/data/operational-data";
+import { getReportSourceData } from "@/lib/data/operational-data";
 import { buildReportDraft } from "@/lib/reports/aggregation";
 import { saveReportDraft } from "@/lib/reports/service";
 
@@ -94,7 +94,13 @@ export async function runDueMonthlyReports({
   for (const client of clients) {
     try {
       const agency = await loadAgency({ supabase, agencyId: client.agency_id });
-      const dataSnapshot = await getOperationalData(mapAgency(agency), supabase);
+      const dataSnapshot = await getReportSourceData({
+        agency: mapAgency(agency),
+        clientId: client.id,
+        periodStart: period.periodStart,
+        periodEnd: period.periodEnd,
+        supabaseOverride: supabase,
+      });
       const activeClient = dataSnapshot.clients.find((candidate: Client) => candidate.id === client.id);
 
       if (!activeClient) {

@@ -155,10 +155,12 @@ npm run typecheck
 npm run test
 npm run test:coverage
 npm run e2e
+npm run e2e:production
 npm run smoke:production
 ```
 
 `npm run smoke:production` checks `https://tuesday-ops.vercel.app` by default. Set `PRODUCTION_SMOKE_URL=https://your-deployment.example.com` to target another deployed URL.
+`npm run e2e:production` runs the full report/core-loop Playwright story against a deployed app without starting a local server. Set `PRODUCTION_E2E_URL=https://your-deployment.example.com` and provide the same Supabase QA service credentials used by the normal E2E suite.
 
 Build for production:
 
@@ -183,18 +185,19 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - client create/update/archive server actions
 - registry-first Workflows page with guided Add workflow onboarding for quick import and manual endpoint setup
 - workflow creation with encrypted auth config handling, archive controls, and external run-log API key rotation/revocation
+- workflow settings with encrypted credential rotation and primary health-check timeout/assertion updates
 - endpoint health check creation, manual run execution, assertion evaluation, explicit timeout/simple assertion setup, and check run persistence
 - check disable controls and test-pack/test-case lifecycle controls
 - failed/degraded manual checks create deduped issues with severity mapping
-- issue queue filters, expandable details, source-check reruns, report inclusion toggles, assignment, resolution notes, and ignore actions
+- issue queue filters, expandable details, source-check reruns, report inclusion toggles, assignment, resolution notes, time-boxed snooze, and ignore actions
 - Supabase Cron/Vault scheduled trigger for `/api/scheduler/run-due-checks`
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
-- scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
-- bounded workflow check response reads, one retry for transport/read failures, DNS-aware SSRF checks, blocked redirect following, and DB-backed rate limits for manual checks, public run logging, report sends, billing starts, and scheduler triggers
+- scheduled check selection uses a database due-check selector and scheduled runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
+- bounded workflow check response reads, one retry for transport/read failures, pinned-address DNS-aware SSRF checks, blocked redirect following, and DB-backed rate limits for manual checks, public run logging, report sends, billing starts, and scheduler triggers
 - high/critical issue email alert service with Resend delivery and alert-safe redacted copy
 - tenant-scoped synthetic test packs, test cases, test runs, extended assertion types, and manual pack execution from the Checks page
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
-- tenant-scoped monthly report generation, report items, preview UI, PDF storage/download, and Resend-backed send attempts with PDF attachments
+- tenant-scoped monthly report generation from uncapped selected-client period source data, report items, preview UI, PDF storage/download, and Resend-backed send attempts with PDF attachments
 - monthly report draft automation fields and protected scheduler route
 - model/prompt comparison report items and workflow-level change validation summaries
 - overview, client, and workflow trend charts from stored check-run and issue data

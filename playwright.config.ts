@@ -2,6 +2,8 @@ import { defineConfig, devices } from "@playwright/test";
 
 const workerCount = Number(process.env.PLAYWRIGHT_WORKERS ?? 1);
 const safeWorkerCount = Number.isFinite(workerCount) && workerCount > 0 ? workerCount : 1;
+const baseURL = process.env.PRODUCTION_E2E_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const skipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === "true";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -10,7 +12,7 @@ export default defineConfig({
     timeout: 15_000,
   },
   use: {
-    baseURL: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    baseURL,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
@@ -21,10 +23,12 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: "npm run dev -- --port 3000",
-    url: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-    reuseExistingServer: true,
-    timeout: 30_000,
-  },
+  webServer: skipWebServer
+    ? undefined
+    : {
+        command: "npm run dev -- --port 3000",
+        url: baseURL,
+        reuseExistingServer: true,
+        timeout: 30_000,
+      },
 });

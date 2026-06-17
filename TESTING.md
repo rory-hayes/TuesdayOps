@@ -212,12 +212,22 @@ Current core-loop production audit status on 2026-06-17:
 - Added URL preservation and DNS-aware SSRF unit coverage.
 - Added HTTP runner coverage for one retry after transport/read failures and degraded status classification for non-status assertion misses.
 - Extended core E2E coverage for issue report inclusion, source-check rerun, assignment, resolution note, and resolved issue reporting.
+- Added report source-data regression coverage proving selected-client period reports are not capped by dashboard snapshot limits.
+- Added health-check config coverage for JSON, field, text, regex, negative assertions, request body, status, latency, and timeout.
+- Added scheduled-runner coverage for the database due-check selector.
+- Added runner coverage for pinned-address endpoint execution through the transport seam.
+- Added public run-log route coverage for pre-auth throttling and token-scoped throttling.
+- Added snooze/dedupe coverage so repeat failures reopen snoozed issues without duplicate issue creation.
+- Added `npm run e2e:production`, which runs the full report/core-loop Playwright flow against `PRODUCTION_E2E_URL` without starting a local dev server.
 - Final verification passed:
   - `npm run lint`
   - `npm run typecheck`
-  - `npm run test` (`56 passed`, `306 passed`)
+  - `npm run test` (`57 passed`, `310 passed`)
   - `npm run build`
   - `npm run e2e` (`8 passed`)
+  - `npm run smoke:production` (`1 passed`)
+  - `PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production` (`1 passed`)
+  - `npm audit --audit-level=moderate` (`found 0 vulnerabilities`)
 
 ## Critical test areas
 

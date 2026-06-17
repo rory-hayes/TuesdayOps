@@ -20,27 +20,14 @@ export type ScheduledCheckBatchResult = {
   failed: number;
 };
 
-type ScheduledCheckRow = {
+type DueHealthCheckRow = {
   id: string;
   agency_id: string;
   enabled: boolean;
   workflow_id: string;
-  workflows:
-    | {
-        id: string;
-        endpoint_url: string | null;
-        check_frequency_minutes: number;
-      }
-    | {
-        id: string;
-        endpoint_url: string | null;
-        check_frequency_minutes: number;
-      }[];
-};
-
-type LatestRunRow = {
-  check_id: string;
-  completed_at: string;
+  endpoint_url: string | null;
+  check_frequency_minutes: number;
+  latest_completed_at: string | null;
 };
 
 export async function runDueScheduledChecks({
@@ -56,7 +43,8 @@ export async function runDueScheduledChecks({
 }): Promise<ScheduledCheckBatchResult> {
   const checks = await loadSchedulableChecks({
     supabase,
-    limit: checkId ? 1 : Math.max(limit * 3, limit),
+    now,
+    limit: checkId ? 1 : limit,
     checkId,
   });
 
@@ -130,62 +118,33 @@ function formatScheduledRunError(error: unknown): string {
 
 export async function loadSchedulableChecks({
   supabase,
+  now = new Date(),
   limit = 150,
   checkId,
 }: {
   supabase: SupabaseClient;
+  now?: Date;
   limit?: number;
   checkId?: string;
 }): Promise<SchedulableCheck[]> {
-  let query = supabase
-    .from("checks")
-    .select("id, agency_id, enabled, workflow_id, workflows(id, endpoint_url, check_frequency_minutes)")
-    .eq("type", "health")
-    .eq("enabled", true);
-
-  if (checkId) {
-    query = query.eq("id", checkId);
-  }
-
-  const { data: checks, error: checksError } = await query.limit(limit);
+  const { data: checks, error: checksError } = await supabase
+    .rpc("get_due_health_checks", {
+      p_now: now.toISOString(),
+      p_limit: limit,
+      p_check_id: checkId ?? null,
+    });
 
   if (checksError) {
     throw new Error(`Unable to load scheduled checks: ${checksError.message}`);
   }
 
-  const checkRows = (checks ?? []) as ScheduledCheckRow[];
-  const checkIds = checkRows.map((check) => check.id);
-  const latestCompletedByCheck = new Map<string, string>();
-
-  if (checkIds.length) {
-    const { data: runs, error: runsError } = await supabase
-      .from("check_runs")
-      .select("check_id, completed_at")
-      .in("check_id", checkIds)
-      .order("completed_at", { ascending: false });
-
-    if (runsError) {
-      throw new Error(`Unable to load recent check runs: ${runsError.message}`);
-    }
-
-    for (const run of (runs ?? []) as LatestRunRow[]) {
-      if (!latestCompletedByCheck.has(run.check_id)) {
-        latestCompletedByCheck.set(run.check_id, run.completed_at);
-      }
-    }
-  }
-
-  return checkRows.map((check) => {
-    const workflow = Array.isArray(check.workflows) ? check.workflows[0] : check.workflows;
-
-    return {
-      id: check.id,
-      agencyId: check.agency_id,
-      workflowId: check.workflow_id,
-      workflowEndpointUrl: workflow?.endpoint_url ?? null,
-      workflowFrequencyMinutes: workflow?.check_frequency_minutes ?? 60,
-      enabled: check.enabled,
-      latestCompletedAt: latestCompletedByCheck.get(check.id) ?? null,
-    };
-  });
+  return ((checks ?? []) as DueHealthCheckRow[]).map((check) => ({
+    id: check.id,
+    agencyId: check.agency_id,
+    workflowId: check.workflow_id,
+    workflowEndpointUrl: check.endpoint_url,
+    workflowFrequencyMinutes: check.check_frequency_minutes,
+    enabled: check.enabled,
+    latestCompletedAt: check.latest_completed_at,
+  }));
 }

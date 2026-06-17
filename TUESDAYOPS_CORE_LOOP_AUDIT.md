@@ -29,6 +29,12 @@ No full eval platform, trace explorer, workflow builder, CRM, client portal, nat
 - Issue detail/queue actions lacked direct source-check rerun and explicit report inclusion toggles.
 - Scheduled check batch failures were counted but not logged with operator-safe context.
 - Some E2E specs had drifted from the current UI labels/tabs and the updated Starter plan limits.
+- Report generation used the capped dashboard snapshot (`100` check runs and `150` test runs per agency) before filtering by client/period, so monthly reports could silently omit real source data.
+- Scheduled checks loaded a limited app-side batch before due filtering, which could miss due checks when a tenant had many enabled health checks.
+- Workflow maintenance could not rotate endpoint credentials or edit the primary health-check timeout/assertions after setup.
+- Public run-log ingestion rate-limited by bearer token but did not throttle unauthenticated random-token attempts before database work.
+- Issue ignore was permanent and report-excluding; there was no time-boxed snooze path.
+- Production smoke covered public readiness/security checks, but the repo did not have a dedicated deployed core-loop E2E command.
 
 ## What I Fixed
 
@@ -41,6 +47,14 @@ No full eval platform, trace explorer, workflow builder, CRM, client portal, nat
 - Added issue source-check rerun through the normal check execution/rate-limit path.
 - Added issue report inclusion/exclusion controls without resolving or ignoring the issue.
 - Added redacted scheduled-check failure logging.
+- Added `getReportSourceData()` and switched manual/monthly report generation to uncapped selected-client, selected-period source rows.
+- Added `public.get_due_health_checks()` and moved scheduled-check due selection into Postgres.
+- Added workflow settings for safe encrypted credential rotation and primary health-check config edits.
+- Added health-check edit forms and shared config builder for status, latency, timeout, request body, JSON, field, text, regex, and negative assertions.
+- Replaced second-resolution `fetch` execution with pinned-address HTTP(S) transport after DNS safety validation.
+- Added pre-auth IP/global throttling before public run-log bearer-token validation.
+- Added `snoozed_until`, `snoozed` issue status, UI actions, audit events, and repeat-failure dedupe/reopen behavior.
+- Added `npm run e2e:production` for deployed full core-loop verification without starting a local dev server.
 - Updated docs: `README.md`, `ARCHITECTURE.md`, `SECURITY.md`, `TESTING.md`, `TASKS.md`, and `CHANGELOG.md`.
 
 ## Tests Added Or Repaired
@@ -49,6 +63,12 @@ No full eval platform, trace explorer, workflow builder, CRM, client portal, nat
 - Expanded URL validation tests for exact endpoint preservation and hostname classification.
 - Expanded HTTP runner tests for retry behavior and degraded status classification.
 - Expanded scheduler tests for redacted failure logging.
+- Added report source-data regression coverage proving reports are not capped by dashboard run limits.
+- Added health-check config builder coverage.
+- Updated scheduled-runner tests for database due-check selection.
+- Updated HTTP runner tests for pinned transport behavior.
+- Added public run-log pre-auth throttling route coverage.
+- Added issue snooze/dedupe coverage.
 - Updated workflow import tests for exact URL preservation.
 - Extended E2E core-loop coverage in `e2e/drilldowns-feedback.spec.ts` for issue reportable toggle, rerun, assign, resolve with note, and resolved issue report data.
 - Repaired E2E specs to match current workflow tabs, endpoint display, and Starter limits.
@@ -62,21 +82,30 @@ npm run lint
 npm run typecheck
 npm run test
 npm run build
+npx supabase db push
 npm run e2e
+npm run smoke:production
+PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production
+npm audit --audit-level=moderate
 ```
 
 Results:
 
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- `npm run test`: passed, 56 test files and 306 tests.
+- `npm run test`: passed, 57 test files and 310 tests.
 - `npm run build`: passed.
 - `npm run e2e`: passed, 8 Playwright tests.
+- `npm run smoke:production`: passed, 1 production smoke test.
+- `PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production`: passed, 1 full production core-loop Playwright test.
+- `npm audit --audit-level=moderate`: passed, 0 vulnerabilities.
+- `npx supabase db push`: applied `20260617195500_core_loop_production_blockers.sql` to the linked remote Supabase project.
 
 Notable fix-loop commands:
 
 - `npm run typecheck` initially caught a mocked DNS overload typing issue; fixed and reran successfully.
 - `npm run e2e` initially exposed stale E2E assumptions around Settings button labels, workflow detail tabs, and Starter limits; specs were updated and full E2E reran successfully.
+- Focused blocker verification passed with `npm run test -- src/lib/data/operational-data.test.ts src/lib/checks/config.test.ts src/lib/checks/runner.test.ts src/lib/checks/scheduled-runner.test.ts src/lib/issues/engine.test.ts src/lib/issues/operations.test.ts src/app/api/public/run-log/route.test.ts src/lib/reports/scheduler.test.ts src/lib/security/endpoint-url-server.test.ts`.
 
 ## Acceptance Confirmation
 
@@ -86,27 +115,27 @@ Notable fix-loop commands:
 - User adds workflow with full endpoint URL preserved exactly: fixed in URL validation/import paths and covered by tests.
 - User configures method, expected status, max latency, timeout, frequency, optional auth, and simple assertions: manual workflow setup now exposes these controls.
 - User clicks Run Check: covered by workflow/check E2E.
-- App sends request safely: runner blocks unsafe endpoints, resolves DNS before production execution/import fetches, blocks redirects, applies timeout, response cap, redaction, retry, and rate limits.
+- App sends request safely: runner blocks unsafe endpoints, resolves DNS before production execution/import fetches, pins execution to the validated public address, blocks redirects, applies timeout, response cap, redaction, retry, and rate limits.
 - App records status, latency, status code, assertion results, timestamp, and error/reason: existing check-run persistence verified by unit/E2E.
 - Run history updates immediately: covered by E2E.
 - Workflow health becomes Healthy / Degraded / Failed: runner now supports all three status outcomes.
 - Failed/degraded runs create issues automatically: covered by issue engine tests and E2E.
-- User can assign, note, rerun, resolve, ignore, and mark reportable: assign/resolve-note/ignore existed; rerun and reportable toggles added. Ignore is the MVP's snooze/exclude path.
+- User can assign, note, rerun, resolve, snooze, ignore, and mark reportable: supported by issue service actions and UI.
 - User can generate a client report from real check/issue data: covered by report E2E.
 - Report has web preview and PDF export: covered by report E2E and PDF tests.
 - Demo data does not hide broken functionality: user-facing demo seeding remains removed; E2E uses real tenant records.
 - Manual checks work: covered by E2E.
-- Scheduled checks work: covered by scheduler E2E and scheduler route tests.
+- Scheduled checks work: due selection is database-side through `public.get_due_health_checks()`, with scheduler E2E and route tests covering execution/idempotency.
 - Job failures are visible/logged: scheduler responses include failure counts, and batch failures now log redacted agency/check context.
 - Checks have retries, timeout, max response size, and clear UI feedback: retry added; timeout/size cap/feedback verified in code and tests.
 - Raw sensitive responses are not stored by default: runner stores redacted summaries only.
 - Tenant isolation/RLS: migrations and service filters enforce `agency_id`; cross-tenant report download E2E remains in the suite.
 - Secrets encrypted/redacted: workflow auth config remains server-only encrypted; run-log keys are hashed; UI does not display saved secrets.
-- SSRF protection: localhost, loopback, private/link-local/metadata ranges, non-http(s), unsafe hostnames, and DNS-resolved private targets are blocked in production; redirects are not followed.
-- Request timeout, response-size cap, and per-agency rate limits: present and tested.
-- Reports use selected client/period real data and include monitored workflows, checks run, pass rate, issues caught/resolved, QA/test results, recommendations, and client-safe branding: report aggregation/PDF/E2E verified.
+- SSRF protection: localhost, loopback, private/link-local/metadata ranges, non-http(s), unsafe hostnames, and DNS-resolved private targets are blocked in production; redirects are not followed; workflow checks connect to the validated public address to reduce DNS rebinding risk.
+- Request timeout, response-size cap, per-agency rate limits, and pre-auth public run-log throttling: present and tested.
+- Reports use selected client/period real data and include monitored workflows, checks run, pass rate, issues caught/resolved, QA/test results, recommendations, and client-safe branding: generation now uses uncapped selected-client period source data and is covered by regression/unit/E2E tests.
 
 ## Remaining Gaps
 
 - Live Resend delivery and Stripe Checkout/Customer Portal still require provider-side safe production/test-mode credentials and domains to verify outside the local automated suite.
-- Supabase Cron execution in production still depends on deployed Vault secrets and Cron configuration; the protected scheduler route and scheduled runner are verified locally/E2E.
+- Supabase Cron trigger timing in production still depends on deployed Vault secrets and Cron configuration; the protected scheduler route, due-check selector, and scheduled runner are verified locally/E2E.

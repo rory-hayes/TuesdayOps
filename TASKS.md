@@ -675,3 +675,18 @@ Notes:
 Acceptance:
 
 - Agency -> Client -> Workflow -> Check -> Check Run -> Issue -> Resolution -> Report remains the only product loop expanded by this pass.
+
+### T19.2 Production-blocker closure
+
+- [x] Generate reports from uncapped selected-client period source data instead of capped agency dashboard snapshots.
+- [x] Select scheduled checks through a database due-check function so due work is not crowded out by arbitrary app-side limits.
+- [x] Add workflow settings for encrypted credential rotation and primary health-check timeout/assertion edits.
+- [x] Add health-check edit forms with status, latency, timeout, request body, JSON, field, text, regex, and negative assertions.
+- [x] Pin workflow check execution to the validated public address to reduce DNS rebinding between SSRF validation and outbound execution.
+- [x] Add pre-auth abuse throttling to public run-log ingestion.
+- [x] Add time-boxed issue snooze with `snoozed_until`, dedupe, and UI actions.
+- [x] Add `npm run e2e:production` for deployed core-loop verification.
+
+Acceptance:
+
+- Reports, scheduled checks, workflow maintenance, endpoint execution safety, public ingestion, and issue triage are production-hardened without expanding beyond the core loop.

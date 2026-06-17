@@ -107,12 +107,26 @@ describe("public run-log route", () => {
       },
     });
     expect(createAdminClient).toHaveBeenCalledTimes(1);
+    expect(consumePersistentRateLimit).toHaveBeenNthCalledWith(1, {
+      scope: "public-run-log-preauth",
+      identifier: "anonymous-public-run-log",
+      limit: 240,
+      windowSeconds: 60,
+      supabase: { admin: true },
+    });
+    expect(consumePersistentRateLimit).toHaveBeenNthCalledWith(2, {
+      scope: "public-run-log",
+      identifier: "tops_key",
+      limit: 120,
+      windowSeconds: 60,
+      supabase: { admin: true },
+    });
   });
 
-  it("rate limits run-log submissions before payload work is recorded", async () => {
+  it("rate limits pre-auth run-log submissions before token or payload work", async () => {
     vi.mocked(consumePersistentRateLimit).mockResolvedValueOnce({
       allowed: false,
-      limit: 120,
+      limit: 240,
       remaining: 0,
       resetAt: Date.now() + 30_000,
       retryAfterSeconds: 30,
@@ -129,6 +143,43 @@ describe("public run-log route", () => {
     expect(response.status).toBe(429);
     expect(response.headers.get("Retry-After")).toBe("30");
     await expect(response.json()).resolves.toEqual({ error: "Too many run log requests." });
+    expect(consumePersistentRateLimit).toHaveBeenCalledTimes(1);
+    expect(consumePersistentRateLimit).toHaveBeenCalledWith(expect.objectContaining({
+      scope: "public-run-log-preauth",
+      identifier: "anonymous-public-run-log",
+    }));
+    expect(recordExternalRunLog).not.toHaveBeenCalled();
+  });
+
+  it("rate limits valid keys after pre-auth throttling passes", async () => {
+    vi.mocked(consumePersistentRateLimit)
+      .mockResolvedValueOnce({
+        allowed: true,
+        limit: 240,
+        remaining: 239,
+        resetAt: Date.now() + 60_000,
+        retryAfterSeconds: 60,
+      })
+      .mockResolvedValueOnce({
+        allowed: false,
+        limit: 120,
+        remaining: 0,
+        resetAt: Date.now() + 30_000,
+        retryAfterSeconds: 30,
+      });
+
+    const response = await POST(buildRequest({
+      key: "tops_key",
+      body: JSON.stringify({
+        workflowId: "550e8400-e29b-41d4-a716-446655440000",
+        status: "success",
+      }),
+    }));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("30");
+    await expect(response.json()).resolves.toEqual({ error: "Too many run log requests." });
+    expect(consumePersistentRateLimit).toHaveBeenCalledTimes(2);
     expect(recordExternalRunLog).not.toHaveBeenCalled();
   });
 

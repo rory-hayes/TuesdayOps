@@ -1,26 +1,19 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { runHttpCheck } from "./runner";
+import { describe, expect, it, vi } from "vitest";
+import { runHttpCheck, type WorkflowHttpTransport } from "./runner";
 
 vi.mock("@/lib/security/endpoint-url-server", () => ({
-  assertResolvedWorkflowEndpointIsSafe: vi.fn(async (value: string) => value),
+  resolveSafeWorkflowEndpoint: vi.fn(async (value: string) => ({
+    endpointUrl: value,
+    url: new URL(value),
+    resolvedAddress: "203.0.113.10",
+  })),
 }));
 
-const originalFetch = globalThis.fetch;
-
 describe("runHttpCheck", () => {
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    globalThis.fetch = originalFetch;
-  });
-
   it("does not automatically follow workflow endpoint redirects", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response("", {
-        status: 302,
-        headers: { location: "http://169.254.169.254/latest/meta-data" },
-      }),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+    const transport = createTransport([
+      { statusCode: 302, bodyText: "", truncated: false },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -35,11 +28,16 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "none" },
+      transport,
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.example.com/health",
-      expect.objectContaining({ redirect: "manual" }),
+    expect(transport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        endpoint: expect.objectContaining({
+          endpointUrl: "https://api.example.com/health",
+          resolvedAddress: "203.0.113.10",
+        }),
+      }),
     );
     expect(result).toMatchObject({
       status: "failed",
@@ -50,10 +48,9 @@ describe("runHttpCheck", () => {
   });
 
   it("marks response summaries as truncated when the body exceeds the retained limit", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response("x".repeat(70_000), { status: 200 })),
-    );
+    const transport = createTransport([
+      { statusCode: 200, bodyText: "x".repeat(600), truncated: true },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -68,18 +65,18 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "none" },
+      transport,
     });
 
     expect(result.status).toBe("healthy");
     expect(result.responseSummary).toContain("[truncated]");
-    expect(result.responseSummary.length).toBeLessThanOrEqual(640);
+    expect(result.responseSummary.length).toBeLessThanOrEqual(600);
   });
 
   it("marks latency and content assertion misses as degraded instead of failed", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 })),
-    );
+    const transport = createTransport([
+      { statusCode: 200, bodyText: JSON.stringify({ ok: true }), truncated: false },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -98,6 +95,7 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "none" },
+      transport,
     });
 
     expect(result.status).toBe("degraded");
@@ -105,10 +103,9 @@ describe("runHttpCheck", () => {
   });
 
   it("handles successful responses with no readable body stream", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(new Response(null, { status: 204 })),
-    );
+    const transport = createTransport([
+      { statusCode: 204, bodyText: "", truncated: false },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -123,6 +120,7 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: undefined,
+      transport,
     });
 
     expect(result).toMatchObject({
@@ -132,18 +130,17 @@ describe("runHttpCheck", () => {
     });
   });
 
-
   it("sends POST bodies with JSON content type and redacts response summaries", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
+    const transport = createTransport([
+      {
+        statusCode: 201,
+        bodyText: JSON.stringify({
           email: "patient@example.com",
           token: "secret-token",
         }),
-        { status: 201 },
-      ),
-    );
-    vi.stubGlobal("fetch", fetchMock);
+        truncated: false,
+      },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -162,30 +159,26 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "bearer", token: "workflow-token" },
+      transport,
     });
 
-    const [, requestInit] = fetchMock.mock.calls[0];
-    expect(requestInit).toMatchObject({
-      method: "POST",
-      body: '{"ping":true}',
-    });
-    expect((requestInit.headers as Headers).get("authorization")).toBe("Bearer workflow-token");
-    expect((requestInit.headers as Headers).get("content-type")).toBe("application/json");
+    const [{ config, headers, workflow }] = transport.mock.calls[0];
+    expect(workflow.method).toBe("POST");
+    expect(config.requestBody).toBe('{"ping":true}');
+    expect(headers.get("authorization")).toBe("Bearer workflow-token");
     expect(result.status).toBe("healthy");
     expect(result.responseSummary).toContain("[redacted-email]");
     expect(result.responseSummary).toContain('"token":"[redacted]"');
   });
 
   it("collapses HTML error pages into readable response summaries", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response(
-          `<!doctype html><html><head><title>404: Not Found</title><style>body{}</style><script>window.__secret = "token";</script></head><body><h1>404</h1><p>This page could not be found.</p></body></html>`,
-          { status: 404 },
-        ),
-      ),
-    );
+    const transport = createTransport([
+      {
+        statusCode: 404,
+        bodyText: `<!doctype html><html><head><title>404: Not Found</title><style>body{}</style><script>window.__secret = "token";</script></head><body><h1>404</h1><p>This page could not be found.</p></body></html>`,
+        truncated: false,
+      },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -200,6 +193,7 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "none" },
+      transport,
     });
 
     expect(result.status).toBe("failed");
@@ -209,12 +203,13 @@ describe("runHttpCheck", () => {
   });
 
   it("uses a safe placeholder for empty HTML responses", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue(
-        new Response("<html><script>console.log('only script')</script></html>", { status: 500 }),
-      ),
-    );
+    const transport = createTransport([
+      {
+        statusCode: 500,
+        bodyText: "<html><script>console.log('only script')</script></html>",
+        truncated: false,
+      },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -229,14 +224,17 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "none" },
+      transport,
     });
 
     expect(result.responseSummary).toBe("HTML response received.");
   });
 
   it("supports API key and basic auth headers", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response("ok", { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
+    const transport = createTransport([
+      { statusCode: 200, bodyText: "ok", truncated: false },
+      { statusCode: 200, bodyText: "ok", truncated: false },
+    ]);
 
     await runHttpCheck({
       workflow: {
@@ -251,9 +249,10 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "api_key_header", headerName: "x-api-key", value: "key-123" },
+      transport,
     });
 
-    expect((fetchMock.mock.calls[0][1].headers as Headers).get("x-api-key")).toBe("key-123");
+    expect(transport.mock.calls[0][0].headers.get("x-api-key")).toBe("key-123");
 
     await runHttpCheck({
       workflow: {
@@ -268,19 +267,19 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "basic", username: "user", password: "pass" },
+      transport,
     });
 
-    expect((fetchMock.mock.calls[1][1].headers as Headers).get("authorization")).toBe(
+    expect(transport.mock.calls[1][0].headers.get("authorization")).toBe(
       `Basic ${Buffer.from("user:pass").toString("base64")}`,
     );
   });
 
   it("retries transport failures once before recording the result", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("socket hang up"))
-      .mockResolvedValueOnce(new Response("{\"ok\":true}", { status: 200 }));
-    vi.stubGlobal("fetch", fetchMock);
+    const transport = createTransport([
+      new Error("socket hang up"),
+      { statusCode: 200, bodyText: "{\"ok\":true}", truncated: false },
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -295,9 +294,10 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "none" },
+      transport,
     });
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(transport).toHaveBeenCalledTimes(2);
     expect(result).toMatchObject({
       status: "healthy",
       statusCode: 200,
@@ -305,10 +305,10 @@ describe("runHttpCheck", () => {
   });
 
   it("records request failures as failed checks with unevaluated assertions", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockRejectedValue(new Error("connect ECONNREFUSED")),
-    );
+    const transport = createTransport([
+      new Error("connect ECONNREFUSED"),
+      new Error("connect ECONNREFUSED"),
+    ]);
 
     const result = await runHttpCheck({
       workflow: {
@@ -326,6 +326,7 @@ describe("runHttpCheck", () => {
         },
       },
       authConfig: { type: "none" },
+      transport,
     });
 
     expect(result).toMatchObject({
@@ -353,16 +354,40 @@ describe("runHttpCheck", () => {
       authConfig: { type: "none" as const },
     };
 
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue("network failed"));
-    await expect(runHttpCheck(input)).resolves.toMatchObject({
+    await expect(runHttpCheck({ ...input, transport: createTransport(["network failed", "network failed"]) })).resolves.toMatchObject({
       status: "failed",
       errorMessage: "Unknown check runner error.",
     });
 
-    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("This operation was aborted")));
-    await expect(runHttpCheck(input)).resolves.toMatchObject({
+    await expect(
+      runHttpCheck({
+        ...input,
+        transport: createTransport([
+          new Error("This operation was aborted"),
+          new Error("This operation was aborted"),
+        ]),
+      }),
+    ).resolves.toMatchObject({
       status: "failed",
       errorMessage: "Request timed out.",
     });
   });
 });
+
+function createTransport(
+  results: Array<Awaited<ReturnType<WorkflowHttpTransport>> | Error | string>,
+) {
+  return vi.fn<WorkflowHttpTransport>(async () => {
+    const result = results.shift();
+
+    if (result instanceof Error || typeof result === "string") {
+      throw result;
+    }
+
+    if (!result) {
+      throw new Error("No mocked transport result configured.");
+    }
+
+    return result;
+  });
+}

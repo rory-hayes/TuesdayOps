@@ -7,7 +7,7 @@ import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import { canCreateWorkflow } from "@/lib/billing/limits";
-import { checkConfigSchema } from "@/lib/checks/assertions";
+import { buildHealthCheckConfig } from "@/lib/checks/config";
 import type { WorkflowAuthConfig } from "@/lib/checks/runner";
 import type { Workflow } from "@/lib/domain/types";
 import { formatActionError } from "@/lib/server-actions/feedback";
@@ -41,6 +41,10 @@ const workflowBaseFormSchema = z.object({
   requestBody: z.string().trim().optional(),
   responseContains: z.string().trim().max(200).optional(),
   jsonFieldPath: z.string().trim().max(120).optional(),
+  fieldNotEmptyPath: z.string().trim().max(120).optional(),
+  notContainsValue: z.string().trim().max(200).optional(),
+  matchesRegexPattern: z.string().trim().max(500).optional(),
+  requireValidJson: z.enum(["on"]).optional(),
 });
 
 const workflowFormSchema = workflowBaseFormSchema
@@ -183,21 +187,28 @@ export async function createWorkflowFromImportAction(formData: FormData) {
 const workflowUpdateFormSchema = workflowBaseFormSchema
   .omit({
     clientId: true,
-    authType: true,
-    authSecret: true,
-    authHeaderName: true,
-    basicUsername: true,
-    expectedStatus: true,
-    maxLatencyMs: true,
-    timeoutMs: true,
-    requestBody: true,
-    responseContains: true,
-    jsonFieldPath: true,
   })
   .extend({
     id: z.string().uuid(),
     includedInReports: z.enum(["on"]).optional(),
     returnTab: z.enum(["overview", "checks", "api", "endpoint", "settings"]).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.authType === "api_key_header" && value.authSecret && !value.authHeaderName) {
+      context.addIssue({
+        code: "custom",
+        path: ["authHeaderName"],
+        message: "API key header name is required when rotating API key auth.",
+      });
+    }
+
+    if (value.authType === "basic" && value.authSecret && !value.basicUsername) {
+      context.addIssue({
+        code: "custom",
+        path: ["basicUsername"],
+        message: "Basic auth username is required when rotating basic auth.",
+      });
+    }
   });
 
 const workflowIdFormSchema = z.object({
@@ -214,17 +225,43 @@ export async function updateWorkflowAction(formData: FormData) {
   const workspace = await requireWorkspace();
   const supabase = await createClient();
   let endpointUrl: string;
+  let authUpdate: {
+    auth_type: Workflow["authType"];
+    encrypted_auth_config?: ReturnType<typeof encryptJsonPayload> | null;
+  };
 
   try {
     endpointUrl = assertSafeWorkflowEndpoint(parsed.data.endpointUrl, {
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
+    const currentWorkflow = await loadWorkflowAuthState({
+      supabase,
+      agencyId: workspace.agency.id,
+      workflowId: parsed.data.id,
+    });
+    authUpdate = buildWorkflowAuthUpdate({
+      input: parsed.data,
+      current: currentWorkflow,
+    });
   } catch (error) {
     redirect(buildWorkflowRedirect(parsed.data.id, {
-      error: formatActionError(error, "Workflow endpoint did not pass safety validation."),
+      error: formatActionError(error, "Workflow settings did not pass validation."),
       tab: parsed.data.returnTab,
     }));
   }
+
+  const checkConfig = buildHealthCheckConfig({
+    expectedStatus: parsed.data.expectedStatus,
+    maxLatencyMs: parsed.data.maxLatencyMs,
+    timeoutMs: parsed.data.timeoutMs,
+    requestBody: parsed.data.requestBody,
+    responseContains: parsed.data.responseContains,
+    jsonFieldPath: parsed.data.jsonFieldPath,
+    fieldNotEmptyPath: parsed.data.fieldNotEmptyPath,
+    notContainsValue: parsed.data.notContainsValue,
+    matchesRegexPattern: parsed.data.matchesRegexPattern,
+    requireValidJson: parsed.data.requireValidJson === "on",
+  });
 
   const updateResult = await supabase
     .from("workflows")
@@ -234,6 +271,7 @@ export async function updateWorkflowAction(formData: FormData) {
       environment: parsed.data.environment,
       endpoint_url: endpointUrl,
       method: parsed.data.method,
+      ...authUpdate,
       check_frequency_minutes: parsed.data.checkFrequencyMinutes,
       included_in_reports: parsed.data.includedInReports === "on",
     })
@@ -244,6 +282,13 @@ export async function updateWorkflowAction(formData: FormData) {
 
   try {
     assertMutationTouchedRow(updateResult, "Workflow was not found or is not accessible.");
+    await upsertPrimaryHealthCheck({
+      supabase,
+      agencyId: workspace.agency.id,
+      workflowId: parsed.data.id,
+      frequencyMinutes: parsed.data.checkFrequencyMinutes,
+      configJson: checkConfig,
+    });
   } catch (error) {
     redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow could not be saved."))}`);
   }
@@ -255,6 +300,8 @@ export async function updateWorkflowAction(formData: FormData) {
       workflowType: parsed.data.type,
       method: parsed.data.method,
       environment: parsed.data.environment,
+      authType: parsed.data.authType,
+      healthCheckAssertions: checkConfig.assertions.length,
       includedInReports: parsed.data.includedInReports === "on",
     },
   });
@@ -322,6 +369,10 @@ type WorkflowCreateInput = {
   requestBody?: string;
   responseContains?: string;
   jsonFieldPath?: string;
+  fieldNotEmptyPath?: string;
+  notContainsValue?: string;
+  matchesRegexPattern?: string;
+  requireValidJson?: "on";
 };
 
 async function createWorkflowWithHealthCheck({
@@ -395,10 +446,17 @@ async function createWorkflowWithHealthCheck({
     redirect(`/workflows?error=${encodeURIComponent(formatActionError(workflowError, "Workflow could not be created."))}`);
   }
 
-  const checkConfig = checkConfigSchema.parse({
+  const checkConfig = buildHealthCheckConfig({
+    expectedStatus: input.expectedStatus,
+    maxLatencyMs: input.maxLatencyMs,
     timeoutMs: input.timeoutMs,
     requestBody: input.requestBody,
-    assertions: buildInitialCheckAssertions(input),
+    responseContains: input.responseContains,
+    jsonFieldPath: input.jsonFieldPath,
+    fieldNotEmptyPath: input.fieldNotEmptyPath,
+    notContainsValue: input.notContainsValue,
+    matchesRegexPattern: input.matchesRegexPattern,
+    requireValidJson: input.requireValidJson === "on",
   });
 
   const { error: checkError } = await supabase.from("checks").insert({
@@ -416,29 +474,6 @@ async function createWorkflowWithHealthCheck({
   }
 
   return workflow.id as string;
-}
-
-function buildInitialCheckAssertions(input: WorkflowCreateInput) {
-  const assertions: Array<{
-    type: "status_code" | "latency_under" | "contains_text" | "field_exists";
-    expected?: number;
-    maxMs?: number;
-    value?: string;
-    path?: string;
-  }> = [
-    { type: "status_code", expected: input.expectedStatus },
-    { type: "latency_under", maxMs: input.maxLatencyMs },
-  ];
-
-  if (input.responseContains?.trim()) {
-    assertions.push({ type: "contains_text", value: input.responseContains.trim() });
-  }
-
-  if (input.jsonFieldPath?.trim()) {
-    assertions.push({ type: "field_exists", path: input.jsonFieldPath.trim() });
-  }
-
-  return assertions;
 }
 
 function buildAuthConfig(input: WorkflowCreateInput): WorkflowAuthConfig | null {
@@ -475,6 +510,140 @@ function buildAuthConfig(input: WorkflowCreateInput): WorkflowAuthConfig | null 
     username: input.basicUsername,
     password: input.authSecret,
   };
+}
+
+async function loadWorkflowAuthState({
+  supabase,
+  agencyId,
+  workflowId,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  agencyId: string;
+  workflowId: string;
+}) {
+  const result = await supabase
+    .from("workflows")
+    .select("id, auth_type, encrypted_auth_config")
+    .eq("agency_id", agencyId)
+    .eq("id", workflowId)
+    .maybeSingle();
+
+  assertMutationTouchedRow(result, "Workflow was not found or is not accessible.");
+
+  return result.data as {
+    id: string;
+    auth_type: Workflow["authType"];
+    encrypted_auth_config: ReturnType<typeof encryptJsonPayload> | null;
+  };
+}
+
+function buildWorkflowAuthUpdate({
+  input,
+  current,
+}: {
+  input: z.infer<typeof workflowUpdateFormSchema>;
+  current: {
+    auth_type: Workflow["authType"];
+    encrypted_auth_config: ReturnType<typeof encryptJsonPayload> | null;
+  };
+}) {
+  if (input.authType === "none") {
+    return {
+      auth_type: "none" as const,
+      encrypted_auth_config: null,
+    };
+  }
+
+  if (!input.authSecret) {
+    if (current.auth_type === input.authType && current.encrypted_auth_config) {
+      return {
+        auth_type: input.authType,
+      };
+    }
+
+    throw new Error("Enter a new auth secret before enabling or changing workflow authentication.");
+  }
+
+  return {
+    auth_type: input.authType,
+    encrypted_auth_config: encryptJsonPayload(buildAuthConfig({
+      clientId: "",
+      name: input.name,
+      type: input.type,
+      environment: input.environment,
+      endpointUrl: input.endpointUrl,
+      method: input.method,
+      authType: input.authType,
+      authSecret: input.authSecret,
+      authHeaderName: input.authHeaderName,
+      basicUsername: input.basicUsername,
+      checkFrequencyMinutes: input.checkFrequencyMinutes,
+      expectedStatus: input.expectedStatus,
+      maxLatencyMs: input.maxLatencyMs,
+      timeoutMs: input.timeoutMs,
+    })),
+  };
+}
+
+async function upsertPrimaryHealthCheck({
+  supabase,
+  agencyId,
+  workflowId,
+  frequencyMinutes,
+  configJson,
+}: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  agencyId: string;
+  workflowId: string;
+  frequencyMinutes: number;
+  configJson: unknown;
+}) {
+  const { data: existingCheck, error: lookupError } = await supabase
+    .from("checks")
+    .select("id")
+    .eq("agency_id", agencyId)
+    .eq("workflow_id", workflowId)
+    .eq("type", "health")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (lookupError) {
+    throw new Error(`Health check could not be loaded: ${lookupError.message}`);
+  }
+
+  const schedule = `Every ${frequencyMinutes} minutes`;
+
+  if (existingCheck) {
+    const updateResult = await supabase
+      .from("checks")
+      .update({
+        config_json: configJson,
+        schedule,
+        enabled: true,
+      })
+      .eq("agency_id", agencyId)
+      .eq("id", (existingCheck as { id: string }).id)
+      .select("id")
+      .maybeSingle();
+
+    assertMutationTouchedRow(updateResult, "Health check was not found or is not accessible.");
+    return;
+  }
+
+  const { error } = await supabase.from("checks").insert({
+    agency_id: agencyId,
+    workflow_id: workflowId,
+    name: "Endpoint health check",
+    type: "health",
+    config_json: configJson,
+    schedule,
+    enabled: true,
+  });
+
+  if (error) {
+    throw new Error(`Health check could not be created: ${error.message}`);
+  }
 }
 
 async function recordWorkflowAuditEvent({

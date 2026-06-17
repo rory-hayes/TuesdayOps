@@ -7,7 +7,7 @@ import { z } from "zod";
 import { sendResendEmail } from "@/lib/alerts/resend";
 import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
-import { getOperationalData } from "@/lib/data/operational-data";
+import { getOperationalData, getReportSourceData } from "@/lib/data/operational-data";
 import type { ReportDraft, ReportItemCategory } from "@/lib/domain/types";
 import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
@@ -65,8 +65,14 @@ export async function generateReportAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const data = await getOperationalData(workspace.agency);
   const period = getReportPeriod(parsed.data.period);
+  const data = await getReportSourceData({
+    agency: workspace.agency,
+    clientId: parsed.data.clientId,
+    periodStart: period.periodStart,
+    periodEnd: period.periodEnd,
+    supabaseOverride: supabase,
+  });
   const draft = buildReportDraft({
     data,
     clientId: parsed.data.clientId,

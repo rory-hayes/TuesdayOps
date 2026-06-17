@@ -11,6 +11,7 @@ import {
   rerunIssueCheckAction,
   resolveIssueAction,
   setIssueReportableAction,
+  snoozeIssueAction,
 } from "@/lib/issues/service";
 import type { Issue, TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatDateTime, formatRelativeTime } from "@/lib/formatting";
@@ -109,6 +110,7 @@ export function IssueDetailPage({
             <Info label="Last seen" value={`${formatRelativeTime(issue.lastSeenAt)} (${formatDateTime(issue.lastSeenAt)})`} />
             <Info label="Owner" value={issue.owner} />
             <Info label="Report" value={issue.reportable ? "Include" : "Exclude"} />
+            {issue.snoozedUntil ? <Info label="Snoozed until" value={formatDateTime(issue.snoozedUntil)} /> : null}
           </div>
 
           <div className="rounded-lg bg-muted p-4">
@@ -161,13 +163,21 @@ export function IssueDetailPage({
           </div>
 
           {issue.status === "resolved" || issue.status === "ignored" ? null : (
-            <div className="grid gap-3 lg:grid-cols-[auto_auto_minmax(280px,1fr)]">
+            <div className="grid gap-3 lg:grid-cols-[auto_auto_auto_minmax(280px,1fr)]">
               <form action={assignIssueToMeAction}>
                 <input type="hidden" name="issueId" value={issue.id} />
                 <input type="hidden" name="returnTo" value={returnTo} />
                 <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Assigning...">
                   <UserPlus size={14} aria-hidden="true" />
                   Assign
+                </FormSubmitButton>
+              </form>
+              <form action={snoozeIssueAction}>
+                <input type="hidden" name="issueId" value={issue.id} />
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <input type="hidden" name="snoozeDays" value="7" />
+                <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Snoozing...">
+                  Snooze 7d
                 </FormSubmitButton>
               </form>
               <form action={ignoreIssueAction}>

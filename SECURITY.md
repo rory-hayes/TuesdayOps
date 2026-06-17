@@ -41,6 +41,7 @@ Milestones 1-3 implementation:
 - Non-empty workflow auth config is encrypted with AES-256-GCM before persistence.
 - `WORKFLOW_AUTH_ENCRYPTION_KEY` is required before storing bearer/API/basic auth secrets.
 - Encrypted workflow auth config is used only by the server-side check runner and is not returned to protected UI components.
+- Workflow settings allow credential rotation by submitting a new secret. Saved secrets are never displayed; leaving the secret field blank keeps the existing encrypted value.
 
 ## Check response storage
 
@@ -69,8 +70,18 @@ Production blocks:
 - IPv6 unique-local and link-local ranges
 - `.local` hostnames
 - public-looking hostnames that resolve to blocked private, loopback, link-local, or metadata addresses at execution/import time
+- DNS rebinding between validation and execution is reduced by connecting workflow checks to the previously validated public address while preserving the original Host/SNI for HTTP(S).
 
 Local development and private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`. Do not enable this in production.
+
+## Public route abuse controls
+
+`POST /api/public/run-log` applies two DB-backed fixed-window limits:
+
+- a pre-auth IP/global bucket before bearer token validation or payload parsing
+- a workflow-key bucket after token extraction
+
+Bucket keys are hashed before persistence so raw API keys and IP identifiers are not stored in plaintext.
 
 ## Data redaction
 

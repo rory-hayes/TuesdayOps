@@ -158,6 +158,13 @@ function buildData({
         type: "health",
         schedule: "Every 60 minutes",
         enabled: enabledCheck,
+        configJson: {
+          timeoutMs: 10000,
+          assertions: [
+            { type: "status_code", expected: 200 },
+            { type: "latency_under", maxMs: 5000 },
+          ],
+        },
         assertionCount: 2,
         latestStatus: "healthy",
       },

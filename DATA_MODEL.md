@@ -195,7 +195,7 @@ check_run_id uuid references check_runs(id)
 test_run_id uuid nullable -- composite fk (test_run_id, agency_id) -> test_runs(id, agency_id)
 fingerprint text
 severity text check in ('low', 'medium', 'high', 'critical')
-status text check in ('open', 'in_review', 'resolved', 'ignored') default 'open'
+status text check in ('open', 'in_review', 'snoozed', 'resolved', 'ignored') default 'open'
 title text not null
 description text
 suggested_action text
@@ -209,11 +209,12 @@ alert_error text
 alert_last_attempt_at timestamptz
 resolved_at timestamptz
 resolution_note text
+snoozed_until timestamptz
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
 
-Milestone 4 adds `fingerprint`, `last_seen_at`, and `occurrence_count` to dedupe repeated active failures. The active issue fingerprint is unique per agency/workflow while issue status is `open` or `in_review`; a materially different failure can create a separate issue.
+Milestone 4 adds `fingerprint`, `last_seen_at`, and `occurrence_count` to dedupe repeated active failures. The active issue fingerprint is unique per agency/workflow while issue status is `open`, `in_review`, or `snoozed`; a materially different failure can create a separate issue.
 
 Milestone 4 alerts add `alert_sent_at`, `alert_delivery_id`, `alert_error`, and `alert_last_attempt_at`. These fields track high/critical issue email delivery without storing email bodies or raw payload data.
 
@@ -329,6 +330,7 @@ action text check in (
   'workflow.created',
   'workflow.updated',
   'workflow.archived',
+  'check.updated',
   'check.run',
   'check.disabled',
   'test_pack.updated',
@@ -338,6 +340,7 @@ action text check in (
   'issue.assigned',
   'issue.resolved',
   'issue.ignored',
+  'issue.snoozed',
   'report.generated',
   'report.pdf_generated',
   'report.send_attempted',
@@ -371,9 +374,10 @@ Supabase Cron triggers scheduled checks through database functions rather than a
 ```txt
 public.trigger_due_check_sweep() returns bigint
 public.configure_due_check_cron(schedule_expression text default '*/5 * * * *') returns text
+public.get_due_health_checks(p_now timestamptz, p_limit integer, p_check_id uuid) returns table
 ```
 
-`trigger_due_check_sweep()` reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, then calls the protected Next.js scheduler route with `pg_net`. Both functions revoke execution from `public`, `anon`, and `authenticated`, and grant execution to `service_role`.
+`trigger_due_check_sweep()` reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, then calls the protected Next.js scheduler route with `pg_net`. `get_due_health_checks()` selects enabled health checks whose latest completed run is older than their workflow frequency, so large tenants are not scanned through an arbitrary app-side batch. These functions revoke execution from `public`, `anon`, and `authenticated`, and grant execution to `service_role`.
 
 Monthly report draft automation is app-side today. The protected route is `POST /api/scheduler/run-monthly-reports`, and it uses `clients.report_automation_enabled`, `clients.next_report_due_on`, and `clients.last_report_generated_at` to generate due prior-month report drafts.
 

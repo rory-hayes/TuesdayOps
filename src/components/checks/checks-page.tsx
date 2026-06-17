@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { JsonTextArea } from "@/components/ui/json-textarea";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { createCheckAction, disableCheckAction, runCheckAction } from "@/lib/checks/service";
+import { createCheckAction, disableCheckAction, runCheckAction, updateCheckAction } from "@/lib/checks/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import {
   createTestCaseAction,
@@ -57,7 +57,7 @@ export function ChecksPage({
         </CardHeader>
         <CardContent>
           {data.workflows.length ? (
-            <form action={createCheckAction} className="grid gap-3 md:grid-cols-5">
+            <form action={createCheckAction} className="grid gap-3 md:grid-cols-4">
               <label className="block text-sm font-medium md:col-span-2">
                 Workflow
                 <select
@@ -76,7 +76,20 @@ export function ChecksPage({
               <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} />
               <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required min={100} max={60000} />
               <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required min={1000} max={60000} />
-              <FormSubmitButton type="submit" className="md:col-span-5 md:w-fit" pendingLabel="Adding...">
+              <CheckboxInput label="Require valid JSON" name="requireValidJson" />
+              <TextArea
+                className="md:col-span-2"
+                label="Request body"
+                name="requestBody"
+                placeholder='{"ping":true}'
+                maxLength={4000}
+              />
+              <Input label="Response contains" name="responseContains" placeholder="ok" maxLength={200} />
+              <Input label="Required field" name="jsonFieldPath" placeholder="result.id" maxLength={120} />
+              <Input label="Required non-empty field" name="fieldNotEmptyPath" placeholder="result.answer" maxLength={120} />
+              <Input label="Must match regex" name="matchesRegexPattern" placeholder="case-[0-9]+" maxLength={500} />
+              <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={200} />
+              <FormSubmitButton type="submit" className="md:col-span-4 md:w-fit" pendingLabel="Adding...">
                 <Plus size={15} aria-hidden="true" />
                 Add check
               </FormSubmitButton>
@@ -134,6 +147,33 @@ export function ChecksPage({
                       </FormSubmitButton>
                     </form>
                   </div>
+                  <details className="mt-4 rounded-lg bg-muted p-3 text-sm">
+                    <summary className="cursor-pointer font-medium">Edit check settings</summary>
+                    <form action={updateCheckAction} className="mt-3 grid gap-3 md:grid-cols-2">
+                      <input type="hidden" name="checkId" value={check.id} />
+                      <Input label="Check name" name="name" placeholder="Endpoint health check" defaultValue={check.name} required minLength={2} maxLength={120} />
+                      <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} defaultValue={getStatusAssertionValue(check.configJson)} />
+                      <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required min={100} max={60000} defaultValue={getLatencyAssertionValue(check.configJson)} />
+                      <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required min={1000} max={60000} defaultValue={getTimeoutMs(check.configJson)} />
+                      <CheckboxInput label="Require valid JSON" name="requireValidJson" defaultChecked={hasValidJsonAssertion(check.configJson)} />
+                      <TextArea
+                        className="md:col-span-2"
+                        label="Request body"
+                        name="requestBody"
+                        placeholder='{"ping":true}'
+                        defaultValue={getRequestBody(check.configJson)}
+                        maxLength={4000}
+                      />
+                      <Input label="Response contains" name="responseContains" placeholder="ok" maxLength={200} defaultValue={getContainsTextAssertionValue(check.configJson)} />
+                      <Input label="Required field" name="jsonFieldPath" placeholder="result.id" maxLength={120} defaultValue={getFieldExistsAssertionValue(check.configJson)} />
+                      <Input label="Required non-empty field" name="fieldNotEmptyPath" placeholder="result.answer" maxLength={120} defaultValue={getFieldNotEmptyAssertionValue(check.configJson)} />
+                      <Input label="Must match regex" name="matchesRegexPattern" placeholder="case-[0-9]+" maxLength={500} defaultValue={getMatchesRegexAssertionValue(check.configJson)} />
+                      <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={200} defaultValue={getNotContainsAssertionValue(check.configJson)} />
+                      <FormSubmitButton type="submit" size="sm" variant="secondary" className="md:col-span-2 md:w-fit" pendingLabel="Saving...">
+                        Save check
+                      </FormSubmitButton>
+                    </form>
+                  </details>
                 </div>
               );
             }) : (
@@ -483,6 +523,16 @@ function getLatencyAssertionValue(assertionsJson: unknown): number {
   return typeof assertion?.maxMs === "number" ? assertion.maxMs : 10000;
 }
 
+function getTimeoutMs(configJson: unknown): number {
+  const config = getCheckConfig(configJson);
+  return typeof config.timeoutMs === "number" ? config.timeoutMs : 10000;
+}
+
+function getRequestBody(configJson: unknown): string {
+  const config = getCheckConfig(configJson);
+  return typeof config.requestBody === "string" ? config.requestBody : "";
+}
+
 function getFieldExistsAssertionValue(assertionsJson: unknown): string {
   const assertion = getAssertions(assertionsJson).find((item) => item.type === "field_exists");
   return typeof assertion?.path === "string" ? assertion.path : "";
@@ -513,7 +563,17 @@ function getNotContainsAssertionValue(assertionsJson: unknown): string {
 }
 
 function getAssertions(value: unknown): Array<Record<string, unknown>> {
-  return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+  const source = Array.isArray(value)
+    ? value
+    : getCheckConfig(value).assertions;
+
+  return Array.isArray(source)
+    ? source.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
     : [];
+}
+
+function getCheckConfig(value: unknown): { timeoutMs?: number; requestBody?: string; assertions?: unknown[] } {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as { timeoutMs?: number; requestBody?: string; assertions?: unknown[] }
+    : {};
 }

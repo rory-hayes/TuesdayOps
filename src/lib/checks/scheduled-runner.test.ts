@@ -134,47 +134,34 @@ describe("scheduled check batch runner", () => {
     expect(result).toEqual({ attempted: 1, completed: 1, skipped: 0, failed: 0 });
   });
 
-  it("loads schedulable checks with latest completed run metadata", async () => {
-    const { supabase, checksQuery } = createScheduledSupabase({
-      checksResponse: {
+  it("loads due checks from the database due-check selector", async () => {
+    const { supabase, rpc } = createScheduledSupabase({
+      dueChecksResponse: {
         data: [
           {
             id: "check-1",
             agency_id: "agency-1",
             workflow_id: "workflow-1",
             enabled: true,
-            workflows: {
-              id: "workflow-1",
-              endpoint_url: "https://api.example.com/health",
-              check_frequency_minutes: 15,
-            },
+            endpoint_url: "https://api.example.com/health",
+            check_frequency_minutes: 15,
+            latest_completed_at: "2026-06-13T12:00:00.000Z",
           },
           {
             id: "check-2",
             agency_id: "agency-1",
             workflow_id: "workflow-2",
             enabled: true,
-            workflows: [
-              {
-                id: "workflow-2",
-                endpoint_url: null,
-                check_frequency_minutes: 0,
-              },
-            ],
+            endpoint_url: null,
+            check_frequency_minutes: 0,
+            latest_completed_at: null,
           },
-        ],
-        error: null,
-      },
-      runsResponse: {
-        data: [
-          { check_id: "check-1", completed_at: "2026-06-13T12:00:00.000Z" },
-          { check_id: "check-1", completed_at: "2026-06-13T11:45:00.000Z" },
         ],
         error: null,
       },
     });
 
-    await expect(loadSchedulableChecks({ supabase, limit: 25, checkId: "check-1" })).resolves.toEqual([
+    await expect(loadSchedulableChecks({ supabase, now, limit: 25, checkId: "check-1" })).resolves.toEqual([
       {
         id: "check-1",
         agencyId: "agency-1",
@@ -194,47 +181,21 @@ describe("scheduled check batch runner", () => {
         latestCompletedAt: null,
       },
     ]);
-    expect(checksQuery.eq).toHaveBeenCalledWith("id", "check-1");
-    expect(checksQuery.limit).toHaveBeenCalledWith(25);
-  });
-
-  it("does not query recent runs when no enabled checks are loaded", async () => {
-    const { supabase, runsQuery } = createScheduledSupabase({
-      checksResponse: { data: [], error: null },
+    expect(rpc).toHaveBeenCalledWith("get_due_health_checks", {
+      p_now: now.toISOString(),
+      p_limit: 25,
+      p_check_id: "check-1",
     });
-
-    await expect(loadSchedulableChecks({ supabase })).resolves.toEqual([]);
-    expect(runsQuery.select).not.toHaveBeenCalled();
   });
 
-  it("surfaces scheduled check and recent run load failures", async () => {
+  it("surfaces due-check selector failures", async () => {
     await expect(
       loadSchedulableChecks({
         supabase: createScheduledSupabase({
-          checksResponse: { data: null, error: { message: "checks offline" } },
+          dueChecksResponse: { data: null, error: { message: "checks offline" } },
         }).supabase,
       }),
     ).rejects.toThrow("Unable to load scheduled checks: checks offline");
-
-    await expect(
-      loadSchedulableChecks({
-        supabase: createScheduledSupabase({
-          checksResponse: {
-            data: [
-              {
-                id: "check-1",
-                agency_id: "agency-1",
-                workflow_id: "workflow-1",
-                enabled: true,
-                workflows: [],
-              },
-            ],
-            error: null,
-          },
-          runsResponse: { data: null, error: { message: "runs offline" } },
-        }).supabase,
-      }),
-    ).rejects.toThrow("Unable to load recent check runs: runs offline");
   });
 
   it("loads and runs due scheduled checks through the production entry point", async () => {
@@ -244,30 +205,31 @@ describe("scheduled check batch runner", () => {
       workflowId: "workflow-1",
       runStatus: "healthy",
     });
-    const { supabase, checksQuery } = createScheduledSupabase({
-      checksResponse: {
+    const { supabase, rpc } = createScheduledSupabase({
+      dueChecksResponse: {
         data: [
           {
             id: "check-1",
             agency_id: "agency-1",
             workflow_id: "workflow-1",
             enabled: true,
-            workflows: {
-              id: "workflow-1",
-              endpoint_url: "https://api.example.com/health",
-              check_frequency_minutes: 5,
-            },
+            endpoint_url: "https://api.example.com/health",
+            check_frequency_minutes: 5,
+            latest_completed_at: null,
           },
         ],
         error: null,
       },
-      runsResponse: { data: [], error: null },
     });
 
     await expect(
       runDueScheduledChecks({ supabase, now, limit: 2 }),
     ).resolves.toEqual({ attempted: 1, completed: 1, skipped: 0, failed: 0 });
-    expect(checksQuery.limit).toHaveBeenCalledWith(6);
+    expect(rpc).toHaveBeenCalledWith("get_due_health_checks", {
+      p_now: now.toISOString(),
+      p_limit: 2,
+      p_check_id: null,
+    });
     expect(executeCheckRun).toHaveBeenCalledWith({
       supabase,
       agencyId: "agency-1",
@@ -279,63 +241,43 @@ describe("scheduled check batch runner", () => {
 
   it("uses a single-row load limit when a scheduler smoke check targets one check", async () => {
     vi.mocked(executeCheckRun).mockResolvedValue({ status: "skipped", reason: "duplicate_scheduled_window" });
-    const { supabase, checksQuery } = createScheduledSupabase({
-      checksResponse: {
+    const { supabase, rpc } = createScheduledSupabase({
+      dueChecksResponse: {
         data: [
           {
             id: "target-check",
             agency_id: "agency-1",
             workflow_id: "workflow-1",
             enabled: true,
-            workflows: {
-              id: "workflow-1",
-              endpoint_url: "https://api.example.com/health",
-              check_frequency_minutes: 5,
-            },
+            endpoint_url: "https://api.example.com/health",
+            check_frequency_minutes: 5,
+            latest_completed_at: null,
           },
         ],
         error: null,
       },
-      runsResponse: { data: [], error: null },
     });
 
     await expect(
       runDueScheduledChecks({ supabase, now, limit: 50, checkId: "target-check" }),
     ).resolves.toEqual({ attempted: 1, completed: 0, skipped: 1, failed: 0 });
-    expect(checksQuery.limit).toHaveBeenCalledWith(1);
+    expect(rpc).toHaveBeenCalledWith("get_due_health_checks", {
+      p_now: now.toISOString(),
+      p_limit: 1,
+      p_check_id: "target-check",
+    });
   });
 });
 
 function createScheduledSupabase({
-  checksResponse = { data: [], error: null },
-  runsResponse = { data: [], error: null },
+  dueChecksResponse = { data: [], error: null },
 }: {
-  checksResponse?: { data: unknown[] | null; error: { message: string } | null };
-  runsResponse?: { data: unknown[] | null; error: { message: string } | null };
+  dueChecksResponse?: { data: unknown[] | null; error: { message: string } | null };
 } = {}) {
-  const checksQuery = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue(checksResponse),
-  };
-  const runsQuery = {
-    select: vi.fn().mockReturnThis(),
-    in: vi.fn().mockReturnThis(),
-    order: vi.fn().mockResolvedValue(runsResponse),
-  };
+  const rpc = vi.fn().mockResolvedValue(dueChecksResponse);
   const supabase = {
-    from(table: string) {
-      if (table === "checks") {
-        return checksQuery;
-      }
-
-      if (table === "check_runs") {
-        return runsQuery;
-      }
-
-      throw new Error(`Unexpected table ${table}`);
-    },
+    rpc,
   } as never;
 
-  return { supabase, checksQuery, runsQuery };
+  return { supabase, rpc };
 }

@@ -9,20 +9,39 @@ export async function assertResolvedWorkflowEndpointIsSafe(
   value: string,
   options: EndpointValidationOptions = {},
 ): Promise<string> {
+  return (await resolveSafeWorkflowEndpoint(value, options)).endpointUrl;
+}
+
+export async function resolveSafeWorkflowEndpoint(
+  value: string,
+  options: EndpointValidationOptions = {},
+): Promise<{
+  endpointUrl: string;
+  url: URL;
+  resolvedAddress: string;
+}> {
   const endpointUrl = assertSafeWorkflowEndpoint(value, options);
+  const url = new URL(endpointUrl);
 
   if (options.allowPrivateEndpoints) {
-    return endpointUrl;
+    return {
+      endpointUrl,
+      url,
+      resolvedAddress: url.hostname,
+    };
   }
 
-  const url = new URL(endpointUrl);
   const addresses = await resolveEndpointHost(url.hostname);
 
   if (addresses.some((address) => isPrivateOrLocalHostname(address))) {
     throw new Error("Private or local workflow endpoints are blocked in production.");
   }
 
-  return endpointUrl;
+  return {
+    endpointUrl,
+    url,
+    resolvedAddress: addresses[0] ?? url.hostname,
+  };
 }
 
 async function resolveEndpointHost(hostname: string): Promise<string[]> {

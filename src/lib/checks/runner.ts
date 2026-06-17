@@ -1,6 +1,8 @@
+import http from "node:http";
+import https from "node:https";
 import type { CheckRunStatus } from "@/lib/domain/types";
 import { shouldAllowPrivateWorkflowEndpoints } from "@/lib/security/endpoint-url";
-import { assertResolvedWorkflowEndpointIsSafe } from "@/lib/security/endpoint-url-server";
+import { resolveSafeWorkflowEndpoint } from "@/lib/security/endpoint-url-server";
 import {
   checkConfigSchema,
   evaluateAssertions,
@@ -35,6 +37,22 @@ export type HttpCheckResult = {
   completedAt: string;
 };
 
+type ResolvedWorkflowEndpoint = Awaited<ReturnType<typeof resolveSafeWorkflowEndpoint>>;
+
+type WorkflowHttpTransportInput = {
+  endpoint: ResolvedWorkflowEndpoint;
+  workflow: RunnableWorkflow;
+  headers: Headers;
+  config: CheckConfig;
+  signal: AbortSignal;
+};
+
+export type WorkflowHttpTransport = (input: WorkflowHttpTransportInput) => Promise<{
+  statusCode: number;
+  bodyText: string;
+  truncated: boolean;
+}>;
+
 const maxResponseBodyBytes = 64_000;
 const maxResponseSummaryChars = 600;
 const maxRequestAttempts = 2;
@@ -44,10 +62,12 @@ export async function runHttpCheck({
   workflow,
   check,
   authConfig,
+  transport = sendPinnedWorkflowRequest,
 }: {
   workflow: RunnableWorkflow;
   check: RunnableCheck;
   authConfig?: WorkflowAuthConfig;
+  transport?: WorkflowHttpTransport;
 }): Promise<HttpCheckResult> {
   const startedAtDate = new Date();
   const startedAt = startedAtDate.toISOString();
@@ -55,7 +75,7 @@ export async function runHttpCheck({
   const headers = buildHeaders(authConfig);
 
   try {
-    const endpointUrl = await assertResolvedWorkflowEndpointIsSafe(workflow.endpointUrl, {
+    const endpoint = await resolveSafeWorkflowEndpoint(workflow.endpointUrl, {
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
 
@@ -64,18 +84,19 @@ export async function runHttpCheck({
       const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
 
       try {
-        const response = await fetch(endpointUrl, buildRequestInit({
+        const response = await transport({
+          endpoint,
           workflow,
           headers,
           config,
           signal: controller.signal,
-        }));
+        });
         const latencyMs = Date.now() - startedAtDate.getTime();
 
-        if (isRedirectResponse(response)) {
+        if (isRedirectStatus(response.statusCode)) {
           return {
             status: "failed",
-            statusCode: response.status,
+            statusCode: response.statusCode,
             latencyMs,
             responseSummary: "Redirect blocked for workflow check safety.",
             assertionResults: config.assertions.map((assertion) => ({
@@ -89,10 +110,10 @@ export async function runHttpCheck({
           };
         }
 
-        const { text: bodyText, truncated } = await readResponseTextWithLimit(response);
+        const { bodyText, truncated } = response;
         const bodyJson = parseJson(bodyText);
         const assertionResults = evaluateAssertions(config.assertions, {
-          statusCode: response.status,
+          statusCode: response.statusCode,
           latencyMs,
           bodyText,
           bodyJson,
@@ -101,7 +122,7 @@ export async function runHttpCheck({
 
         return {
           status,
-          statusCode: response.status,
+          statusCode: response.statusCode,
           latencyMs,
           responseSummary: summarizeResponse(bodyText, { truncated }),
           assertionResults,
@@ -131,7 +152,9 @@ export async function runHttpCheck({
         passed: false,
         message: "Request did not complete, so this assertion could not be evaluated.",
       })),
-      errorMessage: message === "This operation was aborted" ? "Request timed out." : message,
+      errorMessage: /operation was aborted|this operation was aborted/i.test(message)
+        ? "Request timed out."
+        : message,
       startedAt,
       completedAt: new Date().toISOString(),
     };
@@ -167,33 +190,100 @@ function buildHeaders(authConfig?: WorkflowAuthConfig): Headers {
   return headers;
 }
 
-function buildRequestInit({
+async function sendPinnedWorkflowRequest({
+  endpoint,
   workflow,
   headers,
   config,
   signal,
-}: {
-  workflow: RunnableWorkflow;
-  headers: Headers;
-  config: CheckConfig;
-  signal: AbortSignal;
-}): RequestInit {
+}: WorkflowHttpTransportInput): Promise<{
+  statusCode: number;
+  bodyText: string;
+  truncated: boolean;
+}> {
   const requestHeaders = new Headers(headers);
-  const requestInit: RequestInit = {
-    method: workflow.method,
-    headers: requestHeaders,
-    signal,
-    redirect: "manual",
-  };
+  const requestBody = workflow.method !== "GET" ? config.requestBody : undefined;
 
-  if (workflow.method !== "GET" && config.requestBody) {
-    requestInit.body = config.requestBody;
-    if (!requestHeaders.has("content-type")) {
-      requestHeaders.set("content-type", "application/json");
-    }
+  if (requestBody && !requestHeaders.has("content-type")) {
+    requestHeaders.set("content-type", "application/json");
   }
 
-  return requestInit;
+  requestHeaders.set("host", endpoint.url.host);
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const request = (endpoint.url.protocol === "https:" ? https : http).request(
+      {
+        protocol: endpoint.url.protocol,
+        hostname: endpoint.resolvedAddress,
+        port: endpoint.url.port || (endpoint.url.protocol === "https:" ? 443 : 80),
+        path: `${endpoint.url.pathname}${endpoint.url.search}`,
+        method: workflow.method,
+        headers: Object.fromEntries(requestHeaders.entries()),
+        servername: endpoint.url.hostname,
+        signal,
+      },
+      (response) => {
+        let bytesRead = 0;
+        const chunks: Buffer[] = [];
+
+        response.on("data", (chunk: Buffer | string) => {
+          if (settled) {
+            return;
+          }
+
+          const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+          const remaining = maxResponseBodyBytes - bytesRead;
+
+          if (buffer.byteLength > remaining) {
+            if (remaining > 0) {
+              chunks.push(buffer.subarray(0, remaining));
+            }
+            bytesRead = maxResponseBodyBytes;
+            settled = true;
+            response.destroy();
+            resolve({
+              statusCode: response.statusCode ?? 0,
+              bodyText: Buffer.concat(chunks).toString("utf8"),
+              truncated: true,
+            });
+            return;
+          }
+
+          bytesRead += buffer.byteLength;
+          chunks.push(buffer);
+        });
+
+        response.on("end", () => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          resolve({
+            statusCode: response.statusCode ?? 0,
+            bodyText: Buffer.concat(chunks).toString("utf8"),
+            truncated: false,
+          });
+        });
+      },
+    );
+
+    request.on("error", (error) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      reject(error);
+    });
+
+    if (requestBody) {
+      request.write(requestBody);
+    }
+
+    request.end();
+  });
 }
 
 function parseJson(value: string): unknown {
@@ -204,47 +294,8 @@ function parseJson(value: string): unknown {
   }
 }
 
-async function readResponseTextWithLimit(
-  response: Response,
-  limitBytes = maxResponseBodyBytes,
-): Promise<{ text: string; truncated: boolean }> {
-  if (!response.body) {
-    return { text: "", truncated: false };
-  }
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let bytesRead = 0;
-  let text = "";
-  let truncated = false;
-
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      text += decoder.decode();
-      break;
-    }
-
-    const remaining = limitBytes - bytesRead;
-
-    if (value.byteLength > remaining) {
-      text += decoder.decode(value.slice(0, Math.max(remaining, 0)), { stream: true });
-      truncated = true;
-      await reader.cancel();
-      text += decoder.decode();
-      break;
-    }
-
-    bytesRead += value.byteLength;
-    text += decoder.decode(value, { stream: true });
-  }
-
-  return { text, truncated };
-}
-
-function isRedirectResponse(response: Response): boolean {
-  return response.status >= 300 && response.status <= 399;
+function isRedirectStatus(statusCode: number): boolean {
+  return statusCode >= 300 && statusCode <= 399;
 }
 
 function deriveCheckRunStatus(assertionResults: AssertionResult[]): CheckRunStatus {

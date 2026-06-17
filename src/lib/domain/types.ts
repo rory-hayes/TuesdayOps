@@ -1,5 +1,5 @@
 export type WorkflowStatus = "healthy" | "degraded" | "failed" | "unknown";
-export type IssueStatus = "open" | "in_review" | "resolved" | "ignored";
+export type IssueStatus = "open" | "in_review" | "snoozed" | "resolved" | "ignored";
 export type IssueSeverity = "low" | "medium" | "high" | "critical";
 export type WorkflowType =
   | "http_endpoint"
@@ -82,6 +82,7 @@ export type Check = {
   type: CheckType;
   schedule: string;
   enabled: boolean;
+  configJson: unknown;
   assertionCount: number;
   latestStatus: CheckRunStatus;
 };
@@ -124,6 +125,7 @@ export type Issue = {
   lastSeenAt: string;
   resolvedAt?: string;
   resolutionNote?: string;
+  snoozedUntil?: string;
 };
 
 export type TestPack = {

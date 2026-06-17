@@ -5,13 +5,31 @@ import { buildRateLimitHeaders, consumePersistentRateLimit } from "@/lib/securit
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: Request) {
+  const supabase = createAdminClient();
+  const unauthenticatedRateLimit = await consumePersistentRateLimit({
+    scope: "public-run-log-preauth",
+    identifier: getClientRateLimitIdentifier(request),
+    limit: 240,
+    windowSeconds: 60,
+    supabase,
+  });
+
+  if (!unauthenticatedRateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many run log requests." },
+      {
+        status: 429,
+        headers: buildRateLimitHeaders(unauthenticatedRateLimit),
+      },
+    );
+  }
+
   const apiKey = getBearerToken(request);
 
   if (!apiKey) {
     return NextResponse.json({ error: "Run log API key is required." }, { status: 401 });
   }
 
-  const supabase = createAdminClient();
   const rateLimit = await consumePersistentRateLimit({
     scope: "public-run-log",
     identifier: apiKey,
@@ -69,4 +87,12 @@ function getBearerToken(request: Request): string | null {
   const match = authorization?.match(/^Bearer\s+(.+)$/i);
 
   return match?.[1]?.trim() || null;
+}
+
+function getClientRateLimitIdentifier(request: Request): string {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const firstForwardedIp = forwardedFor?.split(",")[0]?.trim();
+  const realIp = request.headers.get("x-real-ip")?.trim();
+
+  return firstForwardedIp || realIp || "anonymous-public-run-log";
 }

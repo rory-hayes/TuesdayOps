@@ -110,6 +110,7 @@ type IssueRow = {
   resolution_note: string | null;
   created_at: string;
   last_seen_at: string | null;
+  snoozed_until?: string | null;
 };
 
 type TestPackRow = {
@@ -325,6 +326,141 @@ export async function getOperationalData(
   };
 }
 
+export async function getReportSourceData({
+  agency,
+  clientId,
+  periodStart,
+  periodEnd,
+  supabaseOverride,
+}: {
+  agency: AgencySnapshot;
+  clientId: string;
+  periodStart: string;
+  periodEnd: string;
+  supabaseOverride?: SupabaseClient;
+}): Promise<TuesdayOpsSeedData> {
+  const supabase = supabaseOverride ?? await createClient();
+  const periodStartIso = `${periodStart}T00:00:00.000Z`;
+  const periodEndIso = `${periodEnd}T23:59:59.999Z`;
+  const [clientResult, workflowsResult] = await Promise.all([
+    supabase
+      .from("clients")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .eq("id", clientId)
+      .maybeSingle(),
+    supabase
+      .from("workflows")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .eq("client_id", clientId)
+      .is("archived_at", null)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const firstError = clientResult.error ?? workflowsResult.error;
+  if (firstError) {
+    throw new Error(`Unable to load report source data: ${firstError.message}`);
+  }
+
+  const clientRows = clientResult.data ? [clientResult.data as ClientRow] : [];
+  const workflowRows = (workflowsResult.data ?? []) as WorkflowRow[];
+  const workflowIds = workflowRows.map((workflow) => workflow.id);
+  const [
+    checksResult,
+    runsResult,
+    issuesResult,
+    testPacksResult,
+    testCasesResult,
+    testRunsResult,
+  ] = await Promise.all([
+    workflowIds.length
+      ? supabase
+          .from("checks")
+          .select("*")
+          .eq("agency_id", agency.id)
+          .in("workflow_id", workflowIds)
+          .order("created_at", { ascending: false })
+      : emptyQueryResult(),
+    supabase
+      .from("check_runs")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .eq("client_id", clientId)
+      .gte("completed_at", periodStartIso)
+      .lte("completed_at", periodEndIso)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("issues")
+      .select("*")
+      .eq("agency_id", agency.id)
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false }),
+    workflowIds.length
+      ? supabase
+          .from("test_packs")
+          .select("*")
+          .eq("agency_id", agency.id)
+          .in("workflow_id", workflowIds)
+          .order("created_at", { ascending: false })
+      : emptyQueryResult(),
+    workflowIds.length
+      ? supabase
+          .from("test_cases")
+          .select("*")
+          .eq("agency_id", agency.id)
+          .in("workflow_id", workflowIds)
+          .is("archived_at", null)
+          .order("created_at", { ascending: false })
+      : emptyQueryResult(),
+    workflowIds.length
+      ? supabase
+          .from("test_runs")
+          .select("*")
+          .eq("agency_id", agency.id)
+          .in("workflow_id", workflowIds)
+          .gte("created_at", periodStartIso)
+          .lte("created_at", periodEndIso)
+          .order("created_at", { ascending: false })
+      : emptyQueryResult(),
+  ]);
+
+  const error =
+    checksResult.error ??
+    runsResult.error ??
+    issuesResult.error ??
+    testPacksResult.error ??
+    testCasesResult.error ??
+    testRunsResult.error;
+
+  if (error) {
+    throw new Error(`Unable to load report source data: ${error.message}`);
+  }
+
+  const checkRows = (checksResult.data ?? []) as CheckRow[];
+  const runRows = (runsResult.data ?? []) as CheckRunRow[];
+  const issueRows = (issuesResult.data ?? []) as IssueRow[];
+  const testPackRows = (testPacksResult.data ?? []) as TestPackRow[];
+  const testCaseRows = (testCasesResult.data ?? []) as TestCaseRow[];
+  const testRunRows = (testRunsResult.data ?? []) as TestRunRow[];
+  const workflows = workflowRows.map((row) => mapWorkflow(row, runRows));
+
+  return {
+    agency,
+    clients: clientRows.map((row) => mapClient(row, workflows)),
+    workflows,
+    checks: checkRows.map((row) => mapCheck(row, runRows)),
+    checkRuns: runRows.map(mapCheckRun),
+    issues: issueRows.map(mapIssue),
+    testPacks: testPackRows.map((row) => mapTestPack(row, testCaseRows, testRunRows)),
+    testCases: testCaseRows.map((row) => mapTestCase(row, testRunRows)),
+    testRuns: testRunRows.map(mapTestRun),
+    workflowApiKeys: [],
+    reports: [],
+    reportItems: [],
+  };
+}
+
 export async function getWorkflowOperationalData(
   agency: AgencySnapshot,
   workflowId: string,
@@ -412,6 +548,7 @@ function mapCheck(row: CheckRow, runRows: CheckRunRow[]): Check {
     type: row.type,
     schedule: row.schedule,
     enabled: row.enabled,
+    configJson: row.config_json,
     assertionCount: config.success ? config.data.assertions.length : 0,
     latestStatus: latestRun?.status ?? "skipped",
   };
@@ -438,6 +575,8 @@ function mapCheckRun(row: CheckRunRow): CheckRun {
 }
 
 function mapIssue(row: IssueRow): Issue {
+  const status = getEffectiveIssueStatus(row);
+
   return {
     id: row.id,
     agencyId: row.agency_id,
@@ -447,7 +586,7 @@ function mapIssue(row: IssueRow): Issue {
     testRunId: row.test_run_id ?? undefined,
     ownerUserId: row.owner_user_id ?? undefined,
     severity: row.severity,
-    status: row.status,
+    status,
     title: row.title,
     description: row.description,
     suggestedAction: row.suggested_action,
@@ -458,6 +597,7 @@ function mapIssue(row: IssueRow): Issue {
     lastSeenAt: row.last_seen_at ?? row.created_at,
     resolvedAt: row.resolved_at ?? undefined,
     resolutionNote: row.resolution_note ?? undefined,
+    snoozedUntil: row.snoozed_until ?? undefined,
   };
 }
 
@@ -587,4 +727,20 @@ function parseReportMetrics(value: unknown): ReportMetrics {
     testFailures: Number(source.testFailures ?? 0),
     passRate: Number(source.passRate ?? 0),
   };
+}
+
+function getEffectiveIssueStatus(row: IssueRow): Issue["status"] {
+  if (row.status === "snoozed" && row.snoozed_until) {
+    const snoozedUntil = new Date(row.snoozed_until).getTime();
+
+    if (Number.isFinite(snoozedUntil) && snoozedUntil <= Date.now()) {
+      return "open";
+    }
+  }
+
+  return row.status;
+}
+
+function emptyQueryResult(): Promise<{ data: unknown[]; error: null }> {
+  return Promise.resolve({ data: [], error: null });
 }

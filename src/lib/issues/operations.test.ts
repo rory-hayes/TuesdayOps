@@ -86,7 +86,7 @@ describe("createOrUpdateIssueForCheckRun", () => {
   });
 
   it("updates an existing active issue for repeat failures", async () => {
-    const { supabase, insertedIssues, updatedIssues } = createIssueSupabase({
+    const { supabase, insertedIssues, updatedIssues, issueQuery } = createIssueSupabase({
       findResponses: [{ data: { id: "issue-1", occurrence_count: 3 }, error: null }],
       updateResponse: { data: { id: "issue-1" }, error: null },
     });
@@ -100,9 +100,12 @@ describe("createOrUpdateIssueForCheckRun", () => {
       expect.objectContaining({
         check_run_id: "run-1",
         occurrence_count: 4,
+        status: "open",
+        snoozed_until: null,
         title: "Risk Router returned HTTP 500",
       }),
     );
+    expect(issueQuery.in).toHaveBeenCalledWith("status", ["open", "in_review", "snoozed"]);
     expect(sendIssueAlertForNewIssue).not.toHaveBeenCalled();
   });
 
@@ -203,53 +206,52 @@ function createIssueSupabase({
 } = {}) {
   const insertedIssues: unknown[] = [];
   const updatedIssues: unknown[] = [];
+  const issueQuery = {
+    select() {
+      return this;
+    },
+    eq() {
+      return this;
+    },
+    in: vi.fn().mockReturnThis(),
+    order() {
+      return this;
+    },
+    limit() {
+      return this;
+    },
+    maybeSingle: async () => findResponses.shift() ?? { data: null, error: null },
+    insert(payload: unknown) {
+      insertedIssues.push(payload);
+
+      return {
+        select() {
+          return this;
+        },
+        single: async () => insertResponse,
+      };
+    },
+    update(payload: unknown) {
+      updatedIssues.push(payload);
+
+      return {
+        eq() {
+          return this;
+        },
+        select() {
+          return this;
+        },
+        single: async () => updateResponse,
+      };
+    },
+  };
   const from = vi.fn((table: string) => {
     if (table !== "issues") {
       throw new Error(`Unexpected table ${table}`);
     }
 
-    return {
-      select() {
-        return this;
-      },
-      eq() {
-        return this;
-      },
-      in() {
-        return this;
-      },
-      order() {
-        return this;
-      },
-      limit() {
-        return this;
-      },
-      maybeSingle: async () => findResponses.shift() ?? { data: null, error: null },
-      insert(payload: unknown) {
-        insertedIssues.push(payload);
-
-        return {
-          select() {
-            return this;
-          },
-          single: async () => insertResponse,
-        };
-      },
-      update(payload: unknown) {
-        updatedIssues.push(payload);
-
-        return {
-          eq() {
-            return this;
-          },
-          select() {
-            return this;
-          },
-          single: async () => updateResponse,
-        };
-      },
-    };
+    return issueQuery;
   });
 
-  return { supabase: { from } as never, from, insertedIssues, updatedIssues };
+  return { supabase: { from } as never, from, insertedIssues, updatedIssues, issueQuery };
 }

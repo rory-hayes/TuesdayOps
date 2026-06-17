@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { RunLogKeyPanel } from "@/components/workflows/run-log-key-panel";
-import { createCheckAction, runCheckAction } from "@/lib/checks/service";
+import { createCheckAction, runCheckAction, updateCheckAction } from "@/lib/checks/service";
 import type {
   Check,
   CheckRun,
@@ -167,7 +167,7 @@ export function WorkflowDetailPage({
         />
       ) : null}
       {tab === "endpoint" ? <EndpointTab workflow={workflow} client={client} /> : null}
-      {tab === "settings" ? <WorkflowSettingsTab workflow={workflow} /> : null}
+      {tab === "settings" ? <WorkflowSettingsTab workflow={workflow} primaryCheck={primaryCheck} /> : null}
     </div>
   );
 }
@@ -339,14 +339,14 @@ function EndpointTab({
   );
 }
 
-function WorkflowSettingsTab({ workflow }: { workflow: Workflow }) {
+function WorkflowSettingsTab({ workflow, primaryCheck }: { workflow: Workflow; primaryCheck?: Check }) {
   return (
     <section className="max-w-4xl">
       <Card>
         <CardHeader>
           <h2 className="text-base font-semibold">Workflow settings</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Update endpoint metadata, schedule, and report inclusion.
+            Update endpoint metadata, auth rotation, health-check assertions, and report inclusion.
           </p>
         </CardHeader>
         <CardContent>
@@ -413,6 +413,54 @@ function WorkflowSettingsTab({ workflow }: { workflow: Workflow }) {
                 required
               />
             </div>
+            <div className="grid gap-3 rounded-lg border border-border p-4">
+              <div>
+                <h3 className="text-sm font-semibold">Authentication</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Leave the secret blank to keep the current encrypted credential.
+                </p>
+              </div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <label className="block text-sm font-medium">
+                  Auth type
+                  <select
+                    name="authType"
+                    defaultValue={workflow.authType}
+                    className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                  >
+                    <option value="none">None</option>
+                    <option value="bearer">Bearer token</option>
+                    <option value="api_key_header">API key header</option>
+                    <option value="basic">Basic auth</option>
+                  </select>
+                </label>
+                <Input
+                  label="New auth secret"
+                  name="authSecret"
+                  placeholder="Leave blank to keep current"
+                  type="password"
+                />
+                <Input
+                  label="API key header name"
+                  name="authHeaderName"
+                  placeholder="x-api-key"
+                />
+                <Input
+                  label="Basic username"
+                  name="basicUsername"
+                  placeholder="username"
+                />
+              </div>
+            </div>
+            <div className="grid gap-3 rounded-lg border border-border p-4">
+              <div>
+                <h3 className="text-sm font-semibold">Primary health check</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  These settings update the main scheduled health check for this workflow.
+                </p>
+              </div>
+              <HealthCheckFields configJson={primaryCheck?.configJson} />
+            </div>
             <label className="flex items-center gap-2 text-sm font-medium">
               <input
                 name="includedInReports"
@@ -463,6 +511,18 @@ function ChecksCard({ checks }: { checks: Check[] }) {
                   </form>
                 </div>
               </div>
+              <details className="mt-4 rounded-lg bg-muted p-3">
+                <summary className="cursor-pointer text-sm font-medium">Edit check settings</summary>
+                <form action={updateCheckAction} className="mt-3 grid gap-3">
+                  <input type="hidden" name="checkId" value={check.id} />
+                  <input type="hidden" name="returnTab" value="checks" />
+                  <Input label="Name" name="name" placeholder="Endpoint responds with 200" defaultValue={check.name} required />
+                  <HealthCheckFields configJson={check.configJson} />
+                  <FormSubmitButton type="submit" size="sm" variant="secondary" className="w-fit" pendingLabel="Saving...">
+                    Save check
+                  </FormSubmitButton>
+                </form>
+              </details>
             </div>
           ))
         ) : (
@@ -487,11 +547,7 @@ function AddCheckCard({ workflowId }: { workflowId: string }) {
           <input type="hidden" name="workflowId" value={workflowId} />
           <input type="hidden" name="returnTab" value="checks" />
           <Input label="Name" name="name" placeholder="Endpoint responds with 200" required />
-          <div className="grid gap-3">
-            <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required />
-            <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required />
-            <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required />
-          </div>
+          <HealthCheckFields />
           <FormSubmitButton type="submit" className="w-fit" pendingLabel="Adding...">
             <Plus size={15} aria-hidden="true" />
             Add check
@@ -738,6 +794,9 @@ function Input({
   type = "text",
   required = false,
   defaultValue,
+  min,
+  max,
+  maxLength,
 }: {
   label: string;
   name: string;
@@ -745,6 +804,9 @@ function Input({
   type?: string;
   required?: boolean;
   defaultValue?: string;
+  min?: number;
+  max?: number;
+  maxLength?: number;
 }) {
   return (
     <label className="block text-sm font-medium">
@@ -754,9 +816,207 @@ function Input({
         name={name}
         type={type}
         defaultValue={defaultValue}
+        min={min}
+        max={max}
+        maxLength={maxLength}
         placeholder={placeholder}
         className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
       />
     </label>
   );
+}
+
+function HealthCheckFields({ configJson }: { configJson?: unknown }) {
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      <Input
+        label="Expected status"
+        name="expectedStatus"
+        placeholder="200"
+        type="number"
+        defaultValue={String(getStatusAssertionValue(configJson))}
+        min={100}
+        max={599}
+        required
+      />
+      <Input
+        label="Max latency ms"
+        name="maxLatencyMs"
+        placeholder="5000"
+        type="number"
+        defaultValue={String(getLatencyAssertionValue(configJson))}
+        min={100}
+        max={60000}
+        required
+      />
+      <Input
+        label="Timeout ms"
+        name="timeoutMs"
+        placeholder="10000"
+        type="number"
+        defaultValue={String(getTimeoutMs(configJson))}
+        min={1000}
+        max={60000}
+        required
+      />
+      <CheckboxInput label="Require valid JSON" name="requireValidJson" defaultChecked={hasValidJsonAssertion(configJson)} />
+      <TextArea
+        className="md:col-span-2"
+        label="Request body"
+        name="requestBody"
+        placeholder='{"ping":true}'
+        defaultValue={getRequestBody(configJson)}
+        maxLength={4000}
+      />
+      <Input
+        label="Response contains"
+        name="responseContains"
+        placeholder="ok"
+        defaultValue={getContainsTextAssertionValue(configJson)}
+        maxLength={200}
+      />
+      <Input
+        label="Required field"
+        name="jsonFieldPath"
+        placeholder="result.id"
+        defaultValue={getFieldExistsAssertionValue(configJson)}
+        maxLength={120}
+      />
+      <Input
+        label="Required non-empty field"
+        name="fieldNotEmptyPath"
+        placeholder="result.answer"
+        defaultValue={getFieldNotEmptyAssertionValue(configJson)}
+        maxLength={120}
+      />
+      <Input
+        label="Must not contain"
+        name="notContainsValue"
+        placeholder="error"
+        defaultValue={getNotContainsAssertionValue(configJson)}
+        maxLength={200}
+      />
+      <Input
+        label="Must match regex"
+        name="matchesRegexPattern"
+        placeholder="case-[0-9]+"
+        defaultValue={getMatchesRegexAssertionValue(configJson)}
+        maxLength={500}
+      />
+    </div>
+  );
+}
+
+function CheckboxInput({
+  label,
+  name,
+  defaultChecked = false,
+}: {
+  label: string;
+  name: string;
+  defaultChecked?: boolean;
+}) {
+  return (
+    <label className="flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium">
+      <input
+        type="checkbox"
+        name={name}
+        defaultChecked={defaultChecked}
+        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+      />
+      {label}
+    </label>
+  );
+}
+
+function TextArea({
+  label,
+  name,
+  placeholder,
+  className = "",
+  defaultValue,
+  maxLength,
+}: {
+  label: string;
+  name: string;
+  placeholder: string;
+  className?: string;
+  defaultValue?: string;
+  maxLength?: number;
+}) {
+  return (
+    <label className={`block text-sm font-medium ${className}`}>
+      {label}
+      <textarea
+        name={name}
+        placeholder={placeholder}
+        defaultValue={defaultValue}
+        maxLength={maxLength}
+        rows={3}
+        className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+      />
+    </label>
+  );
+}
+
+function getCheckConfig(value: unknown): { timeoutMs?: number; requestBody?: string; assertions?: Array<Record<string, unknown>> } {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as { timeoutMs?: number; requestBody?: string; assertions?: Array<Record<string, unknown>> }
+    : {};
+}
+
+function getAssertions(value: unknown): Array<Record<string, unknown>> {
+  const assertions = getCheckConfig(value).assertions;
+  return Array.isArray(assertions)
+    ? assertions.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object")
+    : [];
+}
+
+function getStatusAssertionValue(configJson?: unknown): number {
+  const assertion = getAssertions(configJson).find((item) => item.type === "status_code");
+  return typeof assertion?.expected === "number" ? assertion.expected : 200;
+}
+
+function getLatencyAssertionValue(configJson?: unknown): number {
+  const assertion = getAssertions(configJson).find((item) => item.type === "latency_under");
+  return typeof assertion?.maxMs === "number" ? assertion.maxMs : 5000;
+}
+
+function getTimeoutMs(configJson?: unknown): number {
+  const timeoutMs = getCheckConfig(configJson).timeoutMs;
+  return typeof timeoutMs === "number" ? timeoutMs : 10000;
+}
+
+function getRequestBody(configJson?: unknown): string {
+  const requestBody = getCheckConfig(configJson).requestBody;
+  return typeof requestBody === "string" ? requestBody : "";
+}
+
+function getFieldExistsAssertionValue(configJson?: unknown): string {
+  const assertion = getAssertions(configJson).find((item) => item.type === "field_exists");
+  return typeof assertion?.path === "string" ? assertion.path : "";
+}
+
+function getFieldNotEmptyAssertionValue(configJson?: unknown): string {
+  const assertion = getAssertions(configJson).find((item) => item.type === "field_not_empty");
+  return typeof assertion?.path === "string" ? assertion.path : "";
+}
+
+function getContainsTextAssertionValue(configJson?: unknown): string {
+  const assertion = getAssertions(configJson).find((item) => item.type === "contains_text");
+  return typeof assertion?.value === "string" ? assertion.value : "";
+}
+
+function getMatchesRegexAssertionValue(configJson?: unknown): string {
+  const assertion = getAssertions(configJson).find((item) => item.type === "matches_regex");
+  return typeof assertion?.pattern === "string" ? assertion.pattern : "";
+}
+
+function hasValidJsonAssertion(configJson?: unknown): boolean {
+  return getAssertions(configJson).some((item) => item.type === "valid_json");
+}
+
+function getNotContainsAssertionValue(configJson?: unknown): string {
+  const assertion = getAssertions(configJson).find((item) => item.type === "not_contains");
+  return typeof assertion?.value === "string" ? assertion.value : "";
 }

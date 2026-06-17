@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
-import { checkConfigSchema } from "@/lib/checks/assertions";
+import { buildHealthCheckConfig } from "@/lib/checks/config";
 import { executeCheckRun } from "@/lib/checks/execution";
 import { buildCheckDisableUpdate } from "@/lib/checks/lifecycle";
 import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
@@ -20,12 +20,23 @@ const createCheckFormSchema = z.object({
   expectedStatus: z.coerce.number().int().min(100).max(599).default(200),
   maxLatencyMs: z.coerce.number().int().min(100).max(60000).default(5000),
   timeoutMs: z.coerce.number().int().min(1000).max(60000).default(10000),
+  requestBody: z.string().trim().optional(),
+  responseContains: z.string().trim().max(200).optional(),
+  jsonFieldPath: z.string().trim().max(120).optional(),
+  fieldNotEmptyPath: z.string().trim().max(120).optional(),
+  notContainsValue: z.string().trim().max(200).optional(),
+  matchesRegexPattern: z.string().trim().max(500).optional(),
+  requireValidJson: z.enum(["on"]).optional(),
   returnTab: z.enum(["overview", "checks", "api", "endpoint", "settings"]).optional(),
 });
 
 const runCheckFormSchema = z.object({
   checkId: z.string().uuid(),
   returnTab: z.enum(["overview", "checks", "api", "endpoint", "settings"]).optional(),
+});
+
+const updateCheckFormSchema = createCheckFormSchema.omit({ workflowId: true }).extend({
+  checkId: z.string().uuid(),
 });
 
 export async function createCheckAction(formData: FormData) {
@@ -37,12 +48,17 @@ export async function createCheckAction(formData: FormData) {
 
   const workspace = await requireWorkspace();
   const supabase = await createClient();
-  const config = checkConfigSchema.parse({
+  const config = buildHealthCheckConfig({
+    expectedStatus: parsed.data.expectedStatus,
+    maxLatencyMs: parsed.data.maxLatencyMs,
     timeoutMs: parsed.data.timeoutMs,
-    assertions: [
-      { type: "status_code", expected: parsed.data.expectedStatus },
-      { type: "latency_under", maxMs: parsed.data.maxLatencyMs },
-    ],
+    requestBody: parsed.data.requestBody,
+    responseContains: parsed.data.responseContains,
+    jsonFieldPath: parsed.data.jsonFieldPath,
+    fieldNotEmptyPath: parsed.data.fieldNotEmptyPath,
+    notContainsValue: parsed.data.notContainsValue,
+    matchesRegexPattern: parsed.data.matchesRegexPattern,
+    requireValidJson: parsed.data.requireValidJson === "on",
   });
   const { error } = await supabase.from("checks").insert({
     agency_id: workspace.agency.id,
@@ -64,6 +80,68 @@ export async function createCheckAction(formData: FormData) {
     notice: "Check added.",
     tab: parsed.data.returnTab,
   }));
+}
+
+export async function updateCheckAction(formData: FormData) {
+  const parsed = updateCheckFormSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/checks?error=${encodeURIComponent("Check update did not pass validation.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const config = buildHealthCheckConfig({
+    expectedStatus: parsed.data.expectedStatus,
+    maxLatencyMs: parsed.data.maxLatencyMs,
+    timeoutMs: parsed.data.timeoutMs,
+    requestBody: parsed.data.requestBody,
+    responseContains: parsed.data.responseContains,
+    jsonFieldPath: parsed.data.jsonFieldPath,
+    fieldNotEmptyPath: parsed.data.fieldNotEmptyPath,
+    notContainsValue: parsed.data.notContainsValue,
+    matchesRegexPattern: parsed.data.matchesRegexPattern,
+    requireValidJson: parsed.data.requireValidJson === "on",
+  });
+  const updateResult = await supabase
+    .from("checks")
+    .update({
+      name: parsed.data.name,
+      config_json: config,
+      enabled: true,
+    })
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.checkId)
+    .select("id, workflow_id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(updateResult, "Check was not found or is not accessible.");
+  } catch (error) {
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be saved."))}`);
+  }
+
+  const workflowId = (updateResult.data as { workflow_id?: string } | null)?.workflow_id;
+
+  await recordCheckLifecycleAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    checkId: parsed.data.checkId,
+    action: "check.updated",
+  });
+
+  revalidatePath("/checks");
+  if (workflowId) {
+    revalidatePath(`/workflows/${workflowId}`);
+  }
+  revalidatePath("/workflows");
+  revalidatePath("/");
+  redirect(workflowId
+    ? buildWorkflowRedirect(workflowId, {
+        notice: "Check saved.",
+        tab: parsed.data.returnTab,
+      })
+    : `/checks?notice=${encodeURIComponent("Check saved.")}`);
 }
 
 export async function runCheckAction(formData: FormData) {
@@ -199,7 +277,7 @@ async function recordCheckLifecycleAuditEvent({
   agencyId: string;
   actorUserId: string;
   checkId: string;
-  action: "check.disabled";
+  action: "check.updated" | "check.disabled";
 }) {
   try {
     await recordAuditEvent({

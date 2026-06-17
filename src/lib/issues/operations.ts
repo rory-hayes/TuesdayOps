@@ -111,7 +111,7 @@ async function findActiveIssue({
     .eq("agency_id", context.agencyId)
     .eq("workflow_id", context.workflowId)
     .eq("fingerprint", fingerprint)
-    .in("status", ["open", "in_review"])
+    .in("status", ["open", "in_review", "snoozed"])
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();

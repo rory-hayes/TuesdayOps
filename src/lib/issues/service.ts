@@ -25,6 +25,10 @@ const reportableIssueSchema = issueIdSchema.extend({
   reportable: z.enum(["true", "false"]),
 });
 
+const snoozeIssueSchema = issueIdSchema.extend({
+  snoozeDays: z.coerce.number().int().min(1).max(30).default(7),
+});
+
 export async function assignIssueToMeAction(formData: FormData) {
   const parsed = issueIdSchema.safeParse(Object.fromEntries(formData));
 
@@ -231,6 +235,46 @@ export async function ignoreIssueAction(formData: FormData) {
   redirect(buildIssueRedirect(parsed.data.returnTo, "/issues?status=ignored", "Issue ignored."));
 }
 
+export async function snoozeIssueAction(formData: FormData) {
+  const parsed = snoozeIssueSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/issues?error=${encodeURIComponent("Issue snooze details were invalid.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const snoozedUntil = new Date(Date.now() + parsed.data.snoozeDays * 24 * 60 * 60 * 1000).toISOString();
+  const updateResult = await supabase
+    .from("issues")
+    .update({
+      status: "snoozed",
+      snoozed_until: snoozedUntil,
+    })
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.issueId)
+    .select("id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
+  } catch (error) {
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be snoozed.")));
+  }
+  await recordIssueAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    issueId: parsed.data.issueId,
+    action: "issue.snoozed",
+    metadata: { status: "snoozed", snoozedUntil },
+  });
+
+  revalidatePath("/issues");
+  revalidatePath(`/issues/${parsed.data.issueId}`);
+  revalidatePath("/");
+  redirect(buildIssueRedirect(parsed.data.returnTo, "/issues?status=snoozed", "Issue snoozed."));
+}
+
 async function loadIssueRerunContext({
   supabase,
   agencyId,
@@ -304,7 +348,7 @@ async function recordIssueAuditEvent({
   agencyId: string;
   actorUserId: string;
   issueId: string;
-  action: "issue.assigned" | "issue.resolved" | "issue.ignored";
+  action: "issue.assigned" | "issue.resolved" | "issue.ignored" | "issue.snoozed";
   metadata: Record<string, unknown>;
 }) {
   try {

@@ -14,11 +14,12 @@ import {
   rerunIssueCheckAction,
   resolveIssueAction,
   setIssueReportableAction,
+  snoozeIssueAction,
 } from "@/lib/issues/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
-import { formatRelativeTime } from "@/lib/formatting";
+import { formatDateTime, formatRelativeTime } from "@/lib/formatting";
 
-const issueStatuses: IssueStatus[] = ["open", "in_review", "resolved", "ignored"];
+const issueStatuses: IssueStatus[] = ["open", "in_review", "snoozed", "resolved", "ignored"];
 const issueSeverities: IssueSeverity[] = ["critical", "high", "medium", "low"];
 
 export type IssueFilters = {
@@ -192,6 +193,7 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                     <Info label="Detected" value={formatRelativeTime(issue.detectedAt)} />
                     <Info label="Last seen" value={formatRelativeTime(issue.lastSeenAt)} />
                     <Info label="Occurrences" value={issue.occurrenceCount.toString()} />
+                    {issue.snoozedUntil ? <Info label="Snoozed until" value={formatDateTime(issue.snoozedUntil)} /> : null}
                   </div>
                   <div className="mt-4 rounded-lg bg-muted p-3">
                     <p className="text-xs uppercase text-muted-foreground">Suggested action</p>
@@ -227,12 +229,19 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                     </form>
                   </div>
                   {issue.status === "resolved" || issue.status === "ignored" ? null : (
-                    <div className="mt-4 grid gap-3 lg:grid-cols-[auto_auto_minmax(260px,1fr)]">
+                    <div className="mt-4 grid gap-3 lg:grid-cols-[auto_auto_auto_minmax(260px,1fr)]">
                       <form action={assignIssueToMeAction}>
                         <input type="hidden" name="issueId" value={issue.id} />
                         <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Assigning...">
                           <UserPlus size={14} aria-hidden="true" />
                           Assign
+                        </FormSubmitButton>
+                      </form>
+                      <form action={snoozeIssueAction}>
+                        <input type="hidden" name="issueId" value={issue.id} />
+                        <input type="hidden" name="snoozeDays" value="7" />
+                        <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Snoozing...">
+                          Snooze 7d
                         </FormSubmitButton>
                       </form>
                       <form action={ignoreIssueAction}>

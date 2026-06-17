@@ -1,6 +1,9 @@
 import { lookup } from "node:dns/promises";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { assertResolvedWorkflowEndpointIsSafe } from "@/lib/security/endpoint-url-server";
+import {
+  assertResolvedWorkflowEndpointIsSafe,
+  resolveSafeWorkflowEndpoint,
+} from "@/lib/security/endpoint-url-server";
 
 vi.mock("node:dns/promises", () => ({
   lookup: vi.fn(),
@@ -20,6 +23,18 @@ describe("assertResolvedWorkflowEndpointIsSafe", () => {
       assertResolvedWorkflowEndpointIsSafe("https://API.example.com/v1/health?Signature=AbC%2F123"),
     ).resolves.toBe("https://API.example.com/v1/health?Signature=AbC%2F123");
     expect(lookupMock).toHaveBeenCalledWith("api.example.com", { all: true, verbatim: true });
+  });
+
+  it("returns the resolved public address for pinned outbound requests", async () => {
+    lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }] as never);
+
+    await expect(
+      resolveSafeWorkflowEndpoint("https://api.example.com/v1/health"),
+    ).resolves.toMatchObject({
+      endpointUrl: "https://api.example.com/v1/health",
+      resolvedAddress: "93.184.216.34",
+      url: new URL("https://api.example.com/v1/health"),
+    });
   });
 
   it("blocks public-looking hosts that resolve to private or metadata addresses", async () => {

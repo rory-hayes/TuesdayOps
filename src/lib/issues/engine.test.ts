@@ -92,7 +92,7 @@ describe("issue engine", () => {
     expect(latencyIssue?.fingerprint).toBe("check-123:latency_under");
   });
 
-  it("increments repeat failures without resetting resolved state fields", () => {
+  it("increments repeat failures and reopens snoozed issues", () => {
     const now = "2026-06-13T12:00:00.000Z";
     const update = buildIssueUpdateForRepeatFailure({
       checkRunId: "run-456",
@@ -117,6 +117,8 @@ describe("issue engine", () => {
       description: "A repeat failure occurred.",
       suggested_action: "Check the endpoint.",
       reportable: true,
+      status: "open",
+      snoozed_until: null,
       last_seen_at: now,
       occurrence_count: 3,
     });

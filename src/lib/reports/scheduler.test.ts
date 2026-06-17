@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/data/operational-data", () => ({
-  getOperationalData: vi.fn(),
+  getReportSourceData: vi.fn(),
 }));
 vi.mock("@/lib/reports/aggregation", () => ({
   buildReportDraft: vi.fn(),
@@ -11,7 +11,7 @@ vi.mock("@/lib/reports/service", () => ({
   saveReportDraft: vi.fn(),
 }));
 
-import { getOperationalData } from "@/lib/data/operational-data";
+import { getReportSourceData } from "@/lib/data/operational-data";
 import { buildReportDraft } from "@/lib/reports/aggregation";
 import { saveReportDraft } from "@/lib/reports/service";
 import {
@@ -23,7 +23,7 @@ import {
 
 describe("monthly report automation helpers", () => {
   beforeEach(() => {
-    vi.mocked(getOperationalData).mockReset();
+    vi.mocked(getReportSourceData).mockReset();
     vi.mocked(buildReportDraft).mockReset();
     vi.mocked(saveReportDraft).mockReset();
   });
@@ -78,7 +78,7 @@ describe("monthly report automation helpers", () => {
     const dataSnapshot = { clients: [{ id: "client-1", name: "Acme Client" }] };
     const draft = { report: { clientId: "client-1" }, items: [] };
 
-    vi.mocked(getOperationalData).mockResolvedValue(dataSnapshot as never);
+    vi.mocked(getReportSourceData).mockResolvedValue(dataSnapshot as never);
     vi.mocked(buildReportDraft).mockReturnValue(draft as never);
     vi.mocked(saveReportDraft).mockResolvedValue("report-1" as never);
 
@@ -92,10 +92,16 @@ describe("monthly report automation helpers", () => {
       failed: 0,
     });
 
-    expect(getOperationalData).toHaveBeenCalledWith(expect.objectContaining({
-      id: "agency-1",
-      name: "Acme Ops",
-    }), supabase.client);
+    expect(getReportSourceData).toHaveBeenCalledWith({
+      agency: expect.objectContaining({
+        id: "agency-1",
+        name: "Acme Ops",
+      }),
+      clientId: "client-1",
+      periodStart: "2026-05-01",
+      periodEnd: "2026-05-31",
+      supabaseOverride: supabase.client,
+    });
     expect(buildReportDraft).toHaveBeenCalledWith({
       data: dataSnapshot,
       clientId: "client-1",

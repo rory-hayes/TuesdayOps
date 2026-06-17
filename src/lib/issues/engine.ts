@@ -63,6 +63,8 @@ export function buildIssueUpdateForRepeatFailure({
     description: draft.description,
     suggested_action: draft.suggestedAction,
     reportable: draft.reportable,
+    status: "open" as const,
+    snoozed_until: null,
     last_seen_at: now,
     occurrence_count: (existing.occurrenceCount ?? 1) + 1,
   };
