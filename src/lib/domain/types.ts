@@ -70,7 +70,7 @@ export type Workflow = {
   passRate: number;
   latencyMs: number;
   monthlyCost: number;
-  lastCheckAt: string;
+  lastCheckAt?: string;
   includedInReports: boolean;
 };
 
@@ -258,7 +258,7 @@ export type WorkflowHealthRow = {
   status: WorkflowStatus;
   passRate: number;
   latencyMs: number;
-  lastCheckAt: string;
+  lastCheckAt?: string;
   openIssues: number;
   includedInReports: boolean;
 };

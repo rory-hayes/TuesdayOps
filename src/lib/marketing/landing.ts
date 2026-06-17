@@ -20,52 +20,52 @@ export function getLandingContent(): LandingContent {
       title: "TuesdayOps",
       eyebrow: "Operational proof for AI agencies",
       description:
-        "Monitor client workflows after launch, catch failures early, and turn Check Run, Issue, and Monthly Report data into calm proof-of-work updates.",
+        "Monitor live client workflows, catch silent failures, and turn Check Run, Issue, and Monthly Report data into clear proof-of-work updates.",
     },
     sections: [
       {
         title: "Built around the MVP loop",
         description:
-          "The product stays focused on the operational path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
+          "TuesdayOps stays focused on the operational path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
         items: [
           {
             label: "Agency",
-            description: "Manage one workspace with tenant-safe client operations.",
+            description: "Run one tenant-safe workspace for client workflow maintenance.",
           },
           {
             label: "Client",
-            description: "Track each client account without turning the app into a CRM.",
+            description: "Keep each retained client connected to workflows, issues, and reports.",
           },
           {
             label: "Workflow",
-            description: "Capture the endpoint, prompt, model, and QA context that matters.",
+            description: "Register the endpoint, run-log, model, and QA context that matters.",
           },
           {
             label: "Check Run",
-            description: "Log scheduled, manual, or external results with status, latency, and cost.",
+            description: "Store scheduled, manual, or external results with status and latency.",
           },
           {
             label: "Issue",
-            description: "Convert failed checks into clear, resolvable operational work.",
+            description: "Convert failures into deduped, resolvable operational work.",
           },
           {
             label: "Monthly Report",
-            description: "Summarize health, incidents, resolutions, and evidence for stakeholders.",
+            description: "Summarize health, incidents, resolutions, and proof for stakeholders.",
           },
         ],
       },
       {
         title: "Design-partner ready workflows",
         description:
-          "TuesdayOps helps a small agency prove that launched AI automations are still healthy without exposing sensitive run data.",
+          "TuesdayOps helps agencies prove that launched AI automations are still healthy without exposing sensitive run data.",
         items: [
           {
             label: "Run logging",
-            description: "Accept safe external run updates through scoped workflow keys.",
+            description: "Accept external run updates through scoped workflow keys.",
           },
           {
             label: "Report automation",
-            description: "Generate monthly report drafts from stored source data.",
+            description: "Generate monthly report drafts from stored evidence.",
           },
           {
             label: "Change validation",

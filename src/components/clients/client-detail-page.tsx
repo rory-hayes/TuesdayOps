@@ -92,7 +92,7 @@ export function ClientDetailPage({
                         <StatusBadge status={workflow.status} />
                       </td>
                       <td className="px-5 py-4">{formatPercentage(workflow.passRate)}</td>
-                      <td className="px-5 py-4 text-zinc-500">{formatRelativeTime(workflow.lastCheckAt)}</td>
+                      <td className="px-5 py-4 text-zinc-500">{formatWorkflowLastCheck(workflow.lastCheckAt)}</td>
                     </tr>
                   ))
                 ) : (
@@ -158,6 +158,10 @@ export function ClientDetailPage({
       </section>
     </div>
   );
+}
+
+function formatWorkflowLastCheck(value?: string): string {
+  return value ? formatRelativeTime(value) : "Not run yet";
 }
 
 function ClientStat({

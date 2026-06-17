@@ -105,6 +105,7 @@ export async function createWorkflowAction(formData: FormData) {
 const importWorkflowFormSchema = z.object({
   clientId: z.string().uuid(),
   importSource: z.enum(["url", "curl", "openapi", "postman"]),
+  workflowType: workflowBaseFormSchema.shape.type.optional(),
   importedWorkflowName: z.string().trim().max(120).optional(),
   importText: z.string().trim().min(8),
   rawImportText: z.string().trim().optional(),
@@ -139,7 +140,7 @@ export async function createWorkflowFromImportAction(formData: FormData) {
     input: {
       clientId: parsed.data.clientId,
       name: parsed.data.importedWorkflowName || plan.name,
-      type: plan.type,
+      type: parsed.data.workflowType ?? plan.type,
       environment: "production",
       endpointUrl: plan.endpointUrl,
       method: plan.method,
@@ -159,7 +160,7 @@ export async function createWorkflowFromImportAction(formData: FormData) {
     metadata: {
       source: "import",
       importSource: parsed.data.importSource,
-      workflowType: plan.type,
+      workflowType: parsed.data.workflowType ?? plan.type,
       method: plan.method,
       authType: plan.authType,
     },

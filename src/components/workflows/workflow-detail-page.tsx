@@ -8,7 +8,7 @@ import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { RunLogKeyPanel } from "@/components/workflows/run-log-key-panel";
 import { createCheckAction, runCheckAction } from "@/lib/checks/service";
-import type { TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
+import type { CheckRun, TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
 import { archiveWorkflowAction, updateWorkflowAction } from "@/lib/workflows/service";
 import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/formatting";
 import { buildChangeComparison } from "@/lib/reports/change-comparison";
@@ -76,7 +76,7 @@ export function WorkflowDetailPage({
         <Stat label="Pass rate" value={formatPercentage(workflow.passRate)} />
         <Stat label="Latency" value={`${workflow.latencyMs} ms`} />
         <Stat label="Checks" value={checks.length.toString()} />
-        <Stat label="Last check" value={formatRelativeTime(workflow.lastCheckAt)} />
+        <Stat label="Last check" value={formatWorkflowLastCheck(workflow.lastCheckAt)} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
@@ -306,8 +306,13 @@ export function WorkflowDetailPage({
                         <td className="px-5 py-4">{run.statusCode ?? "-"}</td>
                         <td className="px-5 py-4">{run.latencyMs} ms</td>
                         <td className="px-5 py-4 text-muted-foreground">{formatDateTime(run.completedAt)}</td>
-                        <td className="max-w-80 truncate px-5 py-4 text-muted-foreground">
-                          {run.errorMessage ?? run.responseSummary}
+                        <td className="px-5 py-4 text-muted-foreground">
+                          <span
+                            className="block max-w-80 whitespace-normal break-words"
+                            title={run.errorMessage ?? run.responseSummary}
+                          >
+                            {formatRunSummary(run)}
+                          </span>
                         </td>
                       </tr>
                     ))
@@ -326,6 +331,68 @@ export function WorkflowDetailPage({
       </section>
     </div>
   );
+}
+
+function formatWorkflowLastCheck(value?: string): string {
+  return value ? formatRelativeTime(value) : "Not run yet";
+}
+
+function formatRunSummary(run: CheckRun): string {
+  const source = (run.errorMessage ?? run.responseSummary).trim();
+
+  if (!source) {
+    return run.errorMessage ? "Request failed without a captured response." : "No response body captured.";
+  }
+
+  if (run.errorMessage) {
+    return truncateSummary(source);
+  }
+
+  return summarizeResponseSummary(source);
+}
+
+function summarizeResponseSummary(summary: string): string {
+  const parsed = parseJsonSummary(summary);
+
+  if (Array.isArray(parsed)) {
+    return parsed.length ? `JSON array response with ${parsed.length} items.` : "Empty JSON array response.";
+  }
+
+  if (parsed && typeof parsed === "object") {
+    const values = Object.entries(parsed)
+      .filter(([, value]) => value === null || ["string", "number", "boolean"].includes(typeof value))
+      .slice(0, 3)
+      .map(([key, value]) => `${humanizeJsonKey(key)}: ${String(value)}`);
+
+    return values.length ? values.join(" - ") : "JSON response received.";
+  }
+
+  if (/^\s*</.test(summary)) {
+    return "HTML response received.";
+  }
+
+  return truncateSummary(summary);
+}
+
+function parseJsonSummary(summary: string): unknown {
+  try {
+    return JSON.parse(summary);
+  } catch {
+    return undefined;
+  }
+}
+
+function humanizeJsonKey(key: string): string {
+  const words = key
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .toLowerCase();
+
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+function truncateSummary(summary: string): string {
+  return summary.length > 160 ? `${summary.slice(0, 157)}...` : summary;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

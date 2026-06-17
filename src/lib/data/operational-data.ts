@@ -350,6 +350,7 @@ function mapClient(row: ClientRow, workflows: Workflow[]): Client {
   const lastActivityAt =
     clientWorkflows
       .map((workflow) => workflow.lastCheckAt)
+      .filter((value): value is string => Boolean(value))
       .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0] ?? row.updated_at;
 
   return {
@@ -394,7 +395,7 @@ function mapWorkflow(row: WorkflowRow, runRows: CheckRunRow[]): Workflow {
     passRate,
     latencyMs: latestRun?.latency_ms ?? row.latency_ms,
     monthlyCost: Number(row.monthly_cost),
-    lastCheckAt: latestRun?.completed_at ?? row.last_check_at ?? row.updated_at,
+    lastCheckAt: latestRun?.completed_at ?? row.last_check_at ?? undefined,
     includedInReports: row.included_in_reports,
   };
 }

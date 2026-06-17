@@ -35,7 +35,7 @@ export default async function SignUpPage({ searchParams }: AuthPageProps) {
       >
         <Field label="Email" name="email" type="email" autoComplete="email" />
         <Field
-          label="Password"
+          label="New password"
           name="password"
           type="password"
           autoComplete="new-password"

@@ -8,6 +8,7 @@ describe("SignUpPage", () => {
 
     expect(html).toContain('aria-label="Create TuesdayOps account"');
     expect(html).toContain("noValidate");
+    expect(html).toContain("New password");
     expect(html).toContain('name="password"');
     expect(html).toContain('name="confirmPassword"');
     expect(html).toContain(

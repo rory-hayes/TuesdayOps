@@ -15,6 +15,7 @@ import {
   buildIssuesBySeveritySeries,
   buildPassRateTrend,
 } from "@/lib/dashboard/charts";
+import type { WorkflowHealthRow } from "@/lib/domain/types";
 
 export function OverviewDashboard({
   data,
@@ -76,50 +77,55 @@ export function OverviewDashboard({
       <section className="grid gap-6 2xl:grid-cols-[minmax(0,1.3fr)_minmax(320px,0.7fr)]">
         <section className="min-w-0">
           <h2 className="text-base/7 font-semibold text-zinc-950">Client workflow health</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm/6">
-              <thead className="text-zinc-500">
-                <tr className="border-b border-zinc-950/10">
-                  <th className="py-3 pr-6 font-medium">Workflow</th>
-                  <th className="px-6 py-3 font-medium">Client</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium">Pass rate</th>
-                  <th className="px-6 py-3 font-medium">Latency</th>
-                  <th className="px-6 py-3 font-medium">Issues</th>
-                  <th className="py-3 pl-6 font-medium">Last check</th>
-                </tr>
-              </thead>
-              <tbody>
-                {workflowRows.length ? (
-                  workflowRows.map((workflow) => (
-                    <tr key={workflow.workflowId} className="border-b border-zinc-950/5 last:border-0">
-                      <td className="py-4 pr-6 font-medium text-zinc-950">
-                        <Link href={`/workflows/${workflow.workflowId}`} className="hover:text-zinc-700">
-                          {workflow.workflowName}
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4 text-zinc-500">{workflow.clientName}</td>
-                      <td className="px-6 py-4">
-                        <StatusBadge status={workflow.status} />
-                      </td>
-                      <td className="px-6 py-4">{formatPercentage(workflow.passRate)}</td>
-                      <td className="px-6 py-4">{workflow.latencyMs} ms</td>
-                      <td className="px-6 py-4">{workflow.openIssues}</td>
-                      <td className="py-4 pl-6 text-zinc-500">
-                        {formatRelativeTime(workflow.lastCheckAt)}
-                      </td>
+          {workflowRows.length ? (
+            <>
+              <div className="mt-4 grid gap-3 md:hidden">
+                {workflowRows.map((workflow) => (
+                  <WorkflowHealthMobileCard key={workflow.workflowId} workflow={workflow} />
+                ))}
+              </div>
+              <div className="mt-4 hidden overflow-x-auto md:block">
+                <table className="w-full min-w-[760px] text-left text-sm/6">
+                  <thead className="text-zinc-500">
+                    <tr className="border-b border-zinc-950/10">
+                      <th className="py-3 pr-6 font-medium">Workflow</th>
+                      <th className="px-6 py-3 font-medium">Client</th>
+                      <th className="px-6 py-3 font-medium">Status</th>
+                      <th className="px-6 py-3 font-medium">Pass rate</th>
+                      <th className="px-6 py-3 font-medium">Latency</th>
+                      <th className="px-6 py-3 font-medium">Issues</th>
+                      <th className="py-3 pl-6 font-medium">Last check</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="py-10 text-sm/6 text-zinc-500" colSpan={7}>
-                      Add a client and workflow to start tracking live endpoint health.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                  </thead>
+                  <tbody>
+                    {workflowRows.map((workflow) => (
+                      <tr key={workflow.workflowId} className="border-b border-zinc-950/5 last:border-0">
+                        <td className="py-4 pr-6 font-medium text-zinc-950">
+                          <Link href={`/workflows/${workflow.workflowId}`} className="hover:text-zinc-700">
+                            {workflow.workflowName}
+                          </Link>
+                        </td>
+                        <td className="px-6 py-4 text-zinc-500">{workflow.clientName}</td>
+                        <td className="px-6 py-4">
+                          <StatusBadge status={workflow.status} />
+                        </td>
+                        <td className="px-6 py-4">{formatPercentage(workflow.passRate)}</td>
+                        <td className="px-6 py-4">{workflow.latencyMs} ms</td>
+                        <td className="px-6 py-4">{workflow.openIssues}</td>
+                        <td className="py-4 pl-6 text-zinc-500">
+                          {formatWorkflowLastCheck(workflow.lastCheckAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <p className="mt-4 rounded-lg bg-zinc-50 p-4 text-sm/6 text-zinc-500 ring-1 ring-zinc-950/5">
+              Add a client and workflow to start tracking live endpoint health.
+            </p>
+          )}
         </section>
 
         <div className="grid gap-6">
@@ -263,4 +269,43 @@ function OverviewStat({
       </p>
     </div>
   );
+}
+
+function WorkflowHealthMobileCard({ workflow }: { workflow: WorkflowHealthRow }) {
+  return (
+    <Link
+      href={`/workflows/${workflow.workflowId}`}
+      className="block rounded-lg border border-zinc-950/10 bg-white p-4 shadow-sm transition-colors hover:border-primary/40 hover:bg-zinc-50"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-zinc-950">{workflow.workflowName}</p>
+          <p className="mt-1 truncate text-xs leading-5 text-zinc-500">{workflow.clientName}</p>
+        </div>
+        <StatusBadge status={workflow.status} />
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <div>
+          <dt className="text-xs uppercase text-zinc-500">Pass rate</dt>
+          <dd className="mt-1 font-medium text-zinc-950">{formatPercentage(workflow.passRate)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase text-zinc-500">Latency</dt>
+          <dd className="mt-1 font-medium text-zinc-950">{workflow.latencyMs} ms</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase text-zinc-500">Issues</dt>
+          <dd className="mt-1 font-medium text-zinc-950">{workflow.openIssues}</dd>
+        </div>
+        <div>
+          <dt className="text-xs uppercase text-zinc-500">Last check</dt>
+          <dd className="mt-1 font-medium text-zinc-950">{formatWorkflowLastCheck(workflow.lastCheckAt)}</dd>
+        </div>
+      </dl>
+    </Link>
+  );
+}
+
+function formatWorkflowLastCheck(value?: string): string {
+  return value ? formatRelativeTime(value) : "Not run yet";
 }

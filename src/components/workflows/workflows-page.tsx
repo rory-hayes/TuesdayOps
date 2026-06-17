@@ -101,7 +101,7 @@ export function WorkflowsPage({
                       <td className="px-5 py-4">{workflow.latencyMs} ms</td>
                       <td className="px-5 py-4">{formatCurrency(workflow.monthlyCost)}</td>
                       <td className="px-5 py-4 text-muted-foreground">
-                        {formatRelativeTime(workflow.lastCheckAt)}
+                        {formatWorkflowLastCheck(workflow.lastCheckAt)}
                       </td>
                       <td className="px-5 py-4">
                         <Badge variant={workflow.includedInReports ? "success" : "muted"}>
@@ -122,4 +122,8 @@ export function WorkflowsPage({
       </Card>
     </div>
   );
+}
+
+function formatWorkflowLastCheck(value?: string): string {
+  return value ? formatRelativeTime(value) : "Not run yet";
 }

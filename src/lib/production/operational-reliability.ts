@@ -89,6 +89,10 @@ function countStaleWorkflows({
   return data.workflows
     .filter((workflow) => workflow.includedInReports)
     .filter((workflow) => {
+      if (!workflow.lastCheckAt) {
+        return true;
+      }
+
       const lastCheckAt = new Date(workflow.lastCheckAt).getTime();
       const freshnessWindowMs = workflow.checkFrequencyMinutes * 2 * 60 * 1000;
 
