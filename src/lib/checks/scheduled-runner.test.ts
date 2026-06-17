@@ -49,39 +49,49 @@ describe("scheduled check batch runner", () => {
   });
 
   it("keeps processing when one scheduled check fails", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const executeCheckRun = vi
       .fn()
-      .mockRejectedValueOnce(new Error("temporary failure"))
+      .mockRejectedValueOnce(new Error("temporary failure with token=secret-123"))
       .mockResolvedValueOnce({ status: "skipped" });
 
-    const result = await runScheduledCheckBatch({
-      checks: [
-        {
-          id: "first",
-          agencyId: "agency-1",
-          workflowId: "workflow-1",
-          workflowEndpointUrl: "https://example.com/health",
-          workflowFrequencyMinutes: 5,
-          enabled: true,
-          latestCompletedAt: null,
-        },
-        {
-          id: "second",
-          agencyId: "agency-1",
-          workflowId: "workflow-2",
-          workflowEndpointUrl: "https://example.com/health",
-          workflowFrequencyMinutes: 5,
-          enabled: true,
-          latestCompletedAt: null,
-        },
-      ],
-      now,
-      limit: 10,
-      executeCheckRun,
-    });
+    try {
+      const result = await runScheduledCheckBatch({
+        checks: [
+          {
+            id: "first",
+            agencyId: "agency-1",
+            workflowId: "workflow-1",
+            workflowEndpointUrl: "https://example.com/health",
+            workflowFrequencyMinutes: 5,
+            enabled: true,
+            latestCompletedAt: null,
+          },
+          {
+            id: "second",
+            agencyId: "agency-1",
+            workflowId: "workflow-2",
+            workflowEndpointUrl: "https://example.com/health",
+            workflowFrequencyMinutes: 5,
+            enabled: true,
+            latestCompletedAt: null,
+          },
+        ],
+        now,
+        limit: 10,
+        executeCheckRun,
+      });
 
-    expect(executeCheckRun).toHaveBeenCalledTimes(2);
-    expect(result).toEqual({ attempted: 2, completed: 0, skipped: 1, failed: 1 });
+      expect(executeCheckRun).toHaveBeenCalledTimes(2);
+      expect(result).toEqual({ attempted: 2, completed: 0, skipped: 1, failed: 1 });
+      expect(consoleError).toHaveBeenCalledWith("Scheduled check run failed", {
+        agencyId: "agency-1",
+        checkId: "first",
+        reason: "temporary failure with token=[redacted]",
+      });
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it("can target one due check for operational smoke tests", async () => {

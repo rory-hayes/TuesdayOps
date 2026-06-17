@@ -151,7 +151,7 @@ function ModeButton({
       aria-pressed={active}
       className={`inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${
         active
-          ? "border-zinc-950 bg-zinc-950 text-white"
+          ? "border-primary bg-primary text-primary-foreground"
           : "border-zinc-950/10 bg-white text-zinc-700 hover:bg-zinc-950/5"
       }`}
       onClick={onClick}
@@ -314,10 +314,23 @@ function ManualWorkflowForm({
             <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-xs text-primary">3</span>
             Set the first health check
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="mt-4 grid gap-3 md:grid-cols-4">
             <Input label="Frequency minutes" name="checkFrequencyMinutes" placeholder="60" type="number" defaultValue="60" required />
             <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" defaultValue="200" required />
             <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" defaultValue="5000" required />
+            <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" defaultValue="10000" required />
+            <Input
+              className="md:col-span-2"
+              label="Response contains"
+              name="responseContains"
+              placeholder="ok"
+            />
+            <Input
+              className="md:col-span-2"
+              label="JSON field exists"
+              name="jsonFieldPath"
+              placeholder="data.status"
+            />
           </div>
         </section>
 

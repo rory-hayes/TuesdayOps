@@ -64,12 +64,26 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
   const workflowId = new URL(page.url()).pathname.split("/").pop() ?? "";
   expect(workflowId).toMatch(/[0-9a-f-]{36}/);
 
-  const runForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Run" }) });
+  await page
+    .getByRole("navigation", { name: "Workflow detail sections" })
+    .getByRole("link", { name: "Checks" })
+    .click();
+  await expect(page.getByRole("heading", { name: "Checks" })).toBeVisible();
+  const runForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Run", exact: true }) });
   await Promise.all([
-    page.waitForURL(/\/workflows\/[0-9a-f-]+\?notice=/, { timeout: 30_000, waitUntil: "commit" }),
-    runForm.getByRole("button", { name: "Run" }).click(),
+    page.waitForURL(
+      (url) =>
+        url.pathname === `/workflows/${workflowId}` &&
+        (url.searchParams.get("notice") ?? "").includes("Check run completed"),
+      { timeout: 30_000, waitUntil: "commit" },
+    ),
+    runForm.getByRole("button", { name: "Run", exact: true }).click(),
   ]);
   await expect(page.getByText("Check run completed and history was updated.")).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Workflow detail sections" })
+    .getByRole("link", { name: "Overview" })
+    .click();
   await expect(page.getByRole("heading", { name: "Run history" })).toBeVisible();
   await expect(page.getByRole("cell", { name: "404", exact: true })).toBeVisible();
 
@@ -81,13 +95,22 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
     return rows[0] ?? null;
   }, "created drilldown issue");
 
-  await page.goto("/", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Recent issues" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Operations readiness" })).toBeVisible();
-  await expect(page.getByText("High-risk issues")).toBeVisible();
+  await page.goto("/issues", { waitUntil: "domcontentloaded" });
+  await expect(page.getByRole("heading", { name: "Issue queue" })).toBeVisible();
   await page.getByRole("link", { name: new RegExp(issue.title) }).click();
   await expect(page).toHaveURL(new RegExp(`/issues/${issue.id}`));
   await expect(page.getByRole("heading", { name: issue.title })).toBeVisible();
+  await page.getByRole("button", { name: "Exclude from report" }).click();
+  await expect(page.getByText("Issue excluded from reports.")).toBeVisible();
+  await page.getByRole("button", { name: "Mark reportable" }).click();
+  await expect(page.getByText("Issue marked reportable.")).toBeVisible();
+  await page.getByRole("button", { name: "Rerun check" }).click();
+  await expect(page.getByText("Check rerun completed.")).toBeVisible();
+  await page.getByRole("button", { name: "Assign" }).click();
+  await expect(page.getByText("Issue assigned.")).toBeVisible();
+  await page.getByLabel("Resolution note").fill("Confirmed the failed endpoint path and documented the remediation.");
+  await page.getByRole("button", { name: "Resolve" }).click();
+  await expect(page.getByText("Issue resolved.")).toBeVisible();
 
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });
   await page.getByRole("table").getByRole("link", { name: workflowName }).click();
@@ -112,6 +135,7 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
   }, "generated drilldown report");
   await expect(page).toHaveURL(new RegExp(`/reports/${report.id}`));
   await expect(page.getByText("Report generated.")).toBeVisible();
+  await expect(page.getByText(/1 reportable issues were resolved/)).toBeVisible();
 
   await page.goto(`/clients/${client.id}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("link", { name: new RegExp(report.period_label) }).click();

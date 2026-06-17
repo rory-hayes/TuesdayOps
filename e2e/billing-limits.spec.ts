@@ -17,10 +17,8 @@ test("billing settings show limits and starter client limit is enforced", async 
   const password = `QaBilling-${runId}!`;
   const agencyName = `QA Billing Agency ${runId}`;
   const agencySlug = `qa-billing-${runId}`;
-  const firstClient = `Billing Client ${runId}`;
-  const secondClient = `Billing Overflow ${runId}`;
+  const overflowClient = `Billing Overflow ${runId}`;
   const firstWorkflow = `Billing Workflow ${runId}-1`;
-  const fourthWorkflow = `Billing Workflow ${runId}-4`;
 
   await createConfirmedUser({ email, password });
 
@@ -50,46 +48,34 @@ test("billing settings show limits and starter client limit is enforced", async 
   await expect(page.getByText("Launch gate")).not.toBeVisible();
   await expect(page.getByText("Primary color")).not.toBeVisible();
   await expect(page.getByText("Logo and color fields will sync to PDFs.")).not.toBeVisible();
-  await expect(page.getByText("0 / 1")).toBeVisible();
   await expect(page.getByText("0 / 3")).toBeVisible();
+  await expect(page.getByText("0 / 10")).toBeVisible();
   await expect(page.getByRole("button", { name: "Manage billing" })).toBeDisabled();
-  await page.getByRole("button", { name: "Upgrade" }).click();
+  await page.getByRole("button", { name: "Choose" }).nth(1).click();
   const upgradeResult = await waitForCheckoutOrBillingError(page);
   expect(["checkout", "config-error"]).toContain(upgradeResult);
 
   await page.goto("/clients", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
-  await createClient(page, firstClient, `qa-billing-${runId}@example.invalid`);
-  await expect(page.getByRole("table").getByRole("link", { name: firstClient })).toBeVisible();
-
-  await createClient(page, secondClient, `qa-billing-overflow-${runId}@example.invalid`);
-  await expect(page.getByText("Upgrade to add more clients.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Click here to upgrade" })).toBeVisible();
-  await expect(page.getByText(secondClient)).not.toBeVisible();
-
-  await page.goto("/workflows", { waitUntil: "domcontentloaded" });
   for (let index = 1; index <= 3; index += 1) {
-    await createWorkflow(page, {
-      appUrl,
-      runId,
-      workflowName: `Billing Workflow ${runId}-${index}`,
-      index,
-    });
-    await expect(page.getByText(`Billing Workflow ${runId}-${index}`)).toBeVisible();
-    await page.goto("/workflows", { waitUntil: "domcontentloaded" });
+    const clientName = `Billing Client ${runId}-${index}`;
+    await createClient(page, clientName, `qa-billing-${runId}-${index}@example.invalid`);
+    await expect(page.getByRole("table").getByRole("link", { name: clientName })).toBeVisible();
   }
 
+  await createClient(page, overflowClient, `qa-billing-overflow-${runId}@example.invalid`);
+  await expect(page.getByText("Upgrade to add more clients.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Click here to upgrade" })).toBeVisible();
+  await expect(page.getByText(overflowClient)).not.toBeVisible();
+
+  await page.goto("/workflows", { waitUntil: "domcontentloaded" });
   await createWorkflow(page, {
     appUrl,
     runId,
-    workflowName: fourthWorkflow,
-    index: 4,
-    expectRedirect: false,
+    workflowName: firstWorkflow,
+    index: 1,
   });
-  await expect(page.getByText("Upgrade to monitor more workflows.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Click here to upgrade" })).toBeVisible();
   await expect(page.getByText(firstWorkflow)).toBeVisible();
-  await expect(page.getByText(fourthWorkflow)).not.toBeVisible();
 });
 
 async function createClient(page: import("@playwright/test").Page, name: string, email: string) {

@@ -38,7 +38,7 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
   const userEmail = workspace.user.email;
 
   return (
-    <div className="min-h-screen bg-white text-zinc-950 lg:bg-zinc-100">
+    <div className="min-h-screen bg-background text-zinc-950 lg:bg-zinc-100">
       <a
         href="#main-content"
         className="sr-only fixed left-3 top-3 z-[80] rounded-md bg-white px-3 py-2 text-sm font-semibold text-zinc-950 shadow ring-2 ring-primary focus:not-sr-only"

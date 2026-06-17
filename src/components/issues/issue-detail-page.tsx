@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Play, UserPlus, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -8,7 +8,9 @@ import { PageFeedback } from "@/components/ui/page-feedback";
 import {
   assignIssueToMeAction,
   ignoreIssueAction,
+  rerunIssueCheckAction,
   resolveIssueAction,
+  setIssueReportableAction,
 } from "@/lib/issues/service";
 import type { Issue, TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatDateTime, formatRelativeTime } from "@/lib/formatting";
@@ -106,6 +108,7 @@ export function IssueDetailPage({
             <Info label="Detected" value={`${formatRelativeTime(issue.detectedAt)} (${formatDateTime(issue.detectedAt)})`} />
             <Info label="Last seen" value={`${formatRelativeTime(issue.lastSeenAt)} (${formatDateTime(issue.lastSeenAt)})`} />
             <Info label="Owner" value={issue.owner} />
+            <Info label="Report" value={issue.reportable ? "Include" : "Exclude"} />
           </div>
 
           <div className="rounded-lg bg-muted p-4">
@@ -130,6 +133,32 @@ export function IssueDetailPage({
               <p className="mt-2 leading-6">{issue.resolutionNote}</p>
             </div>
           ) : null}
+
+          <div className="flex flex-wrap gap-3">
+            {issue.checkRunId ? (
+              <form action={rerunIssueCheckAction}>
+                <input type="hidden" name="issueId" value={issue.id} />
+                <input type="hidden" name="returnTo" value={returnTo} />
+                <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Rerunning...">
+                  <Play size={14} aria-hidden="true" />
+                  Rerun check
+                </FormSubmitButton>
+              </form>
+            ) : null}
+            <form action={setIssueReportableAction}>
+              <input type="hidden" name="issueId" value={issue.id} />
+              <input type="hidden" name="returnTo" value={returnTo} />
+              <input type="hidden" name="reportable" value={issue.reportable ? "false" : "true"} />
+              <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Saving...">
+                {issue.reportable ? (
+                  <XCircle size={14} aria-hidden="true" />
+                ) : (
+                  <CheckCircle2 size={14} aria-hidden="true" />
+                )}
+                {issue.reportable ? "Exclude from report" : "Mark reportable"}
+              </FormSubmitButton>
+            </form>
+          </div>
 
           {issue.status === "resolved" || issue.status === "ignored" ? null : (
             <div className="grid gap-3 lg:grid-cols-[auto_auto_minmax(280px,1fr)]">

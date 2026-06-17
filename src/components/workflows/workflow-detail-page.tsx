@@ -12,6 +12,7 @@ import type {
   Check,
   CheckRun,
   Client,
+  Issue,
   TuesdayOpsSeedData,
   Workflow,
   WorkflowApiKeySummary,
@@ -50,6 +51,10 @@ export function WorkflowDetailPage({
   const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
   const checks = data.checks.filter((check) => check.workflowId === workflow.id);
   const runs = data.checkRuns.filter((run) => run.workflowId === workflow.id);
+  const workflowIssues = data.issues
+    .filter((issue) => issue.workflowId === workflow.id)
+    .sort((left, right) => new Date(right.lastSeenAt).getTime() - new Date(left.lastSeenAt).getTime());
+  const primaryCheck = checks.find((check) => check.enabled && check.type === "health") ?? checks.find((check) => check.enabled);
   const changeComparison = buildChangeComparison(runs.map((run) => ({
     status: run.status,
     latencyMs: run.latencyMs,
@@ -89,6 +94,24 @@ export function WorkflowDetailPage({
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          {primaryCheck ? (
+            <form action={runCheckAction}>
+              <input type="hidden" name="checkId" value={primaryCheck.id} />
+              <input type="hidden" name="returnTab" value="overview" />
+              <FormSubmitButton type="submit" size="sm" pendingLabel="Running...">
+                <Play size={14} aria-hidden="true" />
+                Run Check
+              </FormSubmitButton>
+            </form>
+          ) : (
+            <Link
+              href={`/workflows/${workflow.id}?tab=checks`}
+              className="inline-flex h-8 items-center justify-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted"
+            >
+              <Plus size={14} aria-hidden="true" />
+              Add check
+            </Link>
+          )}
           <StatusBadge status={workflow.status} />
           <form action={archiveWorkflowAction}>
             <input type="hidden" name="id" value={workflow.id} />
@@ -114,9 +137,27 @@ export function WorkflowDetailPage({
         <Stat label="Last check" value={formatWorkflowLastCheck(workflow.lastCheckAt)} />
       </section>
 
+      <section className="rounded-xl border border-border bg-card p-4 shadow-[var(--shadow-soft)]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="min-w-0">
+            <p className="text-xs font-medium uppercase text-muted-foreground">Endpoint</p>
+            <p className="mt-2 break-all font-mono text-sm leading-6 text-zinc-800">{workflow.endpointUrl}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="muted">{workflow.method}</Badge>
+            <Badge variant="muted">{workflow.environment}</Badge>
+            <Badge variant="muted">{workflow.type.replaceAll("_", " ")}</Badge>
+            <Badge variant="muted">{formatFrequency(workflow.checkFrequencyMinutes)}</Badge>
+            <Badge variant={workflow.includedInReports ? "success" : "muted"}>
+              {workflow.includedInReports ? "report included" : "not in reports"}
+            </Badge>
+          </div>
+        </div>
+      </section>
+
       <WorkflowTabs workflowId={workflow.id} activeTab={tab} />
 
-      {tab === "overview" ? <OverviewTab runs={runs} /> : null}
+      {tab === "overview" ? <OverviewTab runs={runs} issues={workflowIssues} /> : null}
       {tab === "checks" ? <ChecksTab workflow={workflow} checks={checks} /> : null}
       {tab === "api" ? (
         <ApiValidationTab
@@ -167,7 +208,7 @@ function WorkflowTabs({
   );
 }
 
-function OverviewTab({ runs }: { runs: CheckRun[] }) {
+function OverviewTab({ runs, issues }: { runs: CheckRun[]; issues: Issue[] }) {
   const latestRun = runs[0];
 
   return (
@@ -213,6 +254,8 @@ function OverviewTab({ runs }: { runs: CheckRun[] }) {
 
         <RunHistoryCard runs={runs} />
       </div>
+
+      <WorkflowIssuesCard issues={issues} />
     </section>
   );
 }
@@ -546,8 +589,68 @@ function RunHistoryCard({ runs }: { runs: CheckRun[] }) {
   );
 }
 
+function WorkflowIssuesCard({ issues }: { issues: Issue[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold">Issues</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Recent maintenance work linked to this workflow.</p>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {issues.length ? (
+          issues.slice(0, 5).map((issue) => (
+            <Link
+              key={issue.id}
+              href={`/issues/${issue.id}`}
+              className="grid gap-3 rounded-lg border border-border p-3 transition-colors hover:border-primary/40 hover:bg-muted md:grid-cols-[auto_minmax(0,1fr)_auto_auto]"
+            >
+              <Badge
+                variant={
+                  issue.severity === "critical" || issue.severity === "high"
+                    ? "danger"
+                    : issue.severity === "medium"
+                      ? "warning"
+                      : "muted"
+                }
+              >
+                {issue.severity}
+              </Badge>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{issue.title}</p>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{issue.suggestedAction}</p>
+              </div>
+              <StatusBadge status={issue.status} />
+              <span className="text-xs text-muted-foreground">{formatRelativeTime(issue.lastSeenAt)}</span>
+            </Link>
+          ))
+        ) : (
+          <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+            No workflow issues recorded yet.
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function formatWorkflowLastCheck(value?: string): string {
   return value ? formatRelativeTime(value) : "Not run yet";
+}
+
+function formatFrequency(minutes: number): string {
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+
+  if (minutes % 1440 === 0) {
+    return `${minutes / 1440} day${minutes === 1440 ? "" : "s"}`;
+  }
+
+  if (minutes % 60 === 0) {
+    return `${minutes / 60} hr${minutes === 60 ? "" : "s"}`;
+  }
+
+  return `${minutes} min`;
 }
 
 function formatRunSummary(run: CheckRun): string {

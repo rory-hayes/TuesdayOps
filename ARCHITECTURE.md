@@ -34,14 +34,15 @@ Browser
 - Workflow, check, test pack, and test case lifecycle actions provide archive/disable/edit controls without hard-deleting operational history.
 - Manual endpoint checks run synchronously from server actions and persist redacted summaries.
 - External systems can post run metadata to `/api/public/run-log` with workflow-scoped hashed API keys. The route stores normal `check_runs`, updates workflow health, and creates or updates issues for degraded/failed logs.
-- Workflow endpoint URLs are validated before storage and again before runner execution to reduce SSRF/private-network risk.
-- Workflow check execution does not follow redirects, caps retained response reads, and stores only redacted summaries.
+- Workflow endpoint URLs are validated before storage and again before runner execution to reduce SSRF/private-network risk; execution/import fetches also resolve hostnames and block public-looking hosts that land on private, loopback, link-local, or metadata addresses.
+- Workflow check execution preserves the submitted endpoint URL, retries one transport/read failure, does not follow redirects, caps retained response reads, and stores only redacted summaries.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
-- Issue queue actions assign, resolve with a report-safe note, or ignore issues inside the tenant boundary.
+- Issue queue actions assign, rerun the source health check, resolve with a report-safe note, ignore issues, and toggle report inclusion inside the tenant boundary.
 - Supabase Cron triggers the protected scheduler route every five minutes.
 - A scheduled sweep finds enabled due health checks and runs them through the shared scheduled runner.
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
+- Scheduled check batch failures are counted in the route response and logged with redacted check/agency context for operator visibility.
 - The scheduler trigger routes are protected by `SCHEDULER_SECRET`, cheap in-memory throttling for unauthorized due-check attempts, and DB-backed service-role rate limits for authorized scheduler calls.
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, support required JSON/text/regex/field assertions, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.

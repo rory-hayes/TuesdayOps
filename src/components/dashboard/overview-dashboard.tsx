@@ -30,6 +30,13 @@ export function OverviewDashboard({
   const openIssues = getOpenIssues(data);
   const workflowRows = getWorkflowHealthRows(data);
   const scheduledChecks = data.checks.filter((check) => check.enabled).slice(0, 4);
+  const today = new Date().toISOString().slice(0, 10);
+  const reportsDue = data.clients.filter(
+    (client) => !client.archived && client.nextReportDueOn && client.nextReportDueOn <= today,
+  ).length;
+  const recentRuns = [...data.checkRuns]
+    .sort((left, right) => new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime())
+    .slice(0, 4);
   const reliability = buildOperationalReliability({ data });
   const passRateTrend = buildPassRateTrend(data.checkRuns);
   const checkVolume = buildChecksRunSeries(data.checkRuns);
@@ -40,9 +47,11 @@ export function OverviewDashboard({
       <section className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div>
           <h1 className="text-2xl/8 font-semibold text-zinc-950 md:text-3xl/9">
-            Good afternoon, {data.agency.name}
+            Operations overview
           </h1>
-          <h2 className="mt-10 text-base/7 font-semibold text-zinc-950">Overview</h2>
+          <p className="mt-2 max-w-2xl text-sm/6 text-zinc-500">
+            {data.agency.name} client workflow health, issue load, and report readiness.
+          </p>
         </div>
         <label className="w-full md:w-44">
           <span className="sr-only">Report cycle</span>
@@ -61,11 +70,12 @@ export function OverviewDashboard({
 
       <OnboardingChecklist data={data} />
 
-      <section className="grid gap-8 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-8 md:grid-cols-2 xl:grid-cols-5">
         <OverviewStat label="Active clients" value={summary.activeClients.toString()} detail="retainers under monitoring" tone="positive" />
         <OverviewStat label="Monitored workflows" value={summary.monitoredWorkflows.toString()} detail="included in reports" tone="neutral" />
         <OverviewStat label="Open issues" value={summary.openIssues.toString()} detail="reportable maintenance queue" tone={summary.openIssues ? "negative" : "positive"} />
         <OverviewStat label="Check pass rate" value={formatPercentage(summary.checkPassRate)} detail="across monitored workflows" tone="positive" />
+        <OverviewStat label="Reports due" value={reportsDue.toString()} detail="client reports needing action" tone={reportsDue ? "negative" : "positive"} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -152,6 +162,44 @@ export function OverviewDashboard({
               ) : (
                 <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
                   No reportable issues are open.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <h3 className="text-base font-semibold">Recent check runs</h3>
+              <p className="mt-1 text-sm text-muted-foreground">Latest stored endpoint results.</p>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {recentRuns.length ? (
+                recentRuns.map((run) => {
+                  const workflow = data.workflows.find((candidate) => candidate.id === run.workflowId);
+                  const client = data.clients.find((candidate) => candidate.id === run.clientId);
+
+                  return (
+                    <Link
+                      key={run.id}
+                      href={`/workflows/${run.workflowId}`}
+                      className="block rounded-lg border border-border p-3 transition-colors hover:border-primary/40 hover:bg-muted"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{workflow?.name ?? "Workflow"}</p>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">{client?.name ?? "Client"}</p>
+                        </div>
+                        <StatusBadge status={run.status} />
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-muted-foreground">
+                        {run.statusCode ?? "-"} / {run.latencyMs} ms / {formatRelativeTime(run.completedAt)}
+                      </p>
+                    </Link>
+                  );
+                })
+              ) : (
+                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                  Run the first check to create history.
                 </p>
               )}
             </CardContent>

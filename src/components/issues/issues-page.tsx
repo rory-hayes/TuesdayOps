@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { IssueSeverity, IssueStatus } from "@/lib/domain/types";
-import { CheckCircle2, Filter, LifeBuoy, UserPlus, XCircle } from "lucide-react";
+import { CheckCircle2, Filter, LifeBuoy, Play, UserPlus, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,9 @@ import { PageFeedback } from "@/components/ui/page-feedback";
 import {
   assignIssueToMeAction,
   ignoreIssueAction,
+  rerunIssueCheckAction,
   resolveIssueAction,
+  setIssueReportableAction,
 } from "@/lib/issues/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatRelativeTime } from "@/lib/formatting";
@@ -201,6 +203,29 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                       <p className="mt-1 leading-6">{issue.resolutionNote}</p>
                     </div>
                   ) : null}
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    {issue.checkRunId ? (
+                      <form action={rerunIssueCheckAction}>
+                        <input type="hidden" name="issueId" value={issue.id} />
+                        <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Rerunning...">
+                          <Play size={14} aria-hidden="true" />
+                          Rerun check
+                        </FormSubmitButton>
+                      </form>
+                    ) : null}
+                    <form action={setIssueReportableAction}>
+                      <input type="hidden" name="issueId" value={issue.id} />
+                      <input type="hidden" name="reportable" value={issue.reportable ? "false" : "true"} />
+                      <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Saving...">
+                        {issue.reportable ? (
+                          <XCircle size={14} aria-hidden="true" />
+                        ) : (
+                          <CheckCircle2 size={14} aria-hidden="true" />
+                        )}
+                        {issue.reportable ? "Exclude from report" : "Mark reportable"}
+                      </FormSubmitButton>
+                    </form>
+                  </div>
                   {issue.status === "resolved" || issue.status === "ignored" ? null : (
                     <div className="mt-4 grid gap-3 lg:grid-cols-[auto_auto_minmax(260px,1fr)]">
                       <form action={assignIssueToMeAction}>

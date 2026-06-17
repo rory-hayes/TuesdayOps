@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { runHttpCheck } from "./runner";
 
+vi.mock("@/lib/security/endpoint-url-server", () => ({
+  assertResolvedWorkflowEndpointIsSafe: vi.fn(async (value: string) => value),
+}));
+
 const originalFetch = globalThis.fetch;
 
 describe("runHttpCheck", () => {
@@ -69,6 +73,35 @@ describe("runHttpCheck", () => {
     expect(result.status).toBe("healthy");
     expect(result.responseSummary).toContain("[truncated]");
     expect(result.responseSummary.length).toBeLessThanOrEqual(640);
+  });
+
+  it("marks latency and content assertion misses as degraded instead of failed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true }), { status: 200 })),
+    );
+
+    const result = await runHttpCheck({
+      workflow: {
+        endpointUrl: "https://api.example.com/slow",
+        method: "GET",
+        authType: "none",
+      },
+      check: {
+        configJson: {
+          timeoutMs: 1000,
+          assertions: [
+            { type: "status_code", expected: 200 },
+            { type: "latency_under", maxMs: 1 },
+            { type: "field_exists", path: "missing" },
+          ],
+        },
+      },
+      authConfig: { type: "none" },
+    });
+
+    expect(result.status).toBe("degraded");
+    expect(result.statusCode).toBe(200);
   });
 
   it("handles successful responses with no readable body stream", async () => {
@@ -242,6 +275,35 @@ describe("runHttpCheck", () => {
     );
   });
 
+  it("retries transport failures once before recording the result", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("socket hang up"))
+      .mockResolvedValueOnce(new Response("{\"ok\":true}", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await runHttpCheck({
+      workflow: {
+        endpointUrl: "https://api.example.com/retry",
+        method: "GET",
+        authType: "none",
+      },
+      check: {
+        configJson: {
+          timeoutMs: 1000,
+          assertions: [{ type: "status_code", expected: 200 }],
+        },
+      },
+      authConfig: { type: "none" },
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result).toMatchObject({
+      status: "healthy",
+      statusCode: 200,
+    });
+  });
+
   it("records request failures as failed checks with unevaluated assertions", async () => {
     vi.stubGlobal(
       "fetch",
@@ -276,11 +338,6 @@ describe("runHttpCheck", () => {
   });
 
   it("normalizes non-Error request failures and abort errors", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockRejectedValueOnce("network failed")
-      .mockRejectedValueOnce(new Error("This operation was aborted"));
-    vi.stubGlobal("fetch", fetchMock);
     const input = {
       workflow: {
         endpointUrl: "https://api.example.com/down",
@@ -296,10 +353,13 @@ describe("runHttpCheck", () => {
       authConfig: { type: "none" as const },
     };
 
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue("network failed"));
     await expect(runHttpCheck(input)).resolves.toMatchObject({
       status: "failed",
       errorMessage: "Unknown check runner error.",
     });
+
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("This operation was aborted")));
     await expect(runHttpCheck(input)).resolves.toMatchObject({
       status: "failed",
       errorMessage: "Request timed out.",

@@ -16,6 +16,7 @@ import {
   assertSafeWorkflowEndpoint,
   shouldAllowPrivateWorkflowEndpoints,
 } from "@/lib/security/endpoint-url";
+import { assertResolvedWorkflowEndpointIsSafe } from "@/lib/security/endpoint-url-server";
 import { encryptJsonPayload } from "@/lib/security/secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -36,7 +37,10 @@ const workflowBaseFormSchema = z.object({
   checkFrequencyMinutes: z.coerce.number().int().min(5).max(10080),
   expectedStatus: z.coerce.number().int().min(100).max(599).default(200),
   maxLatencyMs: z.coerce.number().int().min(100).max(60000).default(5000),
+  timeoutMs: z.coerce.number().int().min(1000).max(60000).default(10000),
   requestBody: z.string().trim().optional(),
+  responseContains: z.string().trim().max(200).optional(),
+  jsonFieldPath: z.string().trim().max(120).optional(),
 });
 
 const workflowFormSchema = workflowBaseFormSchema
@@ -123,7 +127,10 @@ export async function createWorkflowFromImportAction(formData: FormData) {
 
   try {
     plan = parsed.data.importSource === "openapi" && /^https?:\/\//i.test(importText)
-      ? await fetchOpenApiImportPlan({ url: importText })
+      ? await fetchOpenApiImportPlan({
+          url: importText,
+          validateUrl: (url) => assertResolvedWorkflowEndpointIsSafe(url, { allowPrivateEndpoints: false }),
+        })
       : parseWorkflowImport({
           source: parsed.data.importSource,
           text: importText,
@@ -148,10 +155,11 @@ export async function createWorkflowFromImportAction(formData: FormData) {
       authSecret: plan.authSecret,
       authHeaderName: plan.authHeaderName,
       checkFrequencyMinutes: plan.checkFrequencyMinutes,
-      expectedStatus: plan.expectedStatus,
-      maxLatencyMs: plan.maxLatencyMs,
-      requestBody: plan.requestBody,
-    },
+    expectedStatus: plan.expectedStatus,
+    maxLatencyMs: plan.maxLatencyMs,
+    timeoutMs: Math.max(plan.maxLatencyMs + 1000, 3000),
+    requestBody: plan.requestBody,
+  },
   });
   await recordWorkflowAuditEvent({
     workspace,
@@ -181,7 +189,10 @@ const workflowUpdateFormSchema = workflowBaseFormSchema
     basicUsername: true,
     expectedStatus: true,
     maxLatencyMs: true,
+    timeoutMs: true,
     requestBody: true,
+    responseContains: true,
+    jsonFieldPath: true,
   })
   .extend({
     id: z.string().uuid(),
@@ -307,7 +318,10 @@ type WorkflowCreateInput = {
   checkFrequencyMinutes: number;
   expectedStatus: number;
   maxLatencyMs: number;
+  timeoutMs: number;
   requestBody?: string;
+  responseContains?: string;
+  jsonFieldPath?: string;
 };
 
 async function createWorkflowWithHealthCheck({
@@ -382,12 +396,9 @@ async function createWorkflowWithHealthCheck({
   }
 
   const checkConfig = checkConfigSchema.parse({
-    timeoutMs: Math.max(input.maxLatencyMs + 1000, 3000),
+    timeoutMs: input.timeoutMs,
     requestBody: input.requestBody,
-    assertions: [
-      { type: "status_code", expected: input.expectedStatus },
-      { type: "latency_under", maxMs: input.maxLatencyMs },
-    ],
+    assertions: buildInitialCheckAssertions(input),
   });
 
   const { error: checkError } = await supabase.from("checks").insert({
@@ -405,6 +416,29 @@ async function createWorkflowWithHealthCheck({
   }
 
   return workflow.id as string;
+}
+
+function buildInitialCheckAssertions(input: WorkflowCreateInput) {
+  const assertions: Array<{
+    type: "status_code" | "latency_under" | "contains_text" | "field_exists";
+    expected?: number;
+    maxMs?: number;
+    value?: string;
+    path?: string;
+  }> = [
+    { type: "status_code", expected: input.expectedStatus },
+    { type: "latency_under", maxMs: input.maxLatencyMs },
+  ];
+
+  if (input.responseContains?.trim()) {
+    assertions.push({ type: "contains_text", value: input.responseContains.trim() });
+  }
+
+  if (input.jsonFieldPath?.trim()) {
+    assertions.push({ type: "field_exists", path: input.jsonFieldPath.trim() });
+  }
+
+  return assertions;
 }
 
 function buildAuthConfig(input: WorkflowCreateInput): WorkflowAuthConfig | null {

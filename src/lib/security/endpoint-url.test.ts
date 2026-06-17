@@ -11,6 +11,13 @@ describe("validateWorkflowEndpointUrl", () => {
     expect(validateWorkflowEndpointUrl("http://api.example.com/health").allowed).toBe(true);
   });
 
+  it("preserves the submitted endpoint URL string after validation", () => {
+    expect(validateWorkflowEndpointUrl("https://API.example.com/v1/health?Signature=AbC%2F123")).toEqual({
+      allowed: true,
+      url: "https://API.example.com/v1/health?Signature=AbC%2F123",
+    });
+  });
+
   it("blocks localhost and loopback endpoints by default", () => {
     expect(validateWorkflowEndpointUrl("http://localhost:3000/api/check").allowed).toBe(false);
     expect(validateWorkflowEndpointUrl("http://127.0.0.1:3000/api/check").allowed).toBe(false);
@@ -66,6 +73,7 @@ describe("validateWorkflowEndpointUrl", () => {
       allowed: true,
       url: "https://api.not-an-ip.example/check",
     });
+    expect(validateWorkflowEndpointUrl("https://fc-example.com/check").allowed).toBe(true);
   });
 });
 

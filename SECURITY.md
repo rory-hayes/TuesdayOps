@@ -58,7 +58,7 @@ Avoid storing full raw bodies unless user explicitly enables debug mode.
 
 ## Workflow endpoint safety
 
-Workflow endpoints are validated before storage and again before execution.
+Workflow endpoints are validated before storage and again before execution. The stored endpoint URL preserves the submitted URL string after trimming so signed query strings and path casing are not rewritten.
 
 Production blocks:
 
@@ -66,7 +66,9 @@ Production blocks:
 - loopback IPs such as `127.0.0.1` and `::1`
 - private IPv4 ranges such as `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`
 - link-local and cloud metadata ranges such as `169.254.0.0/16`
+- IPv6 unique-local and link-local ranges
 - `.local` hostnames
+- public-looking hostnames that resolve to blocked private, loopback, link-local, or metadata addresses at execution/import time
 
 Local development and private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`. Do not enable this in production.
 

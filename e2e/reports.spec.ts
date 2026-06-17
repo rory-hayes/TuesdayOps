@@ -93,8 +93,13 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
   const workflowId = new URL(page.url()).pathname.split("/").pop();
   expect(workflowId).toBeTruthy();
 
-  const runForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Run" }) });
-  await runForm.getByRole("button", { name: "Run" }).click();
+  await page
+    .getByRole("navigation", { name: "Workflow detail sections" })
+    .getByRole("link", { name: "Checks" })
+    .click();
+  await expect(page.getByRole("heading", { name: "Checks" })).toBeVisible();
+  const runForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Run", exact: true }) });
+  await runForm.getByRole("button", { name: "Run", exact: true }).click();
 
   await poll(async () => {
     const rows = await getRows<IssueRow>(

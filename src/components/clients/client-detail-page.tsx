@@ -81,7 +81,7 @@ export function ClientDetailPage({
                         <Link href={`/workflows/${workflow.id}`} className="font-medium text-zinc-950 group-hover:text-primary group-hover:underline">
                           {workflow.name}
                         </Link>
-                        <p className="mt-1 max-w-[24rem] truncate text-xs/5 text-zinc-500">
+                        <p className="mt-1 max-w-[28rem] break-all font-mono text-xs/5 text-zinc-500">
                           {workflow.endpointUrl}
                         </p>
                       </td>

@@ -183,14 +183,14 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - client create/update/archive server actions
 - registry-first Workflows page with guided Add workflow onboarding for quick import and manual endpoint setup
 - workflow creation with encrypted auth config handling, archive controls, and external run-log API key rotation/revocation
-- endpoint health check creation, manual run execution, assertion evaluation, and check run persistence
+- endpoint health check creation, manual run execution, assertion evaluation, explicit timeout/simple assertion setup, and check run persistence
 - check disable controls and test-pack/test-case lifecycle controls
 - failed/degraded manual checks create deduped issues with severity mapping
-- issue queue filters, expandable details, assignment, resolution notes, and ignore actions
+- issue queue filters, expandable details, source-check reruns, report inclusion toggles, assignment, resolution notes, and ignore actions
 - Supabase Cron/Vault scheduled trigger for `/api/scheduler/run-due-checks`
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
 - scheduled check runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection
-- bounded workflow check response reads, blocked redirect following, and DB-backed rate limits for manual checks, public run logging, report sends, billing starts, and scheduler triggers
+- bounded workflow check response reads, one retry for transport/read failures, DNS-aware SSRF checks, blocked redirect following, and DB-backed rate limits for manual checks, public run logging, report sends, billing starts, and scheduler triggers
 - high/critical issue email alert service with Resend delivery and alert-safe redacted copy
 - tenant-scoped synthetic test packs, test cases, test runs, extended assertion types, and manual pack execution from the Checks page
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`

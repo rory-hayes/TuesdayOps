@@ -1,8 +1,6 @@
 import type { CheckRunStatus } from "@/lib/domain/types";
-import {
-  assertSafeWorkflowEndpoint,
-  shouldAllowPrivateWorkflowEndpoints,
-} from "@/lib/security/endpoint-url";
+import { shouldAllowPrivateWorkflowEndpoints } from "@/lib/security/endpoint-url";
+import { assertResolvedWorkflowEndpointIsSafe } from "@/lib/security/endpoint-url-server";
 import {
   checkConfigSchema,
   evaluateAssertions,
@@ -39,6 +37,7 @@ export type HttpCheckResult = {
 
 const maxResponseBodyBytes = 64_000;
 const maxResponseSummaryChars = 600;
+const maxRequestAttempts = 2;
 const redirectBlockedMessage = "Workflow endpoint returned a redirect. Redirects are blocked for check safety.";
 
 export async function runHttpCheck({
@@ -53,68 +52,72 @@ export async function runHttpCheck({
   const startedAtDate = new Date();
   const startedAt = startedAtDate.toISOString();
   const config = parseCheckConfig(check.configJson);
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
   const headers = buildHeaders(authConfig);
-  const requestInit: RequestInit = {
-    method: workflow.method,
-    headers,
-    signal: controller.signal,
-    redirect: "manual",
-  };
-
-  if (workflow.method !== "GET" && config.requestBody) {
-    requestInit.body = config.requestBody;
-    if (!headers.has("content-type")) {
-      headers.set("content-type", "application/json");
-    }
-  }
 
   try {
-    const endpointUrl = assertSafeWorkflowEndpoint(workflow.endpointUrl, {
+    const endpointUrl = await assertResolvedWorkflowEndpointIsSafe(workflow.endpointUrl, {
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
-    const response = await fetch(endpointUrl, requestInit);
-    const latencyMs = Date.now() - startedAtDate.getTime();
 
-    if (isRedirectResponse(response)) {
-      return {
-        status: "failed",
-        statusCode: response.status,
-        latencyMs,
-        responseSummary: "Redirect blocked for workflow check safety.",
-        assertionResults: config.assertions.map((assertion) => ({
-          type: assertion.type,
-          passed: false,
-          message: redirectBlockedMessage,
-        })),
-        errorMessage: redirectBlockedMessage,
-        startedAt,
-        completedAt: new Date().toISOString(),
-      };
+    for (let attempt = 1; attempt <= maxRequestAttempts; attempt += 1) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
+
+      try {
+        const response = await fetch(endpointUrl, buildRequestInit({
+          workflow,
+          headers,
+          config,
+          signal: controller.signal,
+        }));
+        const latencyMs = Date.now() - startedAtDate.getTime();
+
+        if (isRedirectResponse(response)) {
+          return {
+            status: "failed",
+            statusCode: response.status,
+            latencyMs,
+            responseSummary: "Redirect blocked for workflow check safety.",
+            assertionResults: config.assertions.map((assertion) => ({
+              type: assertion.type,
+              passed: false,
+              message: redirectBlockedMessage,
+            })),
+            errorMessage: redirectBlockedMessage,
+            startedAt,
+            completedAt: new Date().toISOString(),
+          };
+        }
+
+        const { text: bodyText, truncated } = await readResponseTextWithLimit(response);
+        const bodyJson = parseJson(bodyText);
+        const assertionResults = evaluateAssertions(config.assertions, {
+          statusCode: response.status,
+          latencyMs,
+          bodyText,
+          bodyJson,
+        });
+        const status = deriveCheckRunStatus(assertionResults);
+
+        return {
+          status,
+          statusCode: response.status,
+          latencyMs,
+          responseSummary: summarizeResponse(bodyText, { truncated }),
+          assertionResults,
+          startedAt,
+          completedAt: new Date().toISOString(),
+        };
+      } catch (error) {
+        if (attempt === maxRequestAttempts) {
+          throw error;
+        }
+      } finally {
+        clearTimeout(timeout);
+      }
     }
 
-    const { text: bodyText, truncated } = await readResponseTextWithLimit(response);
-    const bodyJson = parseJson(bodyText);
-    const assertionResults = evaluateAssertions(config.assertions, {
-      statusCode: response.status,
-      latencyMs,
-      bodyText,
-      bodyJson,
-    });
-    const status: CheckRunStatus = assertionResults.every((result) => result.passed)
-      ? "healthy"
-      : "failed";
-
-    return {
-      status,
-      statusCode: response.status,
-      latencyMs,
-      responseSummary: summarizeResponse(bodyText, { truncated }),
-      assertionResults,
-      startedAt,
-      completedAt: new Date().toISOString(),
-    };
+    throw new Error("Request did not complete after retry.");
   } catch (error) {
     const latencyMs = Date.now() - startedAtDate.getTime();
     const message = error instanceof Error ? error.message : "Unknown check runner error.";
@@ -132,8 +135,6 @@ export async function runHttpCheck({
       startedAt,
       completedAt: new Date().toISOString(),
     };
-  } finally {
-    clearTimeout(timeout);
   }
 }
 
@@ -164,6 +165,35 @@ function buildHeaders(authConfig?: WorkflowAuthConfig): Headers {
   }
 
   return headers;
+}
+
+function buildRequestInit({
+  workflow,
+  headers,
+  config,
+  signal,
+}: {
+  workflow: RunnableWorkflow;
+  headers: Headers;
+  config: CheckConfig;
+  signal: AbortSignal;
+}): RequestInit {
+  const requestHeaders = new Headers(headers);
+  const requestInit: RequestInit = {
+    method: workflow.method,
+    headers: requestHeaders,
+    signal,
+    redirect: "manual",
+  };
+
+  if (workflow.method !== "GET" && config.requestBody) {
+    requestInit.body = config.requestBody;
+    if (!requestHeaders.has("content-type")) {
+      requestHeaders.set("content-type", "application/json");
+    }
+  }
+
+  return requestInit;
 }
 
 function parseJson(value: string): unknown {
@@ -215,6 +245,20 @@ async function readResponseTextWithLimit(
 
 function isRedirectResponse(response: Response): boolean {
   return response.status >= 300 && response.status <= 399;
+}
+
+function deriveCheckRunStatus(assertionResults: AssertionResult[]): CheckRunStatus {
+  const failedAssertions = assertionResults.filter((result) => !result.passed);
+
+  if (!failedAssertions.length) {
+    return "healthy";
+  }
+
+  if (failedAssertions.some((result) => result.type === "status_code")) {
+    return "failed";
+  }
+
+  return "degraded";
 }
 
 function summarizeResponse(value: string, options: { truncated?: boolean } = {}): string {

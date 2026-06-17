@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Archive, Save, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { EditClientDialog } from "@/components/clients/edit-client-dialog";
 import { NewClientDialog } from "@/components/clients/new-client-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
@@ -108,10 +109,17 @@ export function ClientsPage({
                 return (
                   <tr key={client.id} className="border-b border-border last:border-0">
                     <td className="px-5 py-4">
-                      <Link href={`/clients/${client.id}`} className="font-medium hover:text-zinc-700">
-                        {client.name}
-                      </Link>
-                      <p className="mt-1 text-xs text-muted-foreground">{client.industry}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
+                          {client.name.slice(0, 1).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <Link href={`/clients/${client.id}`} className="font-medium hover:text-zinc-700">
+                            {client.name}
+                          </Link>
+                          <p className="mt-1 text-xs text-muted-foreground">{client.industry}</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-5 py-4">{workflows.length}</td>
                     <td className="px-5 py-4">{client.healthScore}%</td>
@@ -130,67 +138,11 @@ export function ClientsPage({
                       {formatRelativeTime(client.lastActivityAt)}
                     </td>
                     <td className="px-5 py-4">
-                      <details className="min-w-72">
-                        <summary className="cursor-pointer text-sm font-medium text-primary">Edit</summary>
-                        <form action={updateClientAction} noValidate className="mt-3 grid gap-2 rounded-lg bg-muted p-3">
-                          <input type="hidden" name="id" value={client.id} />
-                          <input type="hidden" name="slug" value={client.slug} />
-                          <input
-                            aria-label="Client name"
-                            name="name"
-                            defaultValue={client.name}
-                            required
-                            minLength={2}
-                            maxLength={100}
-                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
-                          />
-                          <input
-                            aria-label="Industry"
-                            name="industry"
-                            defaultValue={client.industry}
-                            required
-                            minLength={2}
-                            maxLength={80}
-                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
-                          />
-                          <input
-                            aria-label="Report email"
-                            name="reportRecipientEmail"
-                            type="email"
-                            defaultValue={client.reportRecipientEmail}
-                            required
-                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
-                          />
-                          <input
-                            aria-label="Notes"
-                            name="notes"
-                            defaultValue={client.notes}
-                            maxLength={1000}
-                            className="h-9 rounded-md border border-border bg-card px-3 text-sm outline-none focus:border-primary"
-                          />
-                          <div className="flex gap-2">
-                            <FormSubmitButton type="submit" size="sm" pendingLabel="Saving...">
-                              <Save size={14} aria-hidden="true" />
-                              Save
-                            </FormSubmitButton>
-                          </div>
-                        </form>
-                        {!client.archived ? (
-                          <form action={archiveClientAction} className="mt-2">
-                            <input type="hidden" name="id" value={client.id} />
-                            <FormSubmitButton
-                              type="submit"
-                              variant="secondary"
-                              size="sm"
-                              pendingLabel="Archiving..."
-                              confirmMessage="Archive this client? Their workflows and reports stay stored, but they leave the active portfolio."
-                            >
-                              <Archive size={14} aria-hidden="true" />
-                              Archive
-                            </FormSubmitButton>
-                          </form>
-                        ) : null}
-                      </details>
+                      <EditClientDialog
+                        client={client}
+                        updateAction={updateClientAction}
+                        archiveAction={archiveClientAction}
+                      />
                     </td>
                   </tr>
                 );

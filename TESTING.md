@@ -207,6 +207,18 @@ Current go-live hardening implementation status on 2026-06-17:
 - Added DB-backed rate-limit helper coverage and route coverage for public run-log and scheduler throttling.
 - Full verification for this hardening pass should include `npm run lint`, `npm run typecheck`, `npm run test`, `npm run build`, production smoke, and a provider-side Stripe Checkout/Portal pass after migrations and env vars are deployed.
 
+Current core-loop production audit status on 2026-06-17:
+
+- Added URL preservation and DNS-aware SSRF unit coverage.
+- Added HTTP runner coverage for one retry after transport/read failures and degraded status classification for non-status assertion misses.
+- Extended core E2E coverage for issue report inclusion, source-check rerun, assignment, resolution note, and resolved issue reporting.
+- Final verification passed:
+  - `npm run lint`
+  - `npm run typecheck`
+  - `npm run test` (`56 passed`, `306 passed`)
+  - `npm run build`
+  - `npm run e2e` (`8 passed`)
+
 ## Critical test areas
 
 ### Assertion engine

@@ -106,12 +106,26 @@ export async function runScheduledCheckBatch({
       } else {
         summary.completed += 1;
       }
-    } catch {
+    } catch (error) {
       summary.failed += 1;
+      console.error("Scheduled check run failed", {
+        agencyId: check.agencyId,
+        checkId: check.id,
+        reason: formatScheduledRunError(error),
+      });
     }
   }
 
   return summary;
+}
+
+function formatScheduledRunError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown scheduled check error.";
+
+  return message
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
+    .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
+    .slice(0, 400);
 }
 
 export async function loadSchedulableChecks({

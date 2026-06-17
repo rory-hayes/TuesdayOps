@@ -115,6 +115,7 @@ export function parseWorkflowImport({
 export async function fetchOpenApiImportPlan({
   url,
   fetcher = fetch,
+  validateUrl = (value) => assertSafeWorkflowEndpoint(value, { allowPrivateEndpoints: false }),
 }: {
   url: string;
   fetcher?: (url: string) => Promise<{
@@ -122,8 +123,9 @@ export async function fetchOpenApiImportPlan({
     headers: Headers;
     text: () => Promise<string>;
   }>;
+  validateUrl?: (url: string) => string | Promise<string>;
 }): Promise<WorkflowImportPlan> {
-  const safeUrl = assertSafeWorkflowEndpoint(url, { allowPrivateEndpoints: false });
+  const safeUrl = await validateUrl(url);
   const response = await fetcher(safeUrl);
 
   if (!response.ok) {
@@ -544,13 +546,14 @@ function joinUrl(base: string, path: string): string {
 }
 
 function normalizeUrl(value: string): string {
-  const url = new URL(value);
+  const trimmed = value.trim();
+  const url = new URL(trimmed);
 
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new Error("Workflow endpoint must be an HTTP or HTTPS URL.");
   }
 
-  return url.toString();
+  return trimmed;
 }
 
 function isHttpUrl(value: string): boolean {

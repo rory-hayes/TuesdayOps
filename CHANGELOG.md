@@ -71,3 +71,4 @@ Track meaningful product and engineering changes here.
 - Completed synthetic assertion coverage for go-live test packs with valid JSON, required text, regex, and non-empty field assertions exposed in the Checks UI.
 - Attached generated PDFs to report send emails so external recipients can read reports without an app login.
 - Added DB-backed hashed rate limits for manual check/test-pack runs, report sends, public run-log ingestion, Stripe billing starts, and scheduler triggers.
+- Completed a core-loop production audit pass: preserved submitted workflow endpoint URLs, added DNS-aware SSRF blocking for execution/OpenAPI imports, exposed timeout and simple assertions in first-check setup, split degraded assertion misses from failed request/status runs, added issue rerun/reportable controls, logged scheduled-check failures with redaction, and expanded focused unit/E2E coverage.

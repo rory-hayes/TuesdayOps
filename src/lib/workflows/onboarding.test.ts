@@ -24,13 +24,13 @@ describe("parseWorkflowImport", () => {
     });
   });
 
-  it("normalizes direct URLs with no path and rejects non-http endpoints", () => {
+  it("preserves direct URLs with no path and rejects non-http endpoints", () => {
     expect(parseWorkflowImport({
       source: "url",
       text: "https://api.example.com",
     })).toMatchObject({
       name: "api.example.com",
-      endpointUrl: "https://api.example.com/",
+      endpointUrl: "https://api.example.com",
     });
     expect(() =>
       parseWorkflowImport({

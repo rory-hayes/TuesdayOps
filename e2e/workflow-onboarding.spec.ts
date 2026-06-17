@@ -87,7 +87,8 @@ test("workflow can be imported from a cURL command", async ({ page, baseURL }) =
   ]);
 
   await expect(page.getByRole("heading", { name: workflowName })).toBeVisible();
-  await expect(page.locator("p").filter({ hasText: /^POST$/ }).first()).toBeVisible();
+  await page.getByRole("link", { name: "Endpoint" }).click();
+  await expect(page.getByText("POST")).toBeVisible();
   await expect(page.getByText(`${appUrl}/api/e2e-import-${runId}`)).toBeVisible();
 
   const membership = await poll(async () => {

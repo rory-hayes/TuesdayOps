@@ -90,7 +90,7 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
             <div className="mt-4 flex flex-wrap gap-2">
               <Link
                 href={nextStep.href}
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800"
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-[#5546ad]"
               >
                 {getActionLabel(nextStep)}
                 <ArrowRight size={15} aria-hidden="true" />
@@ -202,7 +202,7 @@ function OnboardingGuide({
               </p>
               <Link
                 href={nextStep.href}
-                className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-zinc-900 px-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-zinc-800"
+                className="mt-4 inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-primary px-3.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-[#5546ad]"
               >
                 {getActionLabel(nextStep)}
                 <ArrowRight size={15} aria-hidden="true" />

@@ -110,51 +110,11 @@ export function ReportDetailPage({
       </section>
 
       <section className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <FileText size={20} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Executive summary</p>
-                <h2 className="mt-1 text-base font-semibold">Workflow maintenance proof</h2>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <p className="text-sm leading-6 text-muted-foreground">{report.summary}</p>
-
-            <div className="grid gap-3">
-              {reportItems.length ? (
-                reportItems.map((item) => (
-                  <div key={item.id} className="rounded-lg border border-border px-4 py-3">
-                    <p className="text-sm font-semibold">{item.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
-                  </div>
-                ))
-              ) : (
-                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                  No report items have been stored for this report.
-                </p>
-              )}
-            </div>
-
-            <div>
-              <h3 className="text-base font-semibold">Recommendations</h3>
-              <div className="mt-3 space-y-2">
-                {(report.recommendations.length
-                  ? report.recommendations
-                  : ["Generate report source data before sending."]
-                ).map((recommendation) => (
-                  <div key={recommendation} className="rounded-lg border border-border px-4 py-3 text-sm">
-                    {recommendation}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <ReportDocument
+          agencyName={data.agency.name}
+          report={report}
+          reportItems={reportItems}
+        />
 
         <div className="grid gap-6">
           <Card>
@@ -218,6 +178,92 @@ function ReportStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-border bg-card p-3">
       <p className="text-xs uppercase text-muted-foreground">{label}</p>
       <p className="mt-2 text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function ReportDocument({
+  agencyName,
+  report,
+  reportItems,
+}: {
+  agencyName: string;
+  report: ReportSummary;
+  reportItems: TuesdayOpsSeedData["reportItems"];
+}) {
+  const recommendations = report.recommendations.length
+    ? report.recommendations
+    : ["Generate report source data before sending."];
+
+  return (
+    <section className="rounded-xl bg-zinc-100 p-4 ring-1 ring-zinc-950/5 sm:p-6">
+      <article className="mx-auto bg-white p-7 shadow-[0_18px_60px_rgb(24_24_27_/_12%)] ring-1 ring-zinc-950/10 sm:p-9">
+        <header className="border-b border-zinc-950/10 pb-6">
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <p className="text-sm font-semibold text-primary">{agencyName}</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-normal text-zinc-950">
+                Monthly workflow maintenance report
+              </h2>
+              <p className="mt-2 text-sm font-medium text-zinc-700">Workflow maintenance proof</p>
+              <p className="mt-2 text-sm text-zinc-500">
+                Prepared for {report.clientName} - {report.periodLabel}
+              </p>
+            </div>
+            <div className="grid size-12 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <FileText size={22} aria-hidden="true" />
+            </div>
+          </div>
+        </header>
+
+        <section className="py-6">
+          <p className="text-xs font-semibold uppercase text-zinc-500">Executive summary</p>
+          <p className="mt-3 text-sm leading-7 text-zinc-700">{report.summary}</p>
+        </section>
+
+        <section className="grid gap-3 border-y border-zinc-950/10 py-5 sm:grid-cols-4">
+          <DocumentMetric label="Workflows" value={report.workflowsMonitored.toString()} />
+          <DocumentMetric label="Checks run" value={report.checksRun.toLocaleString("en-IE")} />
+          <DocumentMetric label="Pass rate" value={formatPercentage(report.passRate)} />
+          <DocumentMetric label="Resolved" value={report.issuesResolved.toString()} />
+        </section>
+
+        <section className="grid gap-3 py-6">
+          <p className="text-xs font-semibold uppercase text-zinc-500">Report modules</p>
+          {reportItems.length ? (
+            reportItems.map((item) => (
+              <div key={item.id} className="rounded-lg border border-zinc-950/10 px-4 py-3">
+                <p className="text-sm font-semibold text-zinc-950">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">{item.body}</p>
+              </div>
+            ))
+          ) : (
+            <p className="rounded-lg bg-zinc-50 p-3 text-sm text-zinc-600">
+              No report items have been stored for this report.
+            </p>
+          )}
+        </section>
+
+        <section>
+          <p className="text-xs font-semibold uppercase text-zinc-500">Recommendations</p>
+          <div className="mt-3 grid gap-2">
+            {recommendations.map((recommendation) => (
+              <p key={recommendation} className="rounded-lg bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-700">
+                {recommendation}
+              </p>
+            ))}
+          </div>
+        </section>
+      </article>
+    </section>
+  );
+}
+
+function DocumentMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs uppercase text-zinc-500">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-zinc-950">{value}</p>
     </div>
   );
 }

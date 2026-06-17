@@ -658,3 +658,20 @@ Notes:
 - `e2e/reports.spec.ts` verified generated PDF response status, `application/pdf` content type, and PDF bytes from the authenticated browser context.
 - Live production report email delivery still needs a confirmed safe recipient/domain.
 - Stripe Checkout/Customer Portal still needs an explicit test-mode provider pass to avoid unintended billing side effects.
+
+## Milestone 19 — Core Loop Production Audit
+
+### T19.1 Core-loop readiness fixes
+
+- [x] Preserve submitted workflow endpoint URLs instead of rewriting them through URL normalization.
+- [x] Add DNS-aware SSRF protection for workflow execution and OpenAPI URL imports.
+- [x] Classify non-status assertion misses as degraded while keeping request/status failures failed.
+- [x] Expose timeout and simple response/JSON assertions in first workflow health-check setup.
+- [x] Add issue rerun and report-inclusion controls.
+- [x] Log scheduled-check batch failures with redacted operator-safe context.
+- [x] Expand unit and E2E coverage for the tightened core loop.
+- [x] Add `TUESDAYOPS_CORE_LOOP_AUDIT.md`.
+
+Acceptance:
+
+- Agency -> Client -> Workflow -> Check -> Check Run -> Issue -> Resolution -> Report remains the only product loop expanded by this pass.

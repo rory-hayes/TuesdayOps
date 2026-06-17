@@ -242,69 +242,117 @@ export function ReportsPage({
             ) : null}
           </div>
 
-          <div className="rounded-lg bg-muted p-5">
-            <div className="flex items-center gap-3">
-              <div className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <FileText size={20} aria-hidden="true" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Executive summary</p>
-                <p className="mt-1 font-semibold">
-                  {activeReport ? "Workflow maintenance proof" : "Report source snapshot"}
-                </p>
-              </div>
-            </div>
-            <p className="mt-5 text-sm leading-6 text-muted-foreground">
-              {activeReport?.summary ??
-                "TuesdayOps can now persist clients, workflows, checks, issues, and test runs as report source data."}
-            </p>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-4">
-            <ReportStat
-              label="Checks run"
-              value={(activeReport?.checksRun ?? data.checkRuns.length).toLocaleString("en-IE")}
-            />
-            <ReportStat
-              label="Pass rate"
-              value={formatPercentage(activeReport?.passRate ?? summary.checkPassRate)}
-            />
-            <ReportStat
-              label="Issues"
-              value={(activeReport?.issuesCaught ?? openIssues.length).toString()}
-            />
-            <ReportStat
-              label="Workflows"
-              value={(activeReport?.workflowsMonitored ?? summary.monitoredWorkflows).toString()}
-            />
-          </div>
-
-          <div className="grid gap-3">
-            {activeReportItems.length ? (
-              activeReportItems.map((item) => (
-                <div key={item.id} className="rounded-lg border border-border px-4 py-3">
-                  <p className="text-sm font-semibold">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.body}</p>
-                </div>
-              ))
-            ) : null}
-          </div>
-
-          <div>
-            <h3 className="text-base font-semibold">Recommendations</h3>
-            <div className="mt-3 space-y-2">
-              {(activeReport?.recommendations.length
-                ? activeReport.recommendations
-                : ["Generate a report to create client-safe recommendations."]
-              ).map((recommendation) => (
-                <div key={recommendation} className="rounded-lg border border-border px-4 py-3 text-sm">
-                  {recommendation}
-                </div>
-              ))}
-            </div>
-          </div>
+          <ReportDocumentPreview
+            agencyName={data.agency.name}
+            report={activeReport}
+            reportItems={activeReportItems}
+            fallbackMetrics={{
+              checksRun: data.checkRuns.length,
+              passRate: summary.checkPassRate,
+              issuesCaught: openIssues.length,
+              workflowsMonitored: summary.monitoredWorkflows,
+            }}
+          />
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+function ReportDocumentPreview({
+  agencyName,
+  report,
+  reportItems,
+  fallbackMetrics,
+}: {
+  agencyName: string;
+  report?: TuesdayOpsSeedData["reports"][number];
+  reportItems: TuesdayOpsSeedData["reportItems"];
+  fallbackMetrics: {
+    checksRun: number;
+    passRate: number;
+    issuesCaught: number;
+    workflowsMonitored: number;
+  };
+}) {
+  const clientName = report?.clientName ?? "Client name";
+  const periodLabel = report?.periodLabel ?? "Current period";
+  const recommendations = report?.recommendations.length
+    ? report.recommendations
+    : ["Generate a report to create client-safe recommendations."];
+
+  return (
+    <div className="rounded-xl bg-zinc-100 p-4 ring-1 ring-zinc-950/5 sm:p-6">
+      <article className="mx-auto max-w-3xl bg-white p-7 shadow-[0_18px_60px_rgb(24_24_27_/_12%)] ring-1 ring-zinc-950/10 sm:p-9">
+        <header className="border-b border-zinc-950/10 pb-6">
+          <div className="flex items-start justify-between gap-6">
+            <div>
+              <p className="text-sm font-semibold text-primary">{agencyName}</p>
+              <h3 className="mt-3 text-2xl font-semibold tracking-normal text-zinc-950">
+                Monthly workflow maintenance report
+              </h3>
+              <p className="mt-2 text-sm font-medium text-zinc-700">Workflow maintenance proof</p>
+              <p className="mt-2 text-sm text-zinc-500">
+                Prepared for {clientName} - {periodLabel}
+              </p>
+            </div>
+            <div className="grid size-12 place-items-center rounded-lg bg-primary text-primary-foreground">
+              <FileText size={22} aria-hidden="true" />
+            </div>
+          </div>
+        </header>
+
+        <section className="py-6">
+          <p className="text-xs font-semibold uppercase text-zinc-500">Executive summary</p>
+          <p className="mt-3 text-sm leading-7 text-zinc-700">
+            {report?.summary ??
+              "Generate a report to preview the client-safe proof of what was monitored, caught, fixed, and recommended."}
+          </p>
+        </section>
+
+        <section className="grid gap-3 border-y border-zinc-950/10 py-5 sm:grid-cols-4">
+          <DocumentMetric label="Workflows" value={(report?.workflowsMonitored ?? fallbackMetrics.workflowsMonitored).toString()} />
+          <DocumentMetric label="Checks run" value={(report?.checksRun ?? fallbackMetrics.checksRun).toLocaleString("en-IE")} />
+          <DocumentMetric label="Pass rate" value={formatPercentage(report?.passRate ?? fallbackMetrics.passRate)} />
+          <DocumentMetric label="Issues caught" value={(report?.issuesCaught ?? fallbackMetrics.issuesCaught).toString()} />
+        </section>
+
+        <section className="grid gap-3 py-6">
+          <p className="text-xs font-semibold uppercase text-zinc-500">Report modules</p>
+          {reportItems.length ? (
+            reportItems.map((item) => (
+              <div key={item.id} className="rounded-lg border border-zinc-950/10 px-4 py-3">
+                <p className="text-sm font-semibold text-zinc-950">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-zinc-600">{item.body}</p>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-lg border border-zinc-950/10 px-4 py-3 text-sm leading-6 text-zinc-600">
+              Report sections will appear here after generation.
+            </div>
+          )}
+        </section>
+
+        <section>
+          <p className="text-xs font-semibold uppercase text-zinc-500">Recommendations</p>
+          <div className="mt-3 grid gap-2">
+            {recommendations.map((recommendation) => (
+              <p key={recommendation} className="rounded-lg bg-zinc-50 px-4 py-3 text-sm leading-6 text-zinc-700">
+                {recommendation}
+              </p>
+            ))}
+          </div>
+        </section>
+      </article>
+    </div>
+  );
+}
+
+function DocumentMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs uppercase text-zinc-500">{label}</p>
+      <p className="mt-2 text-lg font-semibold text-zinc-950">{value}</p>
     </div>
   );
 }
