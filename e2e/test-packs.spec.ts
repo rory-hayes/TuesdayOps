@@ -173,11 +173,14 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
   );
 
   await page.goto("/checks", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByText(caseName).first()).toBeVisible();
   await page
     .locator("form")
     .filter({ has: page.getByRole("button", { name: "Run pack" }) })
     .getByRole("button", { name: "Run pack" })
     .click();
+  await expect(page.getByRole("button", { name: "Running..." })).toBeVisible();
   await expect(page.getByText("Test pack run completed.")).toBeVisible();
 
   const recoveredRun = await poll(async () => {
