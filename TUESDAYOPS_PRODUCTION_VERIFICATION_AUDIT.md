@@ -63,7 +63,7 @@ Results:
 - `npm ci`: passed, 0 vulnerabilities.
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- `npm run test`: passed, 57 test files and 310 tests.
+- `npm run test`: passed, 60 test files and 325 tests.
 - `npm run build`: passed.
 - `npm run e2e`: passed, 8 Playwright tests.
 - `npm run smoke:production`: passed, 1 production smoke test.
@@ -75,6 +75,7 @@ Notes:
 - The first local `npm run e2e` attempt failed before app startup because this worktree had no `.env.local` and the Next server could not load `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - The suite was rerun with the existing local QA environment loaded without printing secret values; the rerun passed.
 - The first deployed E2E attempt skipped because QA Supabase service credentials were absent from this worktree environment. It was rerun with the same hidden QA environment loading and passed.
+- After latest `origin/main` was merged, local E2E exposed two test robustness issues: the onboarding spec could submit before the controlled client form had hydrated, and scheduled-check screenshots could inject Playwright caret-hiding styles before React hydration finished. The E2E specs were hardened with hydration/value waits, workflow-filtered issue assertions, and `caret: "initial"` screenshots; focused reruns and the full E2E suite then passed.
 
 ## Local Core-Loop E2E
 
@@ -147,9 +148,9 @@ This is expected for the E2E recipient domain (`example.invalid`) and confirms s
 
 ## Production Scheduler Verification
 
-The protected production scheduler route was also exercised with the configured scheduler secret and a targeted QA `checkId` from the production E2E data.
+The protected production scheduler route was also exercised with the configured scheduler secret and targeted QA `checkId` values from production E2E data.
 
-Result:
+Earlier completed targeted result:
 
 ```json
 {
@@ -161,7 +162,19 @@ Result:
 }
 ```
 
-This verifies the protected route, service-role due-check path, scheduled execution path, and safe targeted scheduler behavior without sweeping unrelated due checks.
+Final post-merge targeted request result:
+
+```json
+{
+  "ok": true,
+  "attempted": 0,
+  "completed": 0,
+  "skipped": 0,
+  "failed": 0
+}
+```
+
+The final targeted check was accepted by the protected route but was not due. A direct `get_due_health_checks` query found no safe QA `tuesday-ops.vercel.app/api/e2e...` endpoint due at that moment, so no broad production scheduler sweep was run. Local E2E verifies the protected scheduler execution/idempotency path end to end, and the earlier targeted production run verified one completed production scheduled execution without sweeping unrelated due checks.
 
 ## Tenant Isolation
 

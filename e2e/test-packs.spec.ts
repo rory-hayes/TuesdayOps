@@ -202,7 +202,7 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
   await expect(page.getByText(caseName).first()).toBeVisible();
   await expect(page.getByText("passed").first()).toBeVisible();
   await testInfo.attach("test-pack-checks", {
-    body: await page.screenshot({ fullPage: false }),
+    body: await page.screenshot({ caret: "initial", fullPage: false }),
     contentType: "image/png",
   });
 

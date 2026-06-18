@@ -48,10 +48,15 @@ test("enabled health checks run through the protected scheduled runner", async (
   ]);
 
   await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
 
   if (page.url().includes("/onboarding")) {
-    await page.getByLabel("Agency name").fill(agencyName);
-    await page.getByLabel("Slug").fill(agencySlug);
+    const agencyNameInput = page.getByLabel("Agency name");
+    const agencySlugInput = page.getByLabel("Slug");
+    await agencyNameInput.fill(agencyName);
+    await agencySlugInput.fill(agencySlug);
+    await expect(agencyNameInput).toHaveValue(agencyName);
+    await expect(agencySlugInput).toHaveValue(agencySlug);
     await Promise.all([
       page.waitForURL(`${appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),
@@ -142,14 +147,15 @@ test("enabled health checks run through the protected scheduled runner", async (
   await page.goto(`/workflows/${workflowId}`, { waitUntil: "domcontentloaded" });
   await expect(page.getByText("failed").first()).toBeVisible();
   await testInfo.attach("scheduled-workflow", {
-    body: await page.screenshot({ fullPage: false }),
+    body: await page.screenshot({ caret: "initial", fullPage: false }),
     contentType: "image/png",
   });
 
-  await page.goto("/issues", { waitUntil: "domcontentloaded" });
-  await expect(page.getByText(latestIssue.title)).toBeVisible();
+  await page.goto(`/issues?workflowId=${workflowId}`, { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
+  await expect(page.getByRole("link", { name: latestIssue.title })).toBeVisible();
   await testInfo.attach("scheduled-issue", {
-    body: await page.screenshot({ fullPage: false }),
+    body: await page.screenshot({ caret: "initial", fullPage: false }),
     contentType: "image/png",
   });
 

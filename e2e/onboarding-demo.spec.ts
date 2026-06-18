@@ -30,10 +30,15 @@ test("onboarding checklist does not expose demo seeding", async ({ page, baseURL
   ]);
 
   await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   if (page.url().includes("/onboarding")) {
     await expect(page.getByText("Brand color")).not.toBeVisible();
-    await page.getByLabel("Agency name").fill(agencyName);
-    await page.getByLabel("Slug").fill(agencySlug);
+    const agencyNameInput = page.getByLabel("Agency name");
+    const agencySlugInput = page.getByLabel("Slug");
+    await agencyNameInput.fill(agencyName);
+    await agencySlugInput.fill(agencySlug);
+    await expect(agencyNameInput).toHaveValue(agencyName);
+    await expect(agencySlugInput).toHaveValue(agencySlug);
     await Promise.all([
       page.waitForURL(`${appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),
