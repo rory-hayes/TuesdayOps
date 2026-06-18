@@ -62,8 +62,8 @@ Scope: Core Blocker 9 - Onboarding, Empty States, and Core-Loop UX.
 - `npm install --no-save @rolldown/binding-darwin-arm64@1.0.3` - installed the lockfile-listed optional native binding so local Vitest could start.
 - `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run lint` - passed.
 - `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run typecheck` - passed.
-- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test -- src/components/auth/agency-onboarding-form.test.tsx src/components/workflows/add-workflow-dialog.test.tsx` - passed, 64 files and 354 tests.
-- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test` - passed, 64 files and 354 tests.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test -- src/components/auth/agency-onboarding-form.test.tsx src/components/workflows/add-workflow-dialog.test.tsx` - passed after merging latest `origin/main`, 64 files and 356 tests.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test` - passed after merging latest `origin/main`, 64 files and 356 tests.
 - `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run build` - passed.
 - Copied the ignored QA `.env.local` from `/Users/rory/Documents/TuesdayOps/.env.local` into this worktree without printing secret values; confirmed it remains ignored.
 - `/opt/homebrew/bin/supabase link --project-ref "$REF"` - linked the worktree to the QA Supabase project derived from `NEXT_PUBLIC_SUPABASE_URL` without printing the ref.
@@ -71,7 +71,7 @@ Scope: Core Blocker 9 - Onboarding, Empty States, and Core-Loop UX.
 - `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run e2e -- e2e/scheduled-checks.spec.ts` - passed, 1 test.
 - `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e -- e2e/drilldowns-feedback.spec.ts` - passed, 1 test.
 - `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e -- e2e/scheduled-checks.spec.ts` - passed, 1 test.
-- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e` - passed, 8 tests.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e` - passed after merging latest `origin/main`, 8 tests.
 
 ## Visual and Manual Verification Notes
 
