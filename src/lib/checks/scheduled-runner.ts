@@ -41,21 +41,52 @@ export async function runDueScheduledChecks({
   limit?: number;
   checkId?: string;
 }): Promise<ScheduledCheckBatchResult> {
-  const checks = await loadSchedulableChecks({
-    supabase,
-    now,
-    limit: checkId ? 1 : limit,
-    checkId,
-  });
+  const pageLimit = Math.max(checkId ? 1 : limit, 1);
+  const attemptedCheckIds = new Set<string>();
+  const summary: ScheduledCheckBatchResult = {
+    attempted: 0,
+    completed: 0,
+    skipped: 0,
+    failed: 0,
+  };
 
-  return runScheduledCheckBatch({
-    checks,
-    now,
-    limit,
-    checkId,
-    executeCheckRun: ({ agencyId, checkId, scheduledFor, trigger }) =>
-      executeCheckRun({ supabase, agencyId, checkId, scheduledFor, trigger }),
-  });
+  while (true) {
+    const checks = await loadSchedulableChecks({
+      supabase,
+      now,
+      limit: pageLimit,
+      checkId,
+      excludeCheckIds: [...attemptedCheckIds],
+    });
+
+    if (!checks.length) {
+      break;
+    }
+
+    for (const check of checks) {
+      attemptedCheckIds.add(check.id);
+    }
+
+    const pageResult = await runScheduledCheckBatch({
+      checks,
+      now,
+      limit: pageLimit,
+      checkId,
+      executeCheckRun: ({ agencyId, checkId, scheduledFor, trigger }) =>
+        executeCheckRun({ supabase, agencyId, checkId, scheduledFor, trigger }),
+    });
+
+    summary.attempted += pageResult.attempted;
+    summary.completed += pageResult.completed;
+    summary.skipped += pageResult.skipped;
+    summary.failed += pageResult.failed;
+
+    if (checkId || checks.length < pageLimit) {
+      break;
+    }
+  }
+
+  return summary;
 }
 
 export async function runScheduledCheckBatch({
@@ -121,17 +152,20 @@ export async function loadSchedulableChecks({
   now = new Date(),
   limit = 150,
   checkId,
+  excludeCheckIds = [],
 }: {
   supabase: SupabaseClient;
   now?: Date;
   limit?: number;
   checkId?: string;
+  excludeCheckIds?: string[];
 }): Promise<SchedulableCheck[]> {
   const { data: checks, error: checksError } = await supabase
     .rpc("get_due_health_checks", {
       p_now: now.toISOString(),
       p_limit: limit,
       p_check_id: checkId ?? null,
+      p_exclude_check_ids: excludeCheckIds,
     });
 
   if (checksError) {

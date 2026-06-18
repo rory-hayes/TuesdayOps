@@ -374,10 +374,10 @@ Supabase Cron triggers scheduled checks through database functions rather than a
 ```txt
 public.trigger_due_check_sweep() returns bigint
 public.configure_due_check_cron(schedule_expression text default '*/5 * * * *') returns text
-public.get_due_health_checks(p_now timestamptz, p_limit integer, p_check_id uuid) returns table
+public.get_due_health_checks(p_now timestamptz, p_limit integer, p_check_id uuid, p_exclude_check_ids uuid[]) returns table
 ```
 
-`trigger_due_check_sweep()` reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, then calls the protected Next.js scheduler route with `pg_net`. `get_due_health_checks()` selects enabled health checks whose latest completed run is older than their workflow frequency, so large tenants are not scanned through an arbitrary app-side batch. These functions revoke execution from `public`, `anon`, and `authenticated`, and grant execution to `service_role`.
+`trigger_due_check_sweep()` reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, then calls the protected Next.js scheduler route with `pg_net`. `get_due_health_checks()` selects enabled health checks whose latest completed run is older than their workflow frequency, so large tenants are not scanned through an arbitrary app-side batch. The optional `p_exclude_check_ids` argument lets one scheduler sweep page past checks already attempted in that sweep, including checks that remain due because their execution failed before a run could be persisted. These functions revoke execution from `public`, `anon`, and `authenticated`, and grant execution to `service_role`.
 
 Monthly report draft automation is app-side today. The protected route is `POST /api/scheduler/run-monthly-reports`, and it uses `clients.report_automation_enabled`, `clients.next_report_due_on`, and `clients.last_report_generated_at` to generate due prior-month report drafts.
 

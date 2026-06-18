@@ -182,6 +182,77 @@ describe("check execution persistence helpers", () => {
     expect(workflowUpdates).toEqual([]);
   });
 
+  it("skips duplicate scheduled windows before calling the workflow endpoint", async () => {
+    const { supabase, inserts, workflowUpdates } = createExecutionSupabase({
+      existingScheduledRunResponse: {
+        data: { id: "existing-run", workflow_id: "workflow-1" },
+        error: null,
+      },
+    });
+
+    await expect(
+      executeCheckRun({
+        supabase,
+        agencyId: "agency-1",
+        checkId: "check-1",
+        trigger: "scheduled",
+        scheduledFor: "2026-06-13T12:05:00.000Z",
+      }),
+    ).resolves.toEqual({
+      status: "skipped",
+      reason: "duplicate_scheduled_window",
+      workflowId: "workflow-1",
+    });
+
+    expect(runHttpCheck).not.toHaveBeenCalled();
+    expect(createOrUpdateIssueForCheckRun).not.toHaveBeenCalled();
+    expect(inserts).toEqual([]);
+    expect(workflowUpdates).toEqual([]);
+  });
+
+  it("creates issues for degraded scheduled runs and updates workflow health", async () => {
+    const degradedResult = {
+      ...healthyResult,
+      status: "degraded" as const,
+      assertionResults: [
+        {
+          type: "latency_under" as const,
+          passed: false,
+          message: "Expected latency under 100ms.",
+        },
+      ],
+    };
+    vi.mocked(runHttpCheck).mockResolvedValue(degradedResult);
+    vi.mocked(createOrUpdateIssueForCheckRun).mockResolvedValue({ id: "issue-1", created: true });
+    const { supabase, workflowUpdates } = createExecutionSupabase();
+
+    await expect(
+      executeCheckRun({
+        supabase,
+        agencyId: "agency-1",
+        checkId: "check-1",
+        trigger: "scheduled",
+        scheduledFor: "2026-06-13T12:05:00.000Z",
+      }),
+    ).resolves.toEqual({
+      status: "completed",
+      checkRunId: "run-1",
+      workflowId: "workflow-1",
+      runStatus: "degraded",
+    });
+
+    expect(createOrUpdateIssueForCheckRun).toHaveBeenCalledWith({
+      supabase,
+      context: expect.objectContaining({
+        agencyId: "agency-1",
+        checkId: "check-1",
+        checkRunId: "run-1",
+        status: "degraded",
+      }),
+    });
+    expect(workflowUpdates).toContainEqual(expect.objectContaining({ status: "degraded" }));
+  });
+
   it("throws when check run persistence fails for a non-idempotent error", async () => {
     vi.mocked(runHttpCheck).mockResolvedValue(healthyResult);
     const { supabase } = createExecutionSupabase({
@@ -341,11 +412,16 @@ function buildCheckRow(overrides: Record<string, unknown> = {}) {
 function createExecutionSupabase({
   checkResponse = { data: buildCheckRow(), error: null },
   runInsertResponse = { data: { id: "run-1" }, error: null },
+  existingScheduledRunResponse = { data: null, error: null },
   recentRunsResponse = { data: [{ status: "healthy", latency_ms: 120 }], error: null },
   workflowUpdateResponse = { error: null },
 }: {
   checkResponse?: { data: unknown; error: { message: string } | null };
   runInsertResponse?: { data: { id: string } | null; error: { code?: string; message: string } | null };
+  existingScheduledRunResponse?: {
+    data: { id: string; workflow_id: string } | null;
+    error: { message: string } | null;
+  };
   recentRunsResponse?: { data: Array<{ status: string; latency_ms: number }> | null; error: unknown };
   workflowUpdateResponse?: { error: { message: string } | null };
 } = {}) {
@@ -367,6 +443,22 @@ function createExecutionSupabase({
       }
 
       if (table === "check_runs") {
+        const existingRunQuery = {
+          eq() {
+            return this;
+          },
+          maybeSingle: async () => existingScheduledRunResponse,
+        };
+        const recentRunsQuery = {
+          eq() {
+            return this;
+          },
+          order() {
+            return this;
+          },
+          limit: async () => recentRunsResponse,
+        };
+
         return {
           insert(payload: unknown) {
             inserts.push(payload);
@@ -378,16 +470,12 @@ function createExecutionSupabase({
               single: async () => runInsertResponse,
             };
           },
-          select() {
-            return {
-              eq() {
-                return this;
-              },
-              order() {
-                return this;
-              },
-              limit: async () => recentRunsResponse,
-            };
+          select(columns?: string) {
+            if (columns?.includes("workflow_id")) {
+              return existingRunQuery;
+            }
+
+            return recentRunsQuery;
           },
         };
       }
