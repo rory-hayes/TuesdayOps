@@ -7,7 +7,7 @@ import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { buildHealthCheckConfig } from "@/lib/checks/config";
 import { executeCheckRun } from "@/lib/checks/execution";
-import { buildCheckDisableUpdate } from "@/lib/checks/lifecycle";
+import { buildCheckDisableUpdate, formatCheckConfigValidationError } from "@/lib/checks/lifecycle";
 import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
@@ -37,13 +37,15 @@ const runCheckFormSchema = z.object({
 
 const updateCheckFormSchema = createCheckFormSchema.omit({ workflowId: true }).extend({
   checkId: z.string().uuid(),
+  workflowId: z.string().uuid().optional(),
 });
 
 export async function createCheckAction(formData: FormData) {
-  const parsed = createCheckFormSchema.safeParse(Object.fromEntries(formData));
+  const rawInput = Object.fromEntries(formData);
+  const parsed = createCheckFormSchema.safeParse(rawInput);
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Check details did not pass validation.")}`);
+    redirect(buildCheckValidationRedirect(rawInput, formatCheckConfigValidationError(parsed.error.issues)));
   }
 
   const workspace = await requireWorkspace();
@@ -83,10 +85,11 @@ export async function createCheckAction(formData: FormData) {
 }
 
 export async function updateCheckAction(formData: FormData) {
-  const parsed = updateCheckFormSchema.safeParse(Object.fromEntries(formData));
+  const rawInput = Object.fromEntries(formData);
+  const parsed = updateCheckFormSchema.safeParse(rawInput);
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Check update did not pass validation.")}`);
+    redirect(buildCheckValidationRedirect(rawInput, formatCheckConfigValidationError(parsed.error.issues)));
   }
 
   const workspace = await requireWorkspace();
@@ -298,6 +301,7 @@ function buildWorkflowRedirect(
   workflowId: string,
   values: {
     notice?: string;
+    error?: string;
     tab?: string;
   },
 ): string {
@@ -311,5 +315,25 @@ function buildWorkflowRedirect(
     params.set("notice", values.notice);
   }
 
+  if (values.error) {
+    params.set("error", values.error);
+  }
+
   return `/workflows/${workflowId}?${params.toString()}`;
+}
+
+function buildCheckValidationRedirect(rawInput: Record<string, FormDataEntryValue>, error: string): string {
+  const workflowId = typeof rawInput.workflowId === "string" && z.string().uuid().safeParse(rawInput.workflowId).success
+    ? rawInput.workflowId
+    : undefined;
+  const returnTab = typeof rawInput.returnTab === "string" ? rawInput.returnTab : undefined;
+
+  if (workflowId) {
+    return buildWorkflowRedirect(workflowId, {
+      error,
+      tab: returnTab,
+    });
+  }
+
+  return `/checks?error=${encodeURIComponent(error)}`;
 }

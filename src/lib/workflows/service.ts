@@ -8,7 +8,6 @@ import { requireWorkspace } from "@/lib/auth/workspace";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import { canCreateWorkflow } from "@/lib/billing/limits";
 import { buildHealthCheckConfig } from "@/lib/checks/config";
-import type { WorkflowAuthConfig } from "@/lib/checks/runner";
 import type { Workflow } from "@/lib/domain/types";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
@@ -20,7 +19,13 @@ import { assertResolvedWorkflowEndpointIsSafe } from "@/lib/security/endpoint-ur
 import { encryptJsonPayload } from "@/lib/security/secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { buildWorkflowArchiveUpdate } from "@/lib/workflows/lifecycle";
+import {
+  buildPrimaryHealthCheckMutation,
+  buildWorkflowArchiveUpdate,
+  buildWorkflowAuthConfig,
+  buildWorkflowAuthUpdate,
+  buildWorkflowSettingsUpdate,
+} from "@/lib/workflows/lifecycle";
 import { fetchOpenApiImportPlan, parseWorkflowImport } from "@/lib/workflows/onboarding";
 
 const workflowBaseFormSchema = z.object({
@@ -265,16 +270,18 @@ export async function updateWorkflowAction(formData: FormData) {
 
   const updateResult = await supabase
     .from("workflows")
-    .update({
-      name: parsed.data.name,
-      type: parsed.data.type,
-      environment: parsed.data.environment,
-      endpoint_url: endpointUrl,
-      method: parsed.data.method,
-      ...authUpdate,
-      check_frequency_minutes: parsed.data.checkFrequencyMinutes,
-      included_in_reports: parsed.data.includedInReports === "on",
-    })
+    .update(buildWorkflowSettingsUpdate({
+      input: {
+        name: parsed.data.name,
+        type: parsed.data.type,
+        environment: parsed.data.environment,
+        method: parsed.data.method,
+        checkFrequencyMinutes: parsed.data.checkFrequencyMinutes,
+        includedInReports: parsed.data.includedInReports === "on",
+      },
+      endpointUrl,
+      authUpdate,
+    }))
     .eq("agency_id", workspace.agency.id)
     .eq("id", parsed.data.id)
     .select("id")
@@ -414,7 +421,7 @@ async function createWorkflowWithHealthCheck({
     redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow endpoint did not pass safety validation."))}`);
   }
 
-  const authConfig = buildAuthConfig(input);
+  const authConfig = input.authType === "none" ? null : buildWorkflowAuthConfig(input);
   let encryptedAuthConfig = null;
 
   try {
@@ -476,42 +483,6 @@ async function createWorkflowWithHealthCheck({
   return workflow.id as string;
 }
 
-function buildAuthConfig(input: WorkflowCreateInput): WorkflowAuthConfig | null {
-  if (input.authType === "none") {
-    return null;
-  }
-
-  if (input.authType === "bearer") {
-    if (!input.authSecret) {
-      throw new Error("Bearer auth requires a token.");
-    }
-
-    return { type: "bearer", token: input.authSecret };
-  }
-
-  if (input.authType === "api_key_header") {
-    if (!input.authHeaderName || !input.authSecret) {
-      throw new Error("API key auth requires a header name and secret.");
-    }
-
-    return {
-      type: "api_key_header",
-      headerName: input.authHeaderName,
-      value: input.authSecret,
-    };
-  }
-
-  if (!input.basicUsername || !input.authSecret) {
-    throw new Error("Basic auth requires a username and password.");
-  }
-
-  return {
-    type: "basic",
-    username: input.basicUsername,
-    password: input.authSecret,
-  };
-}
-
 async function loadWorkflowAuthState({
   supabase,
   agencyId,
@@ -534,54 +505,6 @@ async function loadWorkflowAuthState({
     id: string;
     auth_type: Workflow["authType"];
     encrypted_auth_config: ReturnType<typeof encryptJsonPayload> | null;
-  };
-}
-
-function buildWorkflowAuthUpdate({
-  input,
-  current,
-}: {
-  input: z.infer<typeof workflowUpdateFormSchema>;
-  current: {
-    auth_type: Workflow["authType"];
-    encrypted_auth_config: ReturnType<typeof encryptJsonPayload> | null;
-  };
-}) {
-  if (input.authType === "none") {
-    return {
-      auth_type: "none" as const,
-      encrypted_auth_config: null,
-    };
-  }
-
-  if (!input.authSecret) {
-    if (current.auth_type === input.authType && current.encrypted_auth_config) {
-      return {
-        auth_type: input.authType,
-      };
-    }
-
-    throw new Error("Enter a new auth secret before enabling or changing workflow authentication.");
-  }
-
-  return {
-    auth_type: input.authType,
-    encrypted_auth_config: encryptJsonPayload(buildAuthConfig({
-      clientId: "",
-      name: input.name,
-      type: input.type,
-      environment: input.environment,
-      endpointUrl: input.endpointUrl,
-      method: input.method,
-      authType: input.authType,
-      authSecret: input.authSecret,
-      authHeaderName: input.authHeaderName,
-      basicUsername: input.basicUsername,
-      checkFrequencyMinutes: input.checkFrequencyMinutes,
-      expectedStatus: input.expectedStatus,
-      maxLatencyMs: input.maxLatencyMs,
-      timeoutMs: input.timeoutMs,
-    })),
   };
 }
 
@@ -612,18 +535,20 @@ async function upsertPrimaryHealthCheck({
     throw new Error(`Health check could not be loaded: ${lookupError.message}`);
   }
 
-  const schedule = `Every ${frequencyMinutes} minutes`;
+  const mutation = buildPrimaryHealthCheckMutation({
+    existingCheckId: (existingCheck as { id: string } | null)?.id,
+    agencyId,
+    workflowId,
+    frequencyMinutes,
+    configJson,
+  });
 
-  if (existingCheck) {
+  if (mutation.mode === "update") {
     const updateResult = await supabase
       .from("checks")
-      .update({
-        config_json: configJson,
-        schedule,
-        enabled: true,
-      })
+      .update(mutation.values)
       .eq("agency_id", agencyId)
-      .eq("id", (existingCheck as { id: string }).id)
+      .eq("id", mutation.checkId)
       .select("id")
       .maybeSingle();
 
@@ -631,15 +556,7 @@ async function upsertPrimaryHealthCheck({
     return;
   }
 
-  const { error } = await supabase.from("checks").insert({
-    agency_id: agencyId,
-    workflow_id: workflowId,
-    name: "Endpoint health check",
-    type: "health",
-    config_json: configJson,
-    schedule,
-    enabled: true,
-  });
+  const { error } = await supabase.from("checks").insert(mutation.values);
 
   if (error) {
     throw new Error(`Health check could not be created: ${error.message}`);
