@@ -140,6 +140,7 @@ test("enabled health checks run through the protected scheduled runner", async (
   expect(secondRuns).toHaveLength(firstRuns.length);
 
   await page.goto(`/workflows/${workflowId}`, { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   await expect(page.getByText("failed").first()).toBeVisible();
   await testInfo.attach("scheduled-workflow", {
     body: await page.screenshot({ fullPage: false }),
@@ -147,6 +148,7 @@ test("enabled health checks run through the protected scheduled runner", async (
   });
 
   await page.goto("/issues", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   await expect(page.getByText(latestIssue.title)).toBeVisible();
   await testInfo.attach("scheduled-issue", {
     body: await page.screenshot({ fullPage: false }),
