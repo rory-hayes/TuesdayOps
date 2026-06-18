@@ -145,7 +145,11 @@ describe("issue server actions", () => {
     );
 
     expect(assertPersistentRateLimit).toHaveBeenCalledWith(expect.objectContaining({
-      scope: "manual-check-run",
+      scope: "manual-check-run-agency",
+      identifier: "agency-1",
+    }));
+    expect(assertPersistentRateLimit).toHaveBeenCalledWith(expect.objectContaining({
+      scope: "manual-check-run-user",
       identifier: "agency-1:user-1",
     }));
     expect(executeCheckRun).toHaveBeenCalledWith(expect.objectContaining({

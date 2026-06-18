@@ -66,7 +66,7 @@ npx vitest run src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api
 npx vitest run src/lib/data/operational-data.test.ts src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api/reports/[reportId]/download/route.test.ts' src/lib/run-logs/service.test.ts
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run lint
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run typecheck
-PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npx vitest run src/lib/data/operational-data.test.ts src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api/reports/[reportId]/download/route.test.ts' src/lib/run-logs/service.test.ts src/lib/checks/execution.test.ts src/lib/issues/operations.test.ts
+PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npx vitest run src/lib/data/operational-data.test.ts src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api/reports/[reportId]/download/route.test.ts' src/lib/run-logs/service.test.ts src/lib/checks/execution.test.ts src/lib/issues/operations.test.ts src/lib/issues/service.test.ts
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run test
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run build
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run e2e -- e2e/reports.spec.ts
@@ -76,8 +76,8 @@ Results:
 
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- Focused tenant/security/report/API tests: passed, 6 files and 32 tests.
-- `npm run test`: passed, 58 files and 316 tests.
+- Focused tenant/security/report/API tests: passed, 7 files and 40 tests on the final merged tree.
+- `npm run test`: passed, 61 files and 334 tests on the final merged tree.
 - `npm run build`: passed.
 - `npm run e2e -- e2e/reports.spec.ts`: passed on the main worktree with configured `.env.local`, 1 Playwright test. Earlier branch-worktree attempts either skipped or failed because Supabase public env vars were not configured there.
 - `git diff --check`: passed.
