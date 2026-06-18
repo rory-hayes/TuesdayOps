@@ -7,7 +7,7 @@ export const seedData: TuesdayOpsSeedData = {
     id: agencyId,
     name: "TuesdayOps Studio",
     slug: "tuesdayops-studio",
-    primaryColor: "#7C6CF2",
+    primaryColor: "#18181B",
     plan: "Design Partner",
     billingStatus: "active",
   },

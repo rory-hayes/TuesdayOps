@@ -38,7 +38,7 @@ Acceptance:
 ### T0.3 Add base design system
 
 - [x] Configure typography.
-- [x] Configure muted lavender primary theme.
+- [x] Configure neutral zinc/charcoal primary theme.
 - [x] Add common Card, Badge, Button, Table patterns.
 - [x] Add app shell layout.
 

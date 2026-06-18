@@ -312,7 +312,7 @@ function WorkflowPassRateChart({ points }: { points: ChartPoint[] }) {
                   <path
                     d={chart.line}
                     fill="none"
-                    stroke="rgb(109,93,224)"
+                    stroke="rgb(39,39,42)"
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -326,7 +326,7 @@ function WorkflowPassRateChart({ points }: { points: ChartPoint[] }) {
                     cy={point.y}
                     r="3"
                     fill="white"
-                    stroke="rgb(109,93,224)"
+                    stroke="rgb(39,39,42)"
                     strokeWidth="2"
                     vectorEffect="non-scaling-stroke"
                   >

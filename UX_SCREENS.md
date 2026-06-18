@@ -13,7 +13,7 @@ The UI should feel:
 Visual style:
 
 - soft white/off-white background
-- muted lavender primary accent
+- neutral zinc/charcoal primary accent
 - dark slate typography
 - restrained status colors
 - rounded cards

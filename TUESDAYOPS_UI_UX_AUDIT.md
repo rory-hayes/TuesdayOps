@@ -27,7 +27,7 @@ Date: 2026-06-17
 
 ## Design Changes Made
 
-- Tuned global UI tokens to a neutral background, quieter borders/shadows, and one muted lavender primary accent.
+- Tuned global UI tokens to a neutral background, quieter borders/shadows, and one neutral zinc/charcoal primary accent.
 - Updated primary button styling and onboarding/Add workflow selected states to use the shared primary accent.
 - Reframed Overview as an operations cockpit with agency context, reports due, and recent check runs.
 - Replaced inline client table editing with a focused edit/archive modal.
@@ -83,4 +83,3 @@ Date: 2026-06-17
 - `npm run build` - passed.
 - `npm run e2e` - initially exposed selector/pending-state issues after the new Run Check CTA; fixed and reran.
 - `npm run e2e` - final pass: 8 passed.
-

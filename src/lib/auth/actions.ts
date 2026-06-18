@@ -44,7 +44,7 @@ const agencySchema = z.object({
     .string()
     .trim()
     .regex(/^#[0-9A-Fa-f]{6}$/)
-    .default("#7C6CF2"),
+    .default("#18181B"),
 });
 
 export async function signInAction(formData: FormData) {

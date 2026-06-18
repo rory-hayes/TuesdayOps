@@ -85,7 +85,7 @@ The UI must be clean, calm, and agency-friendly.
 Use the design direction from the mockups:
 
 - soft white/off-white background
-- muted lavender primary accent
+- neutral zinc/charcoal primary accent
 - restrained semantic colors
 - rounded cards
 - generous whitespace

@@ -34,15 +34,15 @@ export function MiniLineChart({
             preserveAspectRatio="none"
             className="h-full w-full overflow-visible"
           >
-            <path d={path.area} fill="rgba(124,108,242,0.12)" />
-            <path d={path.line} fill="none" stroke="rgb(124,108,242)" strokeWidth="3" strokeLinecap="round" />
+            <path d={path.area} fill="rgba(24,24,27,0.08)" />
+            <path d={path.line} fill="none" stroke="rgb(39,39,42)" strokeWidth="2" strokeLinecap="round" />
             {path.points.map((point, index) => (
               <circle
                 key={`${point.x}-${point.y}`}
                 cx={point.x}
                 cy={point.y}
                 r="3"
-                fill="rgb(124,108,242)"
+                fill="rgb(39,39,42)"
               >
                 <title>{getTooltipLabel(points[index], suffix)}</title>
               </circle>

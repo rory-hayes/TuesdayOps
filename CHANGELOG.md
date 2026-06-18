@@ -88,3 +88,4 @@ Track meaningful product and engineering changes here.
 - Reworked the Overview right rail into a compact tabbed action center for issues, runs, checks, readiness, and report proof to reduce page scanning and scrolling.
 - Moved Action Center into its own left-navigation destination under Overview, with workflow-style tabs and a cleaner Overview focused on portfolio health.
 - Replaced the oversized workflow detail pass-rate graphic with a compact fixed-scale trend chart that uses sober gridlines and sparse-data context.
+- Re-tuned the dashboard accent system from lavender to neutral zinc/charcoal so buttons, links, focus states, and charts match the left navigation.

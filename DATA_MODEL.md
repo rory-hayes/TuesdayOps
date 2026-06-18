@@ -11,7 +11,7 @@ id uuid primary key
 name text not null
 slug text unique not null
 logo_url text
-primary_color text default '#7C6CF2'
+primary_color text default '#18181B'
 plan text default 'starter'
 billing_customer_id text
 billing_subscription_id text

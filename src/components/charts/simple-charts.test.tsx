@@ -8,7 +8,7 @@ describe("MiniLineChart", () => {
   afterEach(() => cleanup());
 
   it("renders accessible point tooltips with labels and values", () => {
-    render(
+    const { container } = render(
       <MiniLineChart
         label="Pass-rate trend"
         suffix="%"
@@ -22,5 +22,6 @@ describe("MiniLineChart", () => {
     expect(screen.getByText("Latest 86%")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Jun 16: 92%" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Jun 17: 86%" })).toBeTruthy();
+    expect(container.querySelector('path[stroke="rgb(39,39,42)"]')).toBeTruthy();
   });
 });
