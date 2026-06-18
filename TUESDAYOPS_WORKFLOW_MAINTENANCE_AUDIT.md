@@ -99,6 +99,14 @@ set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npx vitest r
 set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run test
 set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run build
 set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run e2e -- e2e/workflow-onboarding.spec.ts
+git fetch origin main
+git merge --no-edit origin/main
+npm run lint
+npm run typecheck
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npx vitest run src/lib/workflows/lifecycle.test.ts src/lib/checks/lifecycle.test.ts src/lib/security/secrets.test.ts src/lib/checks/config.test.ts src/components/workflows/workflow-detail-page.test.tsx src/lib/checks/rate-limits.test.ts src/lib/workflows/import-fetch.test.ts src/lib/checks/scheduled-runner.test.ts src/lib/reports/aggregation.test.ts src/lib/issues/service.test.ts
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run test
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run build
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run e2e -- e2e/workflow-onboarding.spec.ts
 ```
 
 ## Verification Results
@@ -127,6 +135,13 @@ set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run e2e 
 - Second final `npm run test`: passed, 61 test files and 342 tests.
 - Second final `npm run build`: passed.
 - Second final workflow UI E2E with real QA Supabase env: `npm run e2e -- e2e/workflow-onboarding.spec.ts` passed, 1 Playwright test.
+- A later `origin/main` update with issue-lifecycle maintenance notes was merged cleanly before final main integration.
+- Third final `npm run lint`: passed.
+- Third final `npm run typecheck`: passed.
+- Third final focused workflow/check/security/import/scheduler/report/issue tests: passed, 10 test files and 49 tests.
+- Third final `npm run test`: passed, 62 test files and 351 tests.
+- Third final `npm run build`: passed.
+- Third final workflow UI E2E with real QA Supabase env: `npm run e2e -- e2e/workflow-onboarding.spec.ts` passed, 1 Playwright test.
 
 ## Remaining Gaps
 
