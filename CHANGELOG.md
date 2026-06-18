@@ -86,3 +86,4 @@ Track meaningful product and engineering changes here.
 - Added visible inline JSON validation feedback for health-check and synthetic test-pack JSON textareas, with accessible error state coverage from the final core offering E2E gate.
 - Added hover and keyboard-focus tooltips to pass-rate trend charts so each plotted point explains its date and value.
 - Reworked the Overview right rail into a compact tabbed action center for issues, runs, checks, readiness, and report proof to reduce page scanning and scrolling.
+- Moved Action Center into its own left-navigation destination under Overview, with workflow-style tabs and a cleaner Overview focused on portfolio health.

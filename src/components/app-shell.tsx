@@ -6,6 +6,7 @@ import {
   Cog6ToothIcon,
   DocumentTextIcon,
   ExclamationTriangleIcon,
+  QueueListIcon,
   ShieldCheckIcon,
   Square2StackIcon,
   UsersIcon,
@@ -19,6 +20,7 @@ import type { WorkspaceContext } from "@/lib/auth/workspace";
 
 const navigation = [
   { label: "Overview", href: "/", icon: ChartBarSquareIcon },
+  { label: "Action Center", href: "/action-center", icon: QueueListIcon },
   { label: "Clients", href: "/clients", icon: UsersIcon },
   { label: "Workflows", href: "/workflows", icon: Square2StackIcon },
   { label: "Checks", href: "/checks", icon: ShieldCheckIcon },

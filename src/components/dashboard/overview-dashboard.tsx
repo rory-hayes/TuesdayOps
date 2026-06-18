@@ -1,13 +1,11 @@
 import Link from "next/link";
 import { StatusBadge } from "@/components/status-badge";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
-import { OverviewActionCenter } from "@/components/dashboard/overview-action-center";
 import { MiniBarChart, MiniLineChart } from "@/components/charts/simple-charts";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { getOpenIssues, getPortfolioSummary, getWorkflowHealthRows } from "@/lib/domain/summaries";
+import { getPortfolioSummary, getWorkflowHealthRows } from "@/lib/domain/summaries";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
-import { buildOperationalReliability } from "@/lib/production/operational-reliability";
 import {
   buildChecksRunSeries,
   buildIssuesBySeveritySeries,
@@ -25,17 +23,11 @@ export function OverviewDashboard({
   error?: string;
 }) {
   const summary = getPortfolioSummary(data);
-  const openIssues = getOpenIssues(data);
   const workflowRows = getWorkflowHealthRows(data);
-  const scheduledChecks = data.checks.filter((check) => check.enabled).slice(0, 4);
   const today = new Date().toISOString().slice(0, 10);
   const reportsDue = data.clients.filter(
     (client) => !client.archived && client.nextReportDueOn && client.nextReportDueOn <= today,
   ).length;
-  const recentRuns = [...data.checkRuns]
-    .sort((left, right) => new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime())
-    .slice(0, 4);
-  const reliability = buildOperationalReliability({ data });
   const passRateTrend = buildPassRateTrend(data.checkRuns);
   const checkVolume = buildChecksRunSeries(data.checkRuns);
   const issuesBySeverity = buildIssuesBySeveritySeries(data.issues);
@@ -82,69 +74,67 @@ export function OverviewDashboard({
         <MiniBarChart label="Open issues by severity" points={issuesBySeverity} tone="risk" />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
-        <section className="min-w-0">
-          <h2 className="text-base/7 font-semibold text-zinc-950">Client workflow health</h2>
-          {workflowRows.length ? (
-            <>
-              <div className="mt-4 grid gap-3 md:hidden">
-                {workflowRows.map((workflow) => (
-                  <WorkflowHealthMobileCard key={workflow.workflowId} workflow={workflow} />
-                ))}
-              </div>
-              <div className="mt-4 hidden overflow-x-auto md:block">
-                <table className="w-full min-w-[760px] text-left text-sm/6">
-                  <thead className="text-zinc-500">
-                    <tr className="border-b border-zinc-950/10">
-                      <th className="py-3 pr-6 font-medium">Workflow</th>
-                      <th className="px-6 py-3 font-medium">Client</th>
-                      <th className="px-6 py-3 font-medium">Status</th>
-                      <th className="px-6 py-3 font-medium">Pass rate</th>
-                      <th className="px-6 py-3 font-medium">Latency</th>
-                      <th className="px-6 py-3 font-medium">Issues</th>
-                      <th className="py-3 pl-6 font-medium">Last check</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {workflowRows.map((workflow) => (
-                      <tr key={workflow.workflowId} className="border-b border-zinc-950/5 last:border-0">
-                        <td className="py-3 pr-6 font-medium text-zinc-950">
-                          <Link href={`/workflows/${workflow.workflowId}`} className="hover:text-zinc-700">
-                            {workflow.workflowName}
-                          </Link>
-                        </td>
-                        <td className="px-6 py-3 text-zinc-500">{workflow.clientName}</td>
-                        <td className="px-6 py-3">
-                          <StatusBadge status={workflow.status} />
-                        </td>
-                        <td className="px-6 py-3">{formatPercentage(workflow.passRate)}</td>
-                        <td className="px-6 py-3">{workflow.latencyMs} ms</td>
-                        <td className="px-6 py-3">{workflow.openIssues}</td>
-                        <td className="py-3 pl-6 text-zinc-500">
-                          {formatWorkflowLastCheck(workflow.lastCheckAt)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          ) : (
-            <p className="mt-4 rounded-lg bg-zinc-50 p-4 text-sm/6 text-zinc-500 ring-1 ring-zinc-950/5">
-              Add a client and workflow to start tracking live endpoint health.
+      <section className="min-w-0">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+          <div>
+            <h2 className="text-base/7 font-semibold text-zinc-950">Client workflow health</h2>
+            <p className="mt-1 text-sm/6 text-zinc-500">
+              Core monitored workflows across active clients.
             </p>
-          )}
-        </section>
-
-        <OverviewActionCenter
-          openIssues={openIssues}
-          recentRuns={recentRuns}
-          scheduledChecks={scheduledChecks}
-          workflows={data.workflows}
-          clients={data.clients}
-          reportsDue={reportsDue}
-          reliability={reliability}
-        />
+          </div>
+          <Link href="/action-center" className="text-sm font-medium text-primary hover:text-primary/80">
+            Open action center
+          </Link>
+        </div>
+        {workflowRows.length ? (
+          <>
+            <div className="mt-4 grid gap-3 md:hidden">
+              {workflowRows.map((workflow) => (
+                <WorkflowHealthMobileCard key={workflow.workflowId} workflow={workflow} />
+              ))}
+            </div>
+            <div className="mt-4 hidden overflow-x-auto md:block">
+              <table className="w-full min-w-[760px] text-left text-sm/6">
+                <thead className="text-zinc-500">
+                  <tr className="border-b border-zinc-950/10">
+                    <th className="py-3 pr-6 font-medium">Workflow</th>
+                    <th className="px-6 py-3 font-medium">Client</th>
+                    <th className="px-6 py-3 font-medium">Status</th>
+                    <th className="px-6 py-3 font-medium">Pass rate</th>
+                    <th className="px-6 py-3 font-medium">Latency</th>
+                    <th className="px-6 py-3 font-medium">Issues</th>
+                    <th className="py-3 pl-6 font-medium">Last check</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {workflowRows.map((workflow) => (
+                    <tr key={workflow.workflowId} className="border-b border-zinc-950/5 last:border-0">
+                      <td className="py-3 pr-6 font-medium text-zinc-950">
+                        <Link href={`/workflows/${workflow.workflowId}`} className="hover:text-zinc-700">
+                          {workflow.workflowName}
+                        </Link>
+                      </td>
+                      <td className="px-6 py-3 text-zinc-500">{workflow.clientName}</td>
+                      <td className="px-6 py-3">
+                        <StatusBadge status={workflow.status} />
+                      </td>
+                      <td className="px-6 py-3">{formatPercentage(workflow.passRate)}</td>
+                      <td className="px-6 py-3">{workflow.latencyMs} ms</td>
+                      <td className="px-6 py-3">{workflow.openIssues}</td>
+                      <td className="py-3 pl-6 text-zinc-500">
+                        {formatWorkflowLastCheck(workflow.lastCheckAt)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p className="mt-4 rounded-lg bg-zinc-50 p-4 text-sm/6 text-zinc-500 ring-1 ring-zinc-950/5">
+            Add a client and workflow to start tracking live endpoint health.
+          </p>
+        )}
       </section>
     </div>
   );
