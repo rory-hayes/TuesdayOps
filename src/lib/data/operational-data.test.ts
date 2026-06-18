@@ -3,6 +3,26 @@ import { getOperationalData, getReportSourceData } from "@/lib/data/operational-
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
 describe("getOperationalData", () => {
+  it("applies the active agency boundary to every tenant-owned data set it loads", async () => {
+    const { supabase, agencyFilters } = createTracingSupabaseStub();
+
+    await getOperationalData(makeAgency(), supabase);
+
+    expect(agencyFilters).toEqual({
+      clients: ["agency-1"],
+      workflows: ["agency-1"],
+      checks: ["agency-1"],
+      check_runs: ["agency-1"],
+      issues: ["agency-1"],
+      test_packs: ["agency-1"],
+      test_cases: ["agency-1"],
+      test_runs: ["agency-1"],
+      workflow_api_keys: ["agency-1"],
+      reports: ["agency-1"],
+      report_items: ["agency-1"],
+    });
+  });
+
   it("does not invent a last check time for workflows without runs", async () => {
     const clientUpdatedAt = "2026-06-14T10:00:00.000Z";
     const data = await getOperationalData(makeAgency(), createSupabaseStub({
@@ -165,6 +185,50 @@ function createSupabaseStub(tables: Record<string, unknown[]>) {
       return createQuery({ data: tables[table] ?? [], error: null });
     },
   } as never;
+}
+
+function createTracingSupabaseStub() {
+  const agencyFilters: Record<string, string[]> = {};
+  const supabase = {
+    from(table: string) {
+      return createTracingQuery({
+        data: [],
+        error: null,
+        onEq(column, value) {
+          if (column === "agency_id") {
+            agencyFilters[table] = [...(agencyFilters[table] ?? []), String(value)];
+          }
+        },
+      });
+    },
+  } as never;
+
+  return { supabase, agencyFilters };
+}
+
+function createTracingQuery(result: {
+  data: unknown[];
+  error: null;
+  onEq: (column: string, value: unknown) => void;
+}) {
+  const query = {
+    select: () => query,
+    eq: (column: string, value: unknown) => {
+      result.onEq(column, value);
+      return query;
+    },
+    is: () => query,
+    in: () => query,
+    gte: () => query,
+    lte: () => query,
+    order: () => query,
+    limit: () => query,
+    maybeSingle: async () => ({ data: result.data[0] ?? null, error: result.error }),
+    then: (resolve: (value: { data: unknown[]; error: null }) => unknown, reject?: (reason: unknown) => unknown) =>
+      Promise.resolve({ data: result.data, error: result.error }).then(resolve, reject),
+  };
+
+  return query;
 }
 
 function createQuery(result: { data: unknown[]; error: null }) {
