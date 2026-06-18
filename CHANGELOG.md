@@ -77,3 +77,5 @@ Track meaningful product and engineering changes here.
 - Hardened abuse protection for core-loop check surfaces with agency-wide manual/scheduled execution buckets, global pre-auth public run-log throttling, repeated invalid bearer caching, and redacted invalid-key investigation logs.
 - Hardened tenant isolation for issue-to-check-run links with a composite `agency_id` foreign key, added migration/RLS contract coverage, and expanded focused cross-tenant report/run-log tests.
 - Hardened the issue lifecycle inbox with tenant-scoped maintenance notes, audited report-inclusion changes, stale snooze cleanup on assign/resolve/ignore, and focused action/report/snooze regression coverage.
+- Hardened scheduled monitoring reliability with paged database due-check sweeps, same-window duplicate preflight before outbound checks, route-level failure-count visibility coverage, and a scheduled-monitoring audit.
+- Tightened report truth boundaries so excluded workflows no longer affect report check totals, pass-rate math, issue counts, or recommendations, and PDF exports now include every stored core report module shown in the generated report preview.

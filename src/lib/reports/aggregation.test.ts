@@ -185,6 +185,61 @@ describe("report aggregation", () => {
     ]);
   });
 
+  it("excludes check runs and issues from workflows not included in reports", () => {
+    const draft = buildReportDraft({
+      data: {
+        ...baseData,
+        workflows: [
+          ...baseData.workflows,
+          {
+            ...baseData.workflows[0],
+            id: "workflow-excluded",
+            name: "Internal admin workflow",
+            includedInReports: false,
+          },
+        ],
+        checkRuns: [
+          ...baseData.checkRuns,
+          {
+            ...baseData.checkRuns[0],
+            id: "run-excluded",
+            workflowId: "workflow-excluded",
+            checkId: "check-excluded",
+            status: "failed",
+            completedAt: "2026-06-10T10:00:01.000Z",
+          },
+        ],
+        issues: [
+          ...baseData.issues,
+          {
+            ...baseData.issues[0],
+            id: "issue-excluded",
+            workflowId: "workflow-excluded",
+            checkRunId: "run-excluded",
+            status: "open",
+            title: "Excluded workflow outage",
+            detectedAt: "2026-06-10T10:00:01.000Z",
+            resolvedAt: undefined,
+            resolutionNote: undefined,
+          },
+        ],
+      },
+      clientId: "client-1",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+    });
+    const serialized = JSON.stringify(draft);
+
+    expect(draft.metrics).toMatchObject({
+      workflowsMonitored: 1,
+      checksRun: 2,
+      issuesCaught: 1,
+      issuesResolved: 1,
+      passRate: 50,
+    });
+    expect(serialized).not.toContain("Excluded workflow outage");
+  });
+
   it("does not include raw response summaries or secret-like material", () => {
     const draft = buildReportDraft({
       data: baseData,
