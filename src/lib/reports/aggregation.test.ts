@@ -418,4 +418,54 @@ describe("report aggregation", () => {
     expect(serialized).not.toContain("admin@example.com");
     expect(serialized).not.toContain("super-secret");
   });
+
+  it("uses reportable, detected, and resolved issue state when aggregating reports", () => {
+    const draft = buildReportDraft({
+      data: {
+        ...baseData,
+        issues: [
+          {
+            ...baseData.issues[0],
+            id: "reportable-open",
+            status: "open",
+            reportable: true,
+            detectedAt: "2026-06-10T10:00:00.000Z",
+            resolvedAt: undefined,
+            resolutionNote: undefined,
+          },
+          {
+            ...baseData.issues[0],
+            id: "reportable-resolved",
+            status: "resolved",
+            reportable: true,
+            detectedAt: "2026-05-28T10:00:00.000Z",
+            resolvedAt: "2026-06-12T10:00:00.000Z",
+            resolutionNote: "Fixed during the report period.",
+          },
+          {
+            ...baseData.issues[0],
+            id: "not-reportable",
+            status: "resolved",
+            reportable: false,
+            detectedAt: "2026-06-13T10:00:00.000Z",
+            resolvedAt: "2026-06-14T10:00:00.000Z",
+          },
+        ],
+      },
+      clientId: "client-1",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+    });
+
+    expect(draft.metrics).toMatchObject({
+      issuesCaught: 1,
+      issuesResolved: 1,
+    });
+    expect(draft.items.find((item) => item.category === "issues_caught")?.body).toContain(
+      "1 reportable issues were caught.",
+    );
+    expect(draft.items.find((item) => item.category === "issues_resolved")?.body).toContain(
+      "Latest resolution: Fixed during the report period.",
+    );
+  });
 });

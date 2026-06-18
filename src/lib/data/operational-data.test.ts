@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getOperationalData, getReportSourceData } from "@/lib/data/operational-data";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
 describe("getOperationalData", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("applies the active agency boundary to every tenant-owned data set it loads", async () => {
     const { supabase, agencyFilters } = createTracingSupabaseStub();
 
@@ -70,6 +74,46 @@ describe("getOperationalData", () => {
 
     expect(data.workflows[0]?.lastCheckAt).toBeUndefined();
     expect(data.clients[0]?.lastActivityAt).toBe(clientUpdatedAt);
+  });
+
+  it("shows expired snoozed issues as open so they reappear in the maintenance inbox", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T12:00:00.000Z"));
+
+    const data = await getOperationalData(makeAgency(), createSupabaseStub({
+      clients: [clientRow()],
+      workflows: [workflowRow()],
+      issues: [
+        {
+          id: "issue-1",
+          agency_id: "agency-1",
+          client_id: "client-1",
+          workflow_id: "workflow-1",
+          check_run_id: null,
+          test_run_id: null,
+          owner_user_id: null,
+          severity: "high",
+          status: "snoozed",
+          title: "Expired snooze",
+          description: "The issue should be visible again.",
+          suggested_action: "Review the latest failure.",
+          reportable: true,
+          occurrence_count: 1,
+          maintenance_note: "Waiting on upstream fix.",
+          resolved_at: null,
+          resolution_note: null,
+          created_at: "2026-06-16T12:00:00.000Z",
+          last_seen_at: "2026-06-16T12:00:00.000Z",
+          snoozed_until: "2026-06-17T12:00:00.000Z",
+        },
+      ],
+    }));
+
+    expect(data.issues[0]).toMatchObject({
+      status: "open",
+      maintenanceNote: "Waiting on upstream fix.",
+      snoozedUntil: "2026-06-17T12:00:00.000Z",
+    });
   });
 
   it("loads uncapped client-period source rows for reports", async () => {
@@ -176,6 +220,48 @@ function makeAgency(): TuesdayOpsSeedData["agency"] {
     primaryColor: "#7C6CF2",
     plan: "starter",
     billingStatus: "trialing",
+  };
+}
+
+function clientRow() {
+  return {
+    id: "client-1",
+    agency_id: "agency-1",
+    name: "Acme",
+    slug: "acme",
+    industry: "Services",
+    report_recipient_email: "ops@example.invalid",
+    report_automation_enabled: false,
+    next_report_due_on: null,
+    last_report_generated_at: null,
+    notes: "",
+    archived_at: null,
+    created_at: "2026-06-14T09:00:00.000Z",
+    updated_at: "2026-06-14T09:00:00.000Z",
+  };
+}
+
+function workflowRow() {
+  return {
+    id: "workflow-1",
+    agency_id: "agency-1",
+    client_id: "client-1",
+    name: "Lead intake",
+    type: "http_endpoint",
+    environment: "production",
+    endpoint_url: "https://example.com/health",
+    method: "GET",
+    auth_type: "none",
+    check_frequency_minutes: 60,
+    status: "unknown",
+    pass_rate: 0,
+    latency_ms: 0,
+    monthly_cost: 0,
+    last_check_at: null,
+    included_in_reports: true,
+    archived_at: null,
+    created_at: "2026-06-14T09:05:00.000Z",
+    updated_at: "2026-06-14T09:05:00.000Z",
   };
 }
 
