@@ -67,10 +67,12 @@ Production blocks:
 - loopback IPs such as `127.0.0.1` and `::1`
 - private IPv4 ranges such as `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`
 - link-local and cloud metadata ranges such as `169.254.0.0/16`
-- IPv6 unique-local and link-local ranges
+- carrier-grade NAT, documentation, benchmarking, multicast, and reserved IPv4 ranges
+- IPv6 unique-local, link-local, multicast, documentation, and IPv4-mapped blocked ranges
 - `.local` hostnames
 - public-looking hostnames that resolve to blocked private, loopback, link-local, or metadata addresses at execution/import time
-- DNS rebinding between validation and execution is reduced by connecting workflow checks to the previously validated public address while preserving the original Host/SNI for HTTP(S).
+- DNS rebinding between validation and execution is reduced by connecting workflow checks and remote OpenAPI imports to the previously validated public address while preserving the original Host/SNI for HTTP(S).
+- Remote OpenAPI URL imports use server-only DNS resolution, pinned transport, response-size limits, timeouts, and blocked redirects.
 
 Local development and private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`. Do not enable this in production.
 
