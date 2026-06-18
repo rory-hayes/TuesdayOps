@@ -106,6 +106,7 @@ type IssueRow = {
   suggested_action: string;
   reportable: boolean;
   occurrence_count: number | null;
+  maintenance_note: string | null;
   resolved_at: string | null;
   resolution_note: string | null;
   created_at: string;
@@ -595,6 +596,7 @@ function mapIssue(row: IssueRow): Issue {
     occurrenceCount: row.occurrence_count ?? 1,
     detectedAt: row.created_at,
     lastSeenAt: row.last_seen_at ?? row.created_at,
+    maintenanceNote: row.maintenance_note ?? undefined,
     resolvedAt: row.resolved_at ?? undefined,
     resolutionNote: row.resolution_note ?? undefined,
     snoozedUntil: row.snoozed_until ?? undefined,

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import type { IssueSeverity, IssueStatus } from "@/lib/domain/types";
-import { CheckCircle2, Filter, LifeBuoy, Play, UserPlus, XCircle } from "lucide-react";
+import { CheckCircle2, Filter, LifeBuoy, MessageSquare, Play, UserPlus, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
   resolveIssueAction,
   setIssueReportableAction,
   snoozeIssueAction,
+  updateIssueNoteAction,
 } from "@/lib/issues/service";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatDateTime, formatRelativeTime } from "@/lib/formatting";
@@ -199,6 +200,12 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                     <p className="text-xs uppercase text-muted-foreground">Suggested action</p>
                     <p className="mt-1 leading-6">{issue.suggestedAction}</p>
                   </div>
+                  {issue.maintenanceNote ? (
+                    <div className="mt-3 rounded-lg bg-muted p-3">
+                      <p className="text-xs uppercase text-muted-foreground">Maintenance note</p>
+                      <p className="mt-1 leading-6">{issue.maintenanceNote}</p>
+                    </div>
+                  ) : null}
                   {issue.resolutionNote ? (
                     <div className="mt-3 rounded-lg bg-muted p-3">
                       <p className="text-xs uppercase text-muted-foreground">Resolution note</p>
@@ -228,6 +235,28 @@ export function IssuesPage({ data, filters = {} }: { data: TuesdayOpsSeedData; f
                       </FormSubmitButton>
                     </form>
                   </div>
+                  <form action={updateIssueNoteAction} className="mt-4 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <input type="hidden" name="issueId" value={issue.id} />
+                    <label className="block text-sm font-medium">
+                      Maintenance note
+                      <textarea
+                        name="maintenanceNote"
+                        rows={2}
+                        minLength={3}
+                        maxLength={1000}
+                        defaultValue={issue.maintenanceNote ?? ""}
+                        placeholder="Add a team note"
+                        className="mt-2 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                        required
+                      />
+                    </label>
+                    <div className="flex items-center">
+                      <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Saving...">
+                        <MessageSquare size={14} aria-hidden="true" />
+                        Save note
+                      </FormSubmitButton>
+                    </div>
+                  </form>
                   {issue.status === "resolved" || issue.status === "ignored" ? null : (
                     <div className="mt-4 grid gap-3 lg:grid-cols-[auto_auto_auto_minmax(260px,1fr)]">
                       <form action={assignIssueToMeAction}>
