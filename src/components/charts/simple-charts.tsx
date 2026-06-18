@@ -21,16 +21,62 @@ export function MiniLineChart({
     <figure className={cn("rounded-lg border border-border p-3", className)}>
       <figcaption className="flex items-center justify-between gap-3 text-sm">
         <span className="font-medium">{label}</span>
-        <span className="text-xs text-muted-foreground">{points.at(-1)?.value ?? 0}{suffix}</span>
+        <span className="text-xs text-muted-foreground">
+          Latest {points.at(-1)?.value ?? 0}{suffix}
+        </span>
       </figcaption>
       {points.length ? (
-        <svg role="img" aria-label={label} viewBox="0 0 240 80" className={plotClassName}>
-          <path d={path.area} fill="rgba(124,108,242,0.12)" />
-          <path d={path.line} fill="none" stroke="rgb(124,108,242)" strokeWidth="3" strokeLinecap="round" />
-          {path.points.map((point) => (
-            <circle key={`${point.x}-${point.y}`} cx={point.x} cy={point.y} r="3" fill="rgb(124,108,242)" />
-          ))}
-        </svg>
+        <div className={cn("relative", plotClassName)}>
+          <svg
+            role="img"
+            aria-label={label}
+            viewBox="0 0 240 80"
+            preserveAspectRatio="none"
+            className="h-full w-full overflow-visible"
+          >
+            <path d={path.area} fill="rgba(124,108,242,0.12)" />
+            <path d={path.line} fill="none" stroke="rgb(124,108,242)" strokeWidth="3" strokeLinecap="round" />
+            {path.points.map((point, index) => (
+              <circle
+                key={`${point.x}-${point.y}`}
+                cx={point.x}
+                cy={point.y}
+                r="3"
+                fill="rgb(124,108,242)"
+              >
+                <title>{getTooltipLabel(points[index], suffix)}</title>
+              </circle>
+            ))}
+          </svg>
+          {path.points.map((point, index) => {
+            const tooltip = getTooltipLabel(points[index], suffix);
+
+            return (
+              <button
+                key={`${points[index].label}-${point.x}-${point.y}`}
+                type="button"
+                aria-label={tooltip}
+                title={tooltip}
+                className="group absolute h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                style={{
+                  left: `${(point.x / path.width) * 100}%`,
+                  top: `${(point.y / path.height) * 100}%`,
+                }}
+              >
+                <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-4 ring-transparent transition group-hover:ring-primary/15 group-focus-visible:ring-primary/20" />
+                <span
+                  className={cn(
+                    "pointer-events-none absolute z-10 hidden min-w-max rounded-md border border-zinc-950/10 bg-zinc-950 px-2 py-1 text-xs font-medium text-white shadow-lg group-hover:block group-focus-visible:block",
+                    point.y < 22 ? "top-full mt-2" : "bottom-full mb-2",
+                    index === 0 ? "left-0" : index === path.points.length - 1 ? "right-0" : "left-1/2 -translate-x-1/2",
+                  )}
+                >
+                  {tooltip}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       ) : (
         <p className={cn("mt-3 flex h-24 items-center rounded-md bg-muted p-3 text-xs text-muted-foreground", chartClassName)}>
           No chart data yet.
@@ -89,5 +135,13 @@ function buildLinePath(points: ChartPoint[]) {
     ? `${line} L ${coordinates.at(-1)?.x ?? padding} ${height - padding} L ${padding} ${height - padding} Z`
     : "";
 
-  return { line, area, points: coordinates };
+  return { line, area, points: coordinates, width, height };
+}
+
+function getTooltipLabel(point: ChartPoint | undefined, suffix: string) {
+  if (!point) {
+    return `No data${suffix}`;
+  }
+
+  return `${point.label}: ${point.value}${suffix}`;
 }
