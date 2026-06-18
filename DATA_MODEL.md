@@ -201,6 +201,7 @@ description text
 suggested_action text
 owner_user_id uuid references profiles(id)
 reportable boolean default true
+maintenance_note text
 last_seen_at timestamptz default now()
 occurrence_count integer default 1
 alert_sent_at timestamptz
@@ -338,9 +339,11 @@ action text check in (
   'test_case.updated',
   'test_case.archived',
   'issue.assigned',
+  'issue.noted',
   'issue.resolved',
   'issue.ignored',
   'issue.snoozed',
+  'issue.reportable_updated',
   'report.generated',
   'report.pdf_generated',
   'report.send_attempted',

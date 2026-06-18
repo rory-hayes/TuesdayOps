@@ -21,6 +21,10 @@ const resolveIssueSchema = issueIdSchema.extend({
   resolutionNote: z.string().trim().min(3).max(600),
 });
 
+const noteIssueSchema = issueIdSchema.extend({
+  maintenanceNote: z.string().trim().min(3).max(1000),
+});
+
 const reportableIssueSchema = issueIdSchema.extend({
   reportable: z.enum(["true", "false"]),
 });
@@ -40,7 +44,7 @@ export async function assignIssueToMeAction(formData: FormData) {
   const supabase = await createClient();
   const updateResult = await supabase
     .from("issues")
-    .update({ owner_user_id: workspace.user.id, status: "in_review" })
+    .update({ owner_user_id: workspace.user.id, status: "in_review", snoozed_until: null })
     .eq("agency_id", workspace.agency.id)
     .eq("id", parsed.data.issueId)
     .select("id")
@@ -62,6 +66,42 @@ export async function assignIssueToMeAction(formData: FormData) {
   revalidatePath("/issues");
   revalidatePath("/");
   redirect(buildIssueRedirect(parsed.data.returnTo, "/issues?status=in_review", "Issue assigned."));
+}
+
+export async function updateIssueNoteAction(formData: FormData) {
+  const parsed = noteIssueSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    redirect(`/issues?error=${encodeURIComponent("Add a note before saving.")}`);
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  const updateResult = await supabase
+    .from("issues")
+    .update({ maintenance_note: parsed.data.maintenanceNote })
+    .eq("agency_id", workspace.agency.id)
+    .eq("id", parsed.data.issueId)
+    .select("id")
+    .maybeSingle();
+
+  try {
+    assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
+  } catch (error) {
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue note could not be saved.")));
+  }
+
+  await recordIssueAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    issueId: parsed.data.issueId,
+    action: "issue.noted",
+    metadata: { hasNote: true },
+  });
+
+  revalidatePath("/issues");
+  revalidatePath(`/issues/${parsed.data.issueId}`);
+  redirect(buildIssueRedirect(parsed.data.returnTo, "/issues", "Issue note saved."));
 }
 
 export async function rerunIssueCheckAction(formData: FormData) {
@@ -136,6 +176,7 @@ export async function resolveIssueAction(formData: FormData) {
       status: "resolved",
       resolved_at: new Date().toISOString(),
       resolution_note: parsed.data.resolutionNote,
+      snoozed_until: null,
     })
     .eq("agency_id", workspace.agency.id)
     .eq("id", parsed.data.issueId)
@@ -184,6 +225,14 @@ export async function setIssueReportableAction(formData: FormData) {
     redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue report setting could not be saved.")));
   }
 
+  await recordIssueAuditEvent({
+    agencyId: workspace.agency.id,
+    actorUserId: workspace.user.id,
+    issueId: parsed.data.issueId,
+    action: "issue.reportable_updated",
+    metadata: { reportable },
+  });
+
   revalidatePath("/issues");
   revalidatePath(`/issues/${parsed.data.issueId}`);
   revalidatePath("/reports");
@@ -211,6 +260,7 @@ export async function ignoreIssueAction(formData: FormData) {
       reportable: false,
       resolved_at: new Date().toISOString(),
       resolution_note: "Ignored for reporting.",
+      snoozed_until: null,
     })
     .eq("agency_id", workspace.agency.id)
     .eq("id", parsed.data.issueId)
@@ -348,7 +398,13 @@ async function recordIssueAuditEvent({
   agencyId: string;
   actorUserId: string;
   issueId: string;
-  action: "issue.assigned" | "issue.resolved" | "issue.ignored" | "issue.snoozed";
+  action:
+    | "issue.assigned"
+    | "issue.noted"
+    | "issue.resolved"
+    | "issue.ignored"
+    | "issue.snoozed"
+    | "issue.reportable_updated";
   metadata: Record<string, unknown>;
 }) {
   try {

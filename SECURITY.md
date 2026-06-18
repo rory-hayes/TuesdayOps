@@ -155,6 +155,7 @@ Record key events:
 - check created/updated/deleted
 - check run failed
 - issue created/resolved/ignored
+- issue assigned/noted/snoozed/report-inclusion changed
 - report generated/sent
 - billing plan changed
 - user invited/removed

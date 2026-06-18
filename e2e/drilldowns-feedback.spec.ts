@@ -108,6 +108,10 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
   await expect(page.getByText("Check rerun completed.")).toBeVisible();
   await page.getByRole("button", { name: "Assign" }).click();
   await expect(page.getByText("Issue assigned.")).toBeVisible();
+  await page.getByLabel("Maintenance note").fill("Queued credential refresh before rerun-after-fix.");
+  await page.getByRole("button", { name: "Save note" }).click();
+  await expect(page.getByText("Issue note saved.")).toBeVisible();
+  await expect(page.getByText("Queued credential refresh before rerun-after-fix.")).toBeVisible();
   await page.getByLabel("Resolution note").fill("Confirmed the failed endpoint path and documented the remediation.");
   await page.getByRole("button", { name: "Resolve" }).click();
   await expect(page.getByText("Issue resolved.")).toBeVisible();
