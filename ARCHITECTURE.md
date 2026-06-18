@@ -34,17 +34,17 @@ Browser
 - Workflow, check, test pack, and test case lifecycle actions provide archive/disable/edit controls without hard-deleting operational history.
 - Workflow settings support safe credential rotation without displaying saved secrets, plus primary health-check timeout/assertion updates.
 - Manual endpoint checks run synchronously from server actions and persist redacted summaries.
-- External systems can post run metadata to `/api/public/run-log` with workflow-scoped hashed API keys. The route applies pre-auth IP/global throttling, then token-scoped throttling, stores normal `check_runs`, updates workflow health, and creates or updates issues for degraded/failed logs.
+- External systems can post run metadata to `/api/public/run-log` with workflow-scoped hashed API keys. The route applies DB-backed pre-auth IP and global throttling, short-lived in-memory rejection caching for repeated invalid bearer keys, then token-scoped throttling before storing normal `check_runs`, updating workflow health, and creating or updating issues for degraded/failed logs.
 - Workflow endpoint URLs are validated before storage and again before runner execution to reduce SSRF/private-network risk; execution/import fetches also resolve hostnames and block public-looking hosts that land on private, loopback, link-local, or metadata addresses.
 - Workflow check execution preserves the submitted endpoint URL, retries one transport/read failure, does not follow redirects, caps retained response reads, stores only redacted summaries, and pins the outbound HTTP(S) connection to the validated public address to avoid DNS rebinding between validation and execution.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
 - Issue queue actions assign, rerun the source health check, resolve with a report-safe note, snooze issues for a time-boxed period, ignore issues, and toggle report inclusion inside the tenant boundary.
 - Supabase Cron triggers the protected scheduler route every five minutes.
-- A scheduled sweep asks Postgres for enabled health checks that are actually due based on latest completed run and workflow frequency, then runs them through the shared scheduled runner.
+- A scheduled sweep asks Postgres for enabled health checks that are actually due based on latest completed run and workflow frequency, then drains due work in database-selected pages through the shared scheduled runner. Scheduled executions consume a per-agency DB-backed rate-limit bucket before each outbound check run.
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
 - Scheduled check batch failures are counted in the route response and logged with redacted check/agency context for operator visibility.
-- The scheduler trigger routes are protected by `SCHEDULER_SECRET`, cheap in-memory throttling for unauthorized due-check attempts, and DB-backed service-role rate limits for authorized scheduler calls.
+- The scheduler trigger routes are protected by `SCHEDULER_SECRET`, cheap in-memory throttling for unauthorized due-check attempts, and DB-backed service-role rate limits for authorized scheduler calls. Check execution itself also has per-agency limits so a valid high-frequency scheduler sweep cannot run unbounded tenant work.
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, support required JSON/text/regex/field assertions, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
 - Monthly reports aggregate uncapped selected-client, selected-period workflow, check, issue, synthetic run, and model/prompt comparison data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts that attach the generated PDF.
@@ -129,7 +129,7 @@ Use Supabase Cron plus the protected Next.js scheduler route for:
 
 Jobs must be idempotent where practical.
 
-Supabase Cron calls `/api/scheduler/run-due-checks` every five minutes using `pg_net` with a 45-second timeout. The request URL and scheduler secret are read from Supabase Vault secrets named `tuesdayops_app_url` and `tuesdayops_scheduler_secret`. The app uses `public.get_due_health_checks()` to select due work in the database before execution, and the database prevents duplicate scheduled runs for the same `(agency_id, check_id, scheduled_for)` window.
+Supabase Cron calls `/api/scheduler/run-due-checks` every five minutes using `pg_net` with a 45-second timeout. The request URL and scheduler secret are read from Supabase Vault secrets named `tuesdayops_app_url` and `tuesdayops_scheduler_secret`. The app uses `public.get_due_health_checks()` to select due work in the database before execution, paging with an exclusion list for already-attempted checks so one app-side batch does not starve later due checks. Scheduled execution also checks for an existing `(agency_id, check_id, scheduled_for)` run before making the outbound workflow request, and the database prevents duplicate scheduled runs for the same window.
 
 Monthly report automation calls `/api/scheduler/run-monthly-reports` with the same scheduler secret. It finds opted-in active clients whose `next_report_due_on` is due, builds a reproducible prior-month draft from stored source data, advances `next_report_due_on`, and leaves sending/export under user control.
 
@@ -203,7 +203,7 @@ User selects client + month
 - Auth headers are encrypted at rest. Run-log API keys are generated once, shown once, and stored only as hashes plus non-secret prefixes.
 - Raw responses redacted by default.
 - Workflow check responses are bounded before summarization to avoid retaining or buffering large payloads.
-- Sensitive actions and exposed routes use DB-backed rate limits with hashed identifiers rather than raw API keys or emails.
+- Sensitive actions and exposed routes use DB-backed rate limits with hashed identifiers rather than raw API keys or emails. Manual check execution uses both agency-wide and user-scoped buckets; scheduled check execution uses an agency-wide bucket.
 - Report-safe data allowlisted.
 - Audit metadata is recursively redacted before persistence.
 - Background jobs run with service role but enforce agency boundaries manually.

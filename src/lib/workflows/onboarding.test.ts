@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   WORKFLOW_ONBOARDING_TEMPLATES,
   maskWorkflowImportSecrets,
-  fetchOpenApiImportPlan,
   parseWorkflowImport,
 } from "./onboarding";
+import { fetchOpenApiImportPlan } from "./import-fetch";
 
 describe("parseWorkflowImport", () => {
   it("turns a direct URL into a default health-check workflow plan", () => {
