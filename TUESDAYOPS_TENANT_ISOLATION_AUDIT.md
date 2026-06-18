@@ -76,10 +76,10 @@ Results:
 
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- Focused tenant/security/report/API tests: passed, 7 files and 40 tests on the final merged tree.
-- `npm run test`: passed, 61 files and 334 tests on the final merged tree.
+- Focused tenant/security/report/API tests: passed, 7 files and 42 tests on the final merged tree.
+- `npm run test`: passed, 61 files and 341 tests on the final merged tree.
 - `npm run build`: passed.
-- `npm run e2e -- e2e/reports.spec.ts`: passed on the main worktree with configured `.env.local`, 1 Playwright test. Earlier branch-worktree attempts either skipped or failed because Supabase public env vars were not configured there.
+- `npm run e2e -- e2e/reports.spec.ts`: passed on the main worktree with configured `.env.local`, 1 Playwright test. Earlier branch-worktree attempts either skipped, failed because Supabase public env vars were not configured there, or briefly hit another worktree's reused dev server before rerunning cleanly.
 - `git diff --check`: passed.
 
 Expected red before the fix:
