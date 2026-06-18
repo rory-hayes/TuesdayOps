@@ -72,7 +72,7 @@ export async function runHttpCheck({
   const startedAtDate = new Date();
   const startedAt = startedAtDate.toISOString();
   const config = parseCheckConfig(check.configJson);
-  const headers = buildHeaders(authConfig);
+  const headers = buildHeaders(workflow.authType, authConfig);
 
   try {
     const endpoint = await resolveSafeWorkflowEndpoint(workflow.endpointUrl, {
@@ -165,12 +165,15 @@ function parseCheckConfig(value: unknown): CheckConfig {
   return checkConfigSchema.parse(value);
 }
 
-function buildHeaders(authConfig?: WorkflowAuthConfig): Headers {
+function buildHeaders(
+  workflowAuthType: RunnableWorkflow["authType"],
+  authConfig?: WorkflowAuthConfig,
+): Headers {
   const headers = new Headers({
     accept: "application/json, text/plain;q=0.9, */*;q=0.8",
   });
 
-  if (!authConfig || authConfig.type === "none") {
+  if (!authConfig || authConfig.type === "none" || authConfig.type !== workflowAuthType) {
     return headers;
   }
 
