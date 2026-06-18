@@ -470,9 +470,17 @@ function WorkflowSettingsTab({ workflow, primaryCheck }: { workflow: Workflow; p
               />
               Include in reports
             </label>
-            <FormSubmitButton type="submit" className="w-fit" pendingLabel="Saving...">
-              Save workflow
-            </FormSubmitButton>
+            <div className="flex flex-wrap items-center gap-3">
+              <FormSubmitButton type="submit" className="w-fit" pendingLabel="Saving...">
+                Save workflow
+              </FormSubmitButton>
+              <Link
+                href={`/workflows/${workflow.id}`}
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-white px-3.5 text-sm font-semibold text-zinc-700 shadow-sm transition-colors hover:bg-muted focus:outline-none focus:ring-2 focus:ring-primary/20"
+              >
+                Cancel
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>
@@ -515,6 +523,7 @@ function ChecksCard({ checks }: { checks: Check[] }) {
                 <summary className="cursor-pointer text-sm font-medium">Edit check settings</summary>
                 <form action={updateCheckAction} className="mt-3 grid gap-3">
                   <input type="hidden" name="checkId" value={check.id} />
+                  <input type="hidden" name="workflowId" value={check.workflowId} />
                   <input type="hidden" name="returnTab" value="checks" />
                   <Input label="Name" name="name" placeholder="Endpoint responds with 200" defaultValue={check.name} required />
                   <HealthCheckFields configJson={check.configJson} />

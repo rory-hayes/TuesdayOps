@@ -67,6 +67,14 @@ PATH="/opt/homebrew/opt/node/bin:$PATH" NEXT_PUBLIC_APP_URL="http://localhost:31
 PATH="/opt/homebrew/opt/node/bin:$PATH" NEXT_PUBLIC_APP_URL="http://localhost:3100" PLAYWRIGHT_SKIP_WEBSERVER=true npx playwright test e2e/drilldowns-feedback.spec.ts e2e/scheduled-checks.spec.ts
 PATH="/opt/homebrew/opt/node/bin:$PATH" NEXT_PUBLIC_APP_URL="http://localhost:3100" PLAYWRIGHT_SKIP_WEBSERVER=true npx playwright test e2e/workflow-onboarding.spec.ts
 PATH="/opt/homebrew/opt/node/bin:$PATH" NEXT_PUBLIC_APP_URL="http://localhost:3100" PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e
+git fetch origin main
+git merge --no-edit origin/main
+PATH="/opt/homebrew/opt/node/bin:$PATH" npm run lint
+PATH="/opt/homebrew/opt/node/bin:$PATH" npm run typecheck
+PATH="/opt/homebrew/opt/node/bin:$PATH" npx vitest run src/lib/checks/runner.test.ts src/lib/checks/assertions.test.ts src/lib/checks/execution.test.ts src/lib/checks/config.test.ts src/lib/security/endpoint-url.test.ts src/lib/security/endpoint-url-server.test.ts
+PATH="/opt/homebrew/opt/node/bin:$PATH" npm run test
+PATH="/opt/homebrew/opt/node/bin:$PATH" npm run build
+PATH="/opt/homebrew/opt/node/bin:$PATH" NEXT_PUBLIC_APP_URL="http://localhost:3100" PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e
 ```
 
 Results so far:
@@ -93,10 +101,18 @@ Results so far:
   - `e2e/scheduled-checks.spec.ts`
   - `e2e/workflow-onboarding.spec.ts`
 - Full E2E passed: 8 files, 8 tests.
+- Pulled latest `origin/main`, resolved conflicts in `CHANGELOG.md`, `e2e/reports.spec.ts`, and check lifecycle/service helpers while preserving upstream rate-limit/validation work and this branch's status-specific run feedback.
+- Post-merge verification passed:
+  - `npm run lint`
+  - `npm run typecheck`
+  - focused check/assertion/persistence/URL suite: 6 files, 49 tests
+  - `npm run test`: 62 files, 353 tests
+  - `npm run build`
+  - `npm run e2e`: 8 files, 8 tests
 
 ## Remaining Verification
 
-- Pull latest `main`, resolve conflicts if any, rerun verification, merge to `main`, and push only if all checks pass.
+- Merge verified branch into local `main`.
 
 ## Remaining Gaps
 

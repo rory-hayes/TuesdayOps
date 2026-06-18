@@ -31,9 +31,17 @@ export function buildReportDraft({
   );
   const workflowIds = new Set(clientWorkflows.map((workflow) => workflow.id));
   const checkRuns = data.checkRuns.filter(
-    (run) => run.clientId === clientId && isWithinPeriod(run.completedAt, periodStart, periodEnd),
+    (run) =>
+      run.clientId === clientId &&
+      workflowIds.has(run.workflowId) &&
+      isWithinPeriod(run.completedAt, periodStart, periodEnd),
   );
-  const reportableIssues = data.issues.filter((issue) => issue.clientId === clientId && issue.reportable);
+  const reportableIssues = data.issues.filter(
+    (issue) =>
+      issue.clientId === clientId &&
+      workflowIds.has(issue.workflowId) &&
+      issue.reportable,
+  );
   const issuesCaught = reportableIssues.filter((issue) =>
     isWithinPeriod(issue.detectedAt, periodStart, periodEnd),
   );

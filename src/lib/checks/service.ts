@@ -7,8 +7,12 @@ import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { buildHealthCheckConfig } from "@/lib/checks/config";
 import { executeCheckRun } from "@/lib/checks/execution";
-import { buildCheckDisableUpdate, buildManualCheckRunNotice } from "@/lib/checks/lifecycle";
-import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
+import {
+  buildCheckDisableUpdate,
+  buildManualCheckRunNotice,
+  formatCheckConfigValidationError,
+} from "@/lib/checks/lifecycle";
+import { assertManualCheckRunRateLimit } from "@/lib/checks/rate-limits";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -37,13 +41,15 @@ const runCheckFormSchema = z.object({
 
 const updateCheckFormSchema = createCheckFormSchema.omit({ workflowId: true }).extend({
   checkId: z.string().uuid(),
+  workflowId: z.string().uuid().optional(),
 });
 
 export async function createCheckAction(formData: FormData) {
-  const parsed = createCheckFormSchema.safeParse(Object.fromEntries(formData));
+  const rawInput = Object.fromEntries(formData);
+  const parsed = createCheckFormSchema.safeParse(rawInput);
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Check details did not pass validation.")}`);
+    redirect(buildCheckValidationRedirect(rawInput, formatCheckConfigValidationError(parsed.error.issues)));
   }
 
   const workspace = await requireWorkspace();
@@ -83,10 +89,11 @@ export async function createCheckAction(formData: FormData) {
 }
 
 export async function updateCheckAction(formData: FormData) {
-  const parsed = updateCheckFormSchema.safeParse(Object.fromEntries(formData));
+  const rawInput = Object.fromEntries(formData);
+  const parsed = updateCheckFormSchema.safeParse(rawInput);
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Check update did not pass validation.")}`);
+    redirect(buildCheckValidationRedirect(rawInput, formatCheckConfigValidationError(parsed.error.issues)));
   }
 
   const workspace = await requireWorkspace();
@@ -156,11 +163,9 @@ export async function runCheckAction(formData: FormData) {
   let workflowId: string | undefined;
   let runNotice = "Check run completed and history was updated.";
   try {
-    await assertPersistentRateLimit({
-      scope: "manual-check-run",
-      identifier: `${workspace.agency.id}:${workspace.user.id}`,
-      limit: 20,
-      windowSeconds: 600,
+    await assertManualCheckRunRateLimit({
+      agencyId: workspace.agency.id,
+      userId: workspace.user.id,
     });
     const result = await executeCheckRun({
       supabase,
@@ -302,6 +307,7 @@ function buildWorkflowRedirect(
   workflowId: string,
   values: {
     notice?: string;
+    error?: string;
     tab?: string;
   },
 ): string {
@@ -315,5 +321,25 @@ function buildWorkflowRedirect(
     params.set("notice", values.notice);
   }
 
+  if (values.error) {
+    params.set("error", values.error);
+  }
+
   return `/workflows/${workflowId}?${params.toString()}`;
+}
+
+function buildCheckValidationRedirect(rawInput: Record<string, FormDataEntryValue>, error: string): string {
+  const workflowId = typeof rawInput.workflowId === "string" && z.string().uuid().safeParse(rawInput.workflowId).success
+    ? rawInput.workflowId
+    : undefined;
+  const returnTab = typeof rawInput.returnTab === "string" ? rawInput.returnTab : undefined;
+
+  if (workflowId) {
+    return buildWorkflowRedirect(workflowId, {
+      error,
+      tab: returnTab,
+    });
+  }
+
+  return `/checks?error=${encodeURIComponent(error)}`;
 }

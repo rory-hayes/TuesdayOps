@@ -18,6 +18,8 @@ Use Supabase RLS where possible.
 
 Service-role operations must manually verify agency membership before acting.
 
+Tenant-owned child tables use composite foreign keys with `agency_id` where practical so records cannot point across tenant boundaries by UUID. This includes client/workflow/check/check-run/report/test-pack relationships and issue links to both health check runs and synthetic test runs.
+
 ## Secrets
 
 Secrets include:
@@ -67,21 +69,28 @@ Production blocks:
 - loopback IPs such as `127.0.0.1` and `::1`
 - private IPv4 ranges such as `10.0.0.0/8`, `172.16.0.0/12`, and `192.168.0.0/16`
 - link-local and cloud metadata ranges such as `169.254.0.0/16`
-- IPv6 unique-local and link-local ranges
+- carrier-grade NAT, documentation, benchmarking, multicast, and reserved IPv4 ranges
+- IPv6 unique-local, link-local, multicast, documentation, and IPv4-mapped blocked ranges
 - `.local` hostnames
 - public-looking hostnames that resolve to blocked private, loopback, link-local, or metadata addresses at execution/import time
-- DNS rebinding between validation and execution is reduced by connecting workflow checks to the previously validated public address while preserving the original Host/SNI for HTTP(S).
+- DNS rebinding between validation and execution is reduced by connecting workflow checks and remote OpenAPI imports to the previously validated public address while preserving the original Host/SNI for HTTP(S).
+- Remote OpenAPI URL imports use server-only DNS resolution, pinned transport, response-size limits, timeouts, and blocked redirects.
 
 Local development and private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`. Do not enable this in production.
 
 ## Public route abuse controls
 
-`POST /api/public/run-log` applies two DB-backed fixed-window limits:
+`POST /api/public/run-log` applies DB-backed fixed-window limits:
 
-- a pre-auth IP/global bucket before bearer token validation or payload parsing
+- a pre-auth client-IP bucket before bearer token validation or payload parsing
+- a pre-auth global bucket before bearer token validation or payload parsing
 - a workflow-key bucket after token extraction
 
 Bucket keys are hashed before persistence so raw API keys and IP identifiers are not stored in plaintext.
+
+Repeated invalid bearer keys are also cached in process memory for a short period using a truncated SHA-256 fingerprint. This reduces repeated database lookup work for the same bad key without storing or logging the raw bearer value. The cache is per app process/instance and is best-effort only; the DB-backed pre-auth IP/global buckets remain the cross-instance deployment control.
+
+Manual health-check execution uses DB-backed agency-wide and user-scoped buckets. Scheduled health-check execution uses a DB-backed agency-wide bucket before each outbound check run. Rate-limit responses return generic safe messages plus standard retry headers and do not include token material, request bodies, auth headers, or raw workflow payloads.
 
 ## Data redaction
 
@@ -155,6 +164,7 @@ Record key events:
 - check created/updated/deleted
 - check run failed
 - issue created/resolved/ignored
+- issue assigned/noted/snoozed/report-inclusion changed
 - report generated/sent
 - billing plan changed
 - user invited/removed

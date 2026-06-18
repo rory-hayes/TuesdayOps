@@ -115,6 +115,32 @@ describe("scheduler run-due-checks route", () => {
     });
   });
 
+  it("returns scheduled runner failure counts for operator visibility", async () => {
+    vi.mocked(runDueScheduledChecks).mockResolvedValueOnce({
+      attempted: 4,
+      completed: 1,
+      skipped: 1,
+      failed: 2,
+    });
+
+    const response = await POST(
+      buildRequest({
+        ip: "203.0.113.17",
+        schedulerSecret: "scheduler-secret",
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      ok: true,
+      attempted: 4,
+      completed: 1,
+      skipped: 1,
+      failed: 2,
+    });
+  });
+
   it("applies persistent scheduler rate limits after authentication", async () => {
     vi.mocked(consumePersistentRateLimit).mockResolvedValueOnce({
       allowed: false,

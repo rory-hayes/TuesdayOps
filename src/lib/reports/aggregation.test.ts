@@ -185,6 +185,61 @@ describe("report aggregation", () => {
     ]);
   });
 
+  it("excludes check runs and issues from workflows not included in reports", () => {
+    const draft = buildReportDraft({
+      data: {
+        ...baseData,
+        workflows: [
+          ...baseData.workflows,
+          {
+            ...baseData.workflows[0],
+            id: "workflow-excluded",
+            name: "Internal admin workflow",
+            includedInReports: false,
+          },
+        ],
+        checkRuns: [
+          ...baseData.checkRuns,
+          {
+            ...baseData.checkRuns[0],
+            id: "run-excluded",
+            workflowId: "workflow-excluded",
+            checkId: "check-excluded",
+            status: "failed",
+            completedAt: "2026-06-10T10:00:01.000Z",
+          },
+        ],
+        issues: [
+          ...baseData.issues,
+          {
+            ...baseData.issues[0],
+            id: "issue-excluded",
+            workflowId: "workflow-excluded",
+            checkRunId: "run-excluded",
+            status: "open",
+            title: "Excluded workflow outage",
+            detectedAt: "2026-06-10T10:00:01.000Z",
+            resolvedAt: undefined,
+            resolutionNote: undefined,
+          },
+        ],
+      },
+      clientId: "client-1",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+    });
+    const serialized = JSON.stringify(draft);
+
+    expect(draft.metrics).toMatchObject({
+      workflowsMonitored: 1,
+      checksRun: 2,
+      issuesCaught: 1,
+      issuesResolved: 1,
+      passRate: 50,
+    });
+    expect(serialized).not.toContain("Excluded workflow outage");
+  });
+
   it("does not include raw response summaries or secret-like material", () => {
     const draft = buildReportDraft({
       data: baseData,
@@ -362,5 +417,55 @@ describe("report aggregation", () => {
     expect(serialized).toContain("password=[redacted]");
     expect(serialized).not.toContain("admin@example.com");
     expect(serialized).not.toContain("super-secret");
+  });
+
+  it("uses reportable, detected, and resolved issue state when aggregating reports", () => {
+    const draft = buildReportDraft({
+      data: {
+        ...baseData,
+        issues: [
+          {
+            ...baseData.issues[0],
+            id: "reportable-open",
+            status: "open",
+            reportable: true,
+            detectedAt: "2026-06-10T10:00:00.000Z",
+            resolvedAt: undefined,
+            resolutionNote: undefined,
+          },
+          {
+            ...baseData.issues[0],
+            id: "reportable-resolved",
+            status: "resolved",
+            reportable: true,
+            detectedAt: "2026-05-28T10:00:00.000Z",
+            resolvedAt: "2026-06-12T10:00:00.000Z",
+            resolutionNote: "Fixed during the report period.",
+          },
+          {
+            ...baseData.issues[0],
+            id: "not-reportable",
+            status: "resolved",
+            reportable: false,
+            detectedAt: "2026-06-13T10:00:00.000Z",
+            resolvedAt: "2026-06-14T10:00:00.000Z",
+          },
+        ],
+      },
+      clientId: "client-1",
+      periodStart: "2026-06-01",
+      periodEnd: "2026-06-30",
+    });
+
+    expect(draft.metrics).toMatchObject({
+      issuesCaught: 1,
+      issuesResolved: 1,
+    });
+    expect(draft.items.find((item) => item.category === "issues_caught")?.body).toContain(
+      "1 reportable issues were caught.",
+    );
+    expect(draft.items.find((item) => item.category === "issues_resolved")?.body).toContain(
+      "Latest resolution: Fixed during the report period.",
+    );
   });
 });

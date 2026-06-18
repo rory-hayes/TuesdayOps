@@ -1,8 +1,32 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getOperationalData, getReportSourceData } from "@/lib/data/operational-data";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
 describe("getOperationalData", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("applies the active agency boundary to every tenant-owned data set it loads", async () => {
+    const { supabase, agencyFilters } = createTracingSupabaseStub();
+
+    await getOperationalData(makeAgency(), supabase);
+
+    expect(agencyFilters).toEqual({
+      clients: ["agency-1"],
+      workflows: ["agency-1"],
+      checks: ["agency-1"],
+      check_runs: ["agency-1"],
+      issues: ["agency-1"],
+      test_packs: ["agency-1"],
+      test_cases: ["agency-1"],
+      test_runs: ["agency-1"],
+      workflow_api_keys: ["agency-1"],
+      reports: ["agency-1"],
+      report_items: ["agency-1"],
+    });
+  });
+
   it("does not invent a last check time for workflows without runs", async () => {
     const clientUpdatedAt = "2026-06-14T10:00:00.000Z";
     const data = await getOperationalData(makeAgency(), createSupabaseStub({
@@ -50,6 +74,46 @@ describe("getOperationalData", () => {
 
     expect(data.workflows[0]?.lastCheckAt).toBeUndefined();
     expect(data.clients[0]?.lastActivityAt).toBe(clientUpdatedAt);
+  });
+
+  it("shows expired snoozed issues as open so they reappear in the maintenance inbox", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-18T12:00:00.000Z"));
+
+    const data = await getOperationalData(makeAgency(), createSupabaseStub({
+      clients: [clientRow()],
+      workflows: [workflowRow()],
+      issues: [
+        {
+          id: "issue-1",
+          agency_id: "agency-1",
+          client_id: "client-1",
+          workflow_id: "workflow-1",
+          check_run_id: null,
+          test_run_id: null,
+          owner_user_id: null,
+          severity: "high",
+          status: "snoozed",
+          title: "Expired snooze",
+          description: "The issue should be visible again.",
+          suggested_action: "Review the latest failure.",
+          reportable: true,
+          occurrence_count: 1,
+          maintenance_note: "Waiting on upstream fix.",
+          resolved_at: null,
+          resolution_note: null,
+          created_at: "2026-06-16T12:00:00.000Z",
+          last_seen_at: "2026-06-16T12:00:00.000Z",
+          snoozed_until: "2026-06-17T12:00:00.000Z",
+        },
+      ],
+    }));
+
+    expect(data.issues[0]).toMatchObject({
+      status: "open",
+      maintenanceNote: "Waiting on upstream fix.",
+      snoozedUntil: "2026-06-17T12:00:00.000Z",
+    });
   });
 
   it("loads uncapped client-period source rows for reports", async () => {
@@ -159,12 +223,98 @@ function makeAgency(): TuesdayOpsSeedData["agency"] {
   };
 }
 
+function clientRow() {
+  return {
+    id: "client-1",
+    agency_id: "agency-1",
+    name: "Acme",
+    slug: "acme",
+    industry: "Services",
+    report_recipient_email: "ops@example.invalid",
+    report_automation_enabled: false,
+    next_report_due_on: null,
+    last_report_generated_at: null,
+    notes: "",
+    archived_at: null,
+    created_at: "2026-06-14T09:00:00.000Z",
+    updated_at: "2026-06-14T09:00:00.000Z",
+  };
+}
+
+function workflowRow() {
+  return {
+    id: "workflow-1",
+    agency_id: "agency-1",
+    client_id: "client-1",
+    name: "Lead intake",
+    type: "http_endpoint",
+    environment: "production",
+    endpoint_url: "https://example.com/health",
+    method: "GET",
+    auth_type: "none",
+    check_frequency_minutes: 60,
+    status: "unknown",
+    pass_rate: 0,
+    latency_ms: 0,
+    monthly_cost: 0,
+    last_check_at: null,
+    included_in_reports: true,
+    archived_at: null,
+    created_at: "2026-06-14T09:05:00.000Z",
+    updated_at: "2026-06-14T09:05:00.000Z",
+  };
+}
+
 function createSupabaseStub(tables: Record<string, unknown[]>) {
   return {
     from(table: string) {
       return createQuery({ data: tables[table] ?? [], error: null });
     },
   } as never;
+}
+
+function createTracingSupabaseStub() {
+  const agencyFilters: Record<string, string[]> = {};
+  const supabase = {
+    from(table: string) {
+      return createTracingQuery({
+        data: [],
+        error: null,
+        onEq(column, value) {
+          if (column === "agency_id") {
+            agencyFilters[table] = [...(agencyFilters[table] ?? []), String(value)];
+          }
+        },
+      });
+    },
+  } as never;
+
+  return { supabase, agencyFilters };
+}
+
+function createTracingQuery(result: {
+  data: unknown[];
+  error: null;
+  onEq: (column: string, value: unknown) => void;
+}) {
+  const query = {
+    select: () => query,
+    eq: (column: string, value: unknown) => {
+      result.onEq(column, value);
+      return query;
+    },
+    is: () => query,
+    in: () => query,
+    gte: () => query,
+    lte: () => query,
+    order: () => query,
+    limit: () => query,
+    maybeSingle: async () => ({ data: result.data[0] ?? null, error: result.error }),
+    then: (resolve: (value: { data: unknown[]; error: null }) => unknown, reject?: (reason: unknown) => unknown) =>
+      Promise.resolve({ data: result.data, error: result.error }).then(resolve, reject),
+  };
+
+  return query;
 }
 
 function createQuery(result: { data: unknown[]; error: null }) {

@@ -189,7 +189,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - endpoint health check creation, manual run execution, assertion evaluation, explicit timeout/simple assertion setup, and check run persistence
 - check disable controls and test-pack/test-case lifecycle controls
 - failed/degraded manual checks create deduped issues with severity mapping
-- issue queue filters, expandable details, source-check reruns, report inclusion toggles, assignment, resolution notes, time-boxed snooze, and ignore actions
+- issue queue filters, expandable details, source-check reruns, report inclusion toggles, assignment, maintenance notes, resolution notes, time-boxed snooze, and ignore actions
 - Supabase Cron/Vault scheduled trigger for `/api/scheduler/run-due-checks`
 - protected scheduler trigger at `/api/scheduler/run-due-checks`
 - scheduled check selection uses a database due-check selector and scheduled runs persist `trigger` and `scheduled_for` metadata with idempotent duplicate-window protection

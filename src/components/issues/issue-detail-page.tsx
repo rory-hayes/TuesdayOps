@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, CheckCircle2, Play, UserPlus, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, MessageSquare, Play, UserPlus, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -12,6 +12,7 @@ import {
   resolveIssueAction,
   setIssueReportableAction,
   snoozeIssueAction,
+  updateIssueNoteAction,
 } from "@/lib/issues/service";
 import type { Issue, TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatDateTime, formatRelativeTime } from "@/lib/formatting";
@@ -118,6 +119,13 @@ export function IssueDetailPage({
             <p className="mt-2 leading-6">{issue.suggestedAction}</p>
           </div>
 
+          {issue.maintenanceNote ? (
+            <div className="rounded-lg bg-muted p-4">
+              <p className="text-xs uppercase text-muted-foreground">Maintenance note</p>
+              <p className="mt-2 leading-6">{issue.maintenanceNote}</p>
+            </div>
+          ) : null}
+
           {checkRun || testRun ? (
             <div className="grid gap-3 md:grid-cols-3">
               <Info label="Source" value={checkRun ? "Health check run" : "Synthetic test run"} />
@@ -161,6 +169,30 @@ export function IssueDetailPage({
               </FormSubmitButton>
             </form>
           </div>
+
+          <form action={updateIssueNoteAction} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+            <input type="hidden" name="issueId" value={issue.id} />
+            <input type="hidden" name="returnTo" value={returnTo} />
+            <label className="block text-sm font-medium">
+              Maintenance note
+              <textarea
+                name="maintenanceNote"
+                rows={3}
+                minLength={3}
+                maxLength={1000}
+                defaultValue={issue.maintenanceNote ?? ""}
+                placeholder="Add a team note"
+                className="mt-2 w-full resize-none rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+                required
+              />
+            </label>
+            <div className="flex items-center">
+              <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Saving...">
+                <MessageSquare size={14} aria-hidden="true" />
+                Save note
+              </FormSubmitButton>
+            </div>
+          </form>
 
           {issue.status === "resolved" || issue.status === "ignored" ? null : (
             <div className="grid gap-3 lg:grid-cols-[auto_auto_auto_minmax(280px,1fr)]">
