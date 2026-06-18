@@ -26,11 +26,19 @@ describe("validateWorkflowEndpointUrl", () => {
 
   it("blocks private, link-local, and cloud metadata IPv4 endpoints by default", () => {
     const blocked = [
+      "http://0.0.0.0/check",
       "http://10.0.0.5/check",
+      "http://100.64.0.1/check",
       "http://172.16.0.5/check",
       "http://192.168.1.10/check",
       "http://169.254.10.10/check",
       "http://169.254.169.254/latest/meta-data",
+      "http://192.0.2.10/check",
+      "http://198.18.0.1/check",
+      "http://198.51.100.10/check",
+      "http://203.0.113.10/check",
+      "http://224.0.0.1/check",
+      "http://240.0.0.1/check",
     ];
 
     for (const endpoint of blocked) {
@@ -59,8 +67,10 @@ describe("validateWorkflowEndpointUrl", () => {
     const blocked = [
       "http://app.localhost/check",
       "http://service.local/check",
+      "http://[::ffff:127.0.0.1]/check",
       "http://[fd00::1]/check",
       "http://[fe80::1]/check",
+      "http://[ff00::1]/check",
     ];
 
     for (const endpoint of blocked) {

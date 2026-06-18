@@ -1,6 +1,4 @@
 import type { Workflow } from "@/lib/domain/types";
-import { assertSafeWorkflowEndpoint } from "@/lib/security/endpoint-url";
-
 export type WorkflowImportSource = "url" | "curl" | "openapi" | "postman";
 
 export type WorkflowOnboardingTemplate = {
@@ -110,41 +108,6 @@ export function parseWorkflowImport({
   }
 
   return parsePostmanImport(trimmed);
-}
-
-export async function fetchOpenApiImportPlan({
-  url,
-  fetcher = fetch,
-  validateUrl = (value) => assertSafeWorkflowEndpoint(value, { allowPrivateEndpoints: false }),
-}: {
-  url: string;
-  fetcher?: (url: string) => Promise<{
-    ok: boolean;
-    headers: Headers;
-    text: () => Promise<string>;
-  }>;
-  validateUrl?: (url: string) => string | Promise<string>;
-}): Promise<WorkflowImportPlan> {
-  const safeUrl = await validateUrl(url);
-  const response = await fetcher(safeUrl);
-
-  if (!response.ok) {
-    throw new Error("OpenAPI URL could not be fetched.");
-  }
-
-  const contentType = response.headers.get("content-type") ?? "";
-
-  if (contentType && !/json|ya?ml|text\/plain/i.test(contentType)) {
-    throw new Error("OpenAPI URL must return JSON or YAML.");
-  }
-
-  const body = await response.text();
-
-  if (body.length > 200_000) {
-    throw new Error("OpenAPI document is too large for quick import.");
-  }
-
-  return parseOpenApiImport(body);
 }
 
 export function maskWorkflowImportSecrets(text: string): string {

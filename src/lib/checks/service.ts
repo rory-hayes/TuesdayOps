@@ -8,7 +8,7 @@ import { requireWorkspace } from "@/lib/auth/workspace";
 import { buildHealthCheckConfig } from "@/lib/checks/config";
 import { executeCheckRun } from "@/lib/checks/execution";
 import { buildCheckDisableUpdate, formatCheckConfigValidationError } from "@/lib/checks/lifecycle";
-import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
+import { assertManualCheckRunRateLimit } from "@/lib/checks/rate-limits";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -158,11 +158,9 @@ export async function runCheckAction(formData: FormData) {
   const supabase = await createClient();
   let workflowId: string | undefined;
   try {
-    await assertPersistentRateLimit({
-      scope: "manual-check-run",
-      identifier: `${workspace.agency.id}:${workspace.user.id}`,
-      limit: 20,
-      windowSeconds: 600,
+    await assertManualCheckRunRateLimit({
+      agencyId: workspace.agency.id,
+      userId: workspace.user.id,
     });
     const result = await executeCheckRun({
       supabase,
