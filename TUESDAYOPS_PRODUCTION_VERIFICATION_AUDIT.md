@@ -68,7 +68,7 @@ Results:
 - `npm ci`: passed, 0 vulnerabilities.
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- `npm run test`: passed, 60 test files and 325 tests.
+- `npm run test`: passed, 62 test files and 351 tests.
 - `npm run build`: passed.
 - `npm run e2e`: passed, 8 Playwright tests.
 - `npm run smoke:production`: passed, 1 production smoke test.
@@ -80,7 +80,7 @@ Notes:
 - The first local `npm run e2e` attempt failed before app startup because this worktree had no `.env.local` and the Next server could not load `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - The suite was rerun with the existing local QA environment loaded without printing secret values; the rerun passed.
 - The first deployed E2E attempt skipped because QA Supabase service credentials were absent from this worktree environment. It was rerun with the same hidden QA environment loading and passed.
-- After latest `origin/main` was merged, local E2E exposed two test robustness issues: the onboarding spec could submit before the controlled client form had hydrated, and scheduled-check screenshots could inject Playwright caret-hiding styles before React hydration finished. The E2E specs were hardened with hydration/value waits, workflow-filtered issue assertions, and `caret: "initial"` screenshots; focused reruns and the full E2E suite then passed.
+- After latest `origin/main` was merged, local E2E exposed two test robustness issues: workspace creation specs could submit before the controlled client onboarding form had hydrated, and scheduled-check screenshots could inject Playwright caret-hiding styles before React hydration finished. The E2E specs were hardened with hydration/value waits across workspace creation helpers, workflow-filtered issue assertions, and `caret: "initial"` screenshots; focused reruns and the full E2E suite then passed.
 
 ## Local Core-Loop E2E
 

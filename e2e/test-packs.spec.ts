@@ -39,9 +39,14 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
   ]);
 
   await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
   if (page.url().includes("/onboarding")) {
-    await page.getByLabel("Agency name").fill(agencyName);
-    await page.getByLabel("Slug").fill(agencySlug);
+    const agencyNameInput = page.getByLabel("Agency name");
+    const agencySlugInput = page.getByLabel("Slug");
+    await agencyNameInput.fill(agencyName);
+    await agencySlugInput.fill(agencySlug);
+    await expect(agencyNameInput).toHaveValue(agencyName);
+    await expect(agencySlugInput).toHaveValue(agencySlug);
     await Promise.all([
       page.waitForURL(`${appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),
