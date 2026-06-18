@@ -6,7 +6,7 @@ import { z } from "zod";
 import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { executeCheckRun } from "@/lib/checks/execution";
-import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
+import { assertManualCheckRunRateLimit } from "@/lib/checks/rate-limits";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -76,11 +76,9 @@ export async function rerunIssueCheckAction(formData: FormData) {
   let workflowId: string | undefined;
 
   try {
-    await assertPersistentRateLimit({
-      scope: "manual-check-run",
-      identifier: `${workspace.agency.id}:${workspace.user.id}`,
-      limit: 20,
-      windowSeconds: 600,
+    await assertManualCheckRunRateLimit({
+      agencyId: workspace.agency.id,
+      userId: workspace.user.id,
     });
 
     const issue = await loadIssueRerunContext({

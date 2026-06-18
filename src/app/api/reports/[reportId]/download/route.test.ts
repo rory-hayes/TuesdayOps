@@ -60,6 +60,30 @@ describe("report PDF download route", () => {
     expect(createAdminClient).not.toHaveBeenCalled();
   });
 
+  it("returns 404 for cross-tenant report ids before touching storage", async () => {
+    vi.mocked(getWorkspaceContext).mockResolvedValue({
+      workspace: { agency: { id: "agency-2" } },
+    } as never);
+    const reportClient = createReportClient({
+      reportResponse: { data: null, error: { message: "No rows returned" } },
+    });
+    vi.mocked(createClient).mockResolvedValue(reportClient);
+
+    const response = await GET(new Request("https://app.example.com/api/reports/report-1/download"), {
+      params: Promise.resolve({ reportId: "report-1" }),
+    });
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({ error: "Report PDF could not be found." });
+    expect((reportClient as unknown as { filters: Array<{ column: string; value: string }> }).filters)
+      .toEqual([
+        { column: "agency_id", value: "agency-2" },
+        { column: "id", value: "report-1" },
+      ]);
+    expect(getOperationalData).not.toHaveBeenCalled();
+    expect(createAdminClient).not.toHaveBeenCalled();
+  });
+
   it("returns 404 when storage download fails", async () => {
     vi.mocked(getWorkspaceContext).mockResolvedValue({
       workspace: { agency: { id: "agency-1" } },
@@ -129,7 +153,9 @@ function createReportClient({
     error: { message: string } | null;
   };
 } = {}) {
+  const filters: Array<{ column: string; value: string }> = [];
   return {
+    filters,
     from(table: string) {
       if (table !== "reports") {
         throw new Error(`Unexpected table ${table}`);
@@ -139,7 +165,8 @@ function createReportClient({
         select() {
           return this;
         },
-        eq() {
+        eq(column: string, value: string) {
+          filters.push({ column, value });
           return this;
         },
         single: async () => reportResponse,

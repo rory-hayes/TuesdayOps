@@ -16,12 +16,12 @@ import {
   assertSafeWorkflowEndpoint,
   shouldAllowPrivateWorkflowEndpoints,
 } from "@/lib/security/endpoint-url";
-import { assertResolvedWorkflowEndpointIsSafe } from "@/lib/security/endpoint-url-server";
 import { encryptJsonPayload } from "@/lib/security/secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { fetchOpenApiImportPlan } from "@/lib/workflows/import-fetch";
 import { buildWorkflowArchiveUpdate } from "@/lib/workflows/lifecycle";
-import { fetchOpenApiImportPlan, parseWorkflowImport } from "@/lib/workflows/onboarding";
+import { parseWorkflowImport } from "@/lib/workflows/onboarding";
 
 const workflowBaseFormSchema = z.object({
   clientId: z.string().uuid(),
@@ -133,7 +133,6 @@ export async function createWorkflowFromImportAction(formData: FormData) {
     plan = parsed.data.importSource === "openapi" && /^https?:\/\//i.test(importText)
       ? await fetchOpenApiImportPlan({
           url: importText,
-          validateUrl: (url) => assertResolvedWorkflowEndpointIsSafe(url, { allowPrivateEndpoints: false }),
         })
       : parseWorkflowImport({
           source: parsed.data.importSource,

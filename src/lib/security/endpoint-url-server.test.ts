@@ -45,6 +45,17 @@ describe("assertResolvedWorkflowEndpointIsSafe", () => {
     ).rejects.toThrow("Private or local workflow endpoints are blocked in production.");
   });
 
+  it("blocks public-looking hosts when any DNS answer resolves to a reserved range", async () => {
+    lookupMock.mockResolvedValue([
+      { address: "93.184.216.34", family: 4 },
+      { address: "198.18.0.1", family: 4 },
+    ] as never);
+
+    await expect(
+      assertResolvedWorkflowEndpointIsSafe("https://benchmark-proxy.example.com/check"),
+    ).rejects.toThrow("Private or local workflow endpoints are blocked in production.");
+  });
+
   it("blocks literal unsafe endpoints before DNS lookup", async () => {
     await expect(
       assertResolvedWorkflowEndpointIsSafe("http://127.0.0.1:3000/check"),
