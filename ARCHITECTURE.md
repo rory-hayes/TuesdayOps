@@ -38,9 +38,9 @@ Browser
 - Workflow endpoint URLs are validated before storage and again before runner execution to reduce SSRF/private-network risk; execution/import fetches also resolve hostnames and block public-looking hosts that land on private, loopback, link-local, or metadata addresses.
 - Workflow check execution preserves the submitted endpoint URL, retries one transport/read failure, does not follow redirects, caps retained response reads, stores only redacted summaries, and pins the outbound HTTP(S) connection to the validated public address to avoid DNS rebinding between validation and execution.
 - Failed/degraded manual checks create or update deduped issues keyed by material failure fingerprint.
-- Issue queue actions assign, rerun the source health check, resolve with a report-safe note, snooze issues for a time-boxed period, ignore issues, and toggle report inclusion inside the tenant boundary.
+- Issue queue actions assign, save a maintenance note, rerun the source health check, resolve with a report-safe note, snooze issues for a time-boxed period, ignore issues, and toggle report inclusion inside the tenant boundary.
 - Supabase Cron triggers the protected scheduler route every five minutes.
-- A scheduled sweep asks Postgres for enabled health checks that are actually due based on latest completed run and workflow frequency, then runs them through the shared scheduled runner. Scheduled executions consume a per-agency DB-backed rate-limit bucket before each outbound check run.
+- A scheduled sweep asks Postgres for enabled health checks that are actually due based on latest completed run and workflow frequency, then drains due work in database-selected pages through the shared scheduled runner. Scheduled executions consume a per-agency DB-backed rate-limit bucket before each outbound check run.
 - Scheduled check runs use a server-only Supabase admin client, persist `trigger = scheduled` and `scheduled_for`, and rely on a unique scheduled window index for idempotency.
 - A protected `/api/scheduler/run-due-checks` route exercises the same scheduled runner for QA and operational smoke checks.
 - Scheduled check batch failures are counted in the route response and logged with redacted check/agency context for operator visibility.
@@ -129,7 +129,7 @@ Use Supabase Cron plus the protected Next.js scheduler route for:
 
 Jobs must be idempotent where practical.
 
-Supabase Cron calls `/api/scheduler/run-due-checks` every five minutes using `pg_net` with a 45-second timeout. The request URL and scheduler secret are read from Supabase Vault secrets named `tuesdayops_app_url` and `tuesdayops_scheduler_secret`. The app uses `public.get_due_health_checks()` to select due work in the database before execution, and the database prevents duplicate scheduled runs for the same `(agency_id, check_id, scheduled_for)` window.
+Supabase Cron calls `/api/scheduler/run-due-checks` every five minutes using `pg_net` with a 45-second timeout. The request URL and scheduler secret are read from Supabase Vault secrets named `tuesdayops_app_url` and `tuesdayops_scheduler_secret`. The app uses `public.get_due_health_checks()` to select due work in the database before execution, paging with an exclusion list for already-attempted checks so one app-side batch does not starve later due checks. Scheduled execution also checks for an existing `(agency_id, check_id, scheduled_for)` run before making the outbound workflow request, and the database prevents duplicate scheduled runs for the same window.
 
 Monthly report automation calls `/api/scheduler/run-monthly-reports` with the same scheduler secret. It finds opted-in active clients whose `next_report_due_on` is due, builds a reproducible prior-month draft from stored source data, advances `next_report_due_on`, and leaves sending/export under user control.
 

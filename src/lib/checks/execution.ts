@@ -51,6 +51,11 @@ type SupabaseErrorLike = {
   code?: string;
 } | null;
 
+type ExistingScheduledRunRow = {
+  id: string;
+  workflow_id: string;
+};
+
 export async function executeCheckRun({
   supabase,
   agencyId,
@@ -59,6 +64,24 @@ export async function executeCheckRun({
   scheduledFor,
 }: ExecuteCheckRunInput): Promise<ExecuteCheckRunResult> {
   const { check, workflow } = await loadCheckExecutionContext({ supabase, agencyId, checkId });
+
+  if (trigger === "scheduled" && scheduledFor) {
+    const existingRun = await findExistingScheduledRun({
+      supabase,
+      agencyId,
+      checkId,
+      scheduledFor,
+    });
+
+    if (existingRun) {
+      return {
+        status: "skipped",
+        reason: "duplicate_scheduled_window",
+        workflowId: existingRun.workflow_id,
+      };
+    }
+  }
+
   const authConfig = workflow.encrypted_auth_config
     ? decryptJsonPayload<WorkflowAuthConfig>(workflow.encrypted_auth_config)
     : { type: "none" as const };
@@ -203,6 +226,33 @@ async function loadCheckExecutionContext({
   }
 
   return { check, workflow };
+}
+
+async function findExistingScheduledRun({
+  supabase,
+  agencyId,
+  checkId,
+  scheduledFor,
+}: {
+  supabase: SupabaseClient;
+  agencyId: string;
+  checkId: string;
+  scheduledFor: string;
+}) {
+  const { data, error } = await supabase
+    .from("check_runs")
+    .select("id, workflow_id")
+    .eq("agency_id", agencyId)
+    .eq("check_id", checkId)
+    .eq("trigger", "scheduled")
+    .eq("scheduled_for", scheduledFor)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Unable to check scheduled run window: ${error.message}`);
+  }
+
+  return data as ExistingScheduledRunRow | null;
 }
 
 async function updateWorkflowSummary({
