@@ -254,8 +254,12 @@ async function signInAndCreateWorkspace(
 
   await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
   if (page.url().includes("/onboarding")) {
-    await page.getByLabel("Agency name").fill(input.agencyName);
-    await page.getByLabel("Slug").fill(input.agencySlug);
+    const agencyNameField = page.getByLabel("Agency name");
+    const slugField = page.getByLabel("Slug");
+    await agencyNameField.fill(input.agencyName);
+    await expect(agencyNameField).toHaveValue(input.agencyName);
+    await slugField.fill(input.agencySlug);
+    await expect(slugField).toHaveValue(input.agencySlug);
     await Promise.all([
       page.waitForURL(`${input.appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),

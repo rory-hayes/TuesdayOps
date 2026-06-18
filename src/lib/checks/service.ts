@@ -7,7 +7,7 @@ import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import { buildHealthCheckConfig } from "@/lib/checks/config";
 import { executeCheckRun } from "@/lib/checks/execution";
-import { buildCheckDisableUpdate } from "@/lib/checks/lifecycle";
+import { buildCheckDisableUpdate, buildManualCheckRunNotice } from "@/lib/checks/lifecycle";
 import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
@@ -154,6 +154,7 @@ export async function runCheckAction(formData: FormData) {
   const workspace = await requireWorkspace();
   const supabase = await createClient();
   let workflowId: string | undefined;
+  let runNotice = "Check run completed and history was updated.";
   try {
     await assertPersistentRateLimit({
       scope: "manual-check-run",
@@ -169,6 +170,9 @@ export async function runCheckAction(formData: FormData) {
     });
 
     workflowId = result.workflowId;
+    if (result.status === "completed") {
+      runNotice = buildManualCheckRunNotice(result.runStatus);
+    }
     await recordCheckRunAuditEvent({
       agencyId: workspace.agency.id,
       actorUserId: workspace.user.id,
@@ -190,7 +194,7 @@ export async function runCheckAction(formData: FormData) {
   revalidatePath("/issues");
   revalidatePath("/");
   redirect(buildWorkflowRedirect(workflowId, {
-    notice: "Check run completed and history was updated.",
+    notice: runNotice,
     tab: parsed.data.returnTab,
   }));
 }
