@@ -83,6 +83,14 @@ npm run test
 npm run build
 npm run e2e
 NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy npm run e2e
+git fetch origin main
+git merge --no-edit origin/main
+npm run lint
+npm run typecheck
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npx vitest run src/lib/workflows/lifecycle.test.ts src/lib/checks/lifecycle.test.ts src/lib/security/secrets.test.ts src/lib/checks/config.test.ts src/components/workflows/workflow-detail-page.test.tsx src/lib/checks/rate-limits.test.ts src/lib/workflows/import-fetch.test.ts
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run test
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run build
+set -a; source /Users/rory/Documents/TuesdayOps/.env.local; set +a; npm run e2e -- e2e/workflow-onboarding.spec.ts
 ```
 
 ## Verification Results
@@ -97,9 +105,15 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE
 - `npm run build`: passed.
 - `npm run e2e`: attempted without local Supabase env and the app server failed fast with `Missing Supabase environment. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.`
 - `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=dummy npm run e2e`: command completed with all 8 Playwright specs skipped because Supabase service credentials are not configured in this worktree.
+- After resuming with QA env sourced from `/Users/rory/Documents/TuesdayOps/.env.local`, latest `origin/main` was merged into the branch and conflict resolutions preserved upstream SSRF, abuse-protection, and tenant-isolation hardening.
+- Final `npm run lint`: passed.
+- Final `npm run typecheck`: passed.
+- Final focused workflow/check/security/import tests: passed, 7 test files and 22 tests.
+- Final `npm run test`: passed, 61 test files and 335 tests.
+- Final `npm run build`: passed.
+- Final workflow UI E2E with real QA Supabase env: `npm run e2e -- e2e/workflow-onboarding.spec.ts` passed, 1 Playwright test.
 
 ## Remaining Gaps
 
-- A real authenticated Playwright E2E pass still requires configured `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY`. The workflow UI regression added in Vitest covers the changed settings/check-edit markup locally, but the full browser suite skipped without service credentials.
 - This pass does not add client reassignment in workflow settings because the current settings form does not support client association changes, and adding that would expand the existing product surface.
 - Live provider behavior for scheduled checks, Resend, Stripe, and production Supabase Cron remains dependent on configured deployment credentials, as noted in prior launch-readiness audits.
