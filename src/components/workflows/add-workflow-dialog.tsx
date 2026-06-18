@@ -6,6 +6,7 @@ import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/re
 import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { FieldError, ValidatedForm } from "@/components/ui/validated-form";
 import { WorkflowImportForm } from "@/components/workflows/workflow-import-form";
 
 type ClientOption = {
@@ -191,7 +192,7 @@ function ManualWorkflowForm({
           Register a live client endpoint and create its first health check.
         </p>
       </div>
-      <form action={action} className="grid gap-5">
+      <ValidatedForm action={action} aria-label="Manual workflow setup" className="grid gap-5">
         <section className="rounded-lg border border-zinc-950/10 p-4">
           <div className="flex items-center gap-2 text-sm/6 font-semibold text-zinc-950">
             <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-xs text-primary">1</span>
@@ -203,6 +204,8 @@ function ManualWorkflowForm({
               <select
                 required
                 name="clientId"
+                aria-label="Client"
+                data-field-label="Client"
                 className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
               >
                 {clients.map((client) => (
@@ -211,13 +214,16 @@ function ManualWorkflowForm({
                   </option>
                 ))}
               </select>
+              <FieldError name="clientId" />
             </label>
             <Input label="Workflow name" name="name" placeholder="Lead Intake Webhook" required />
             <label className="block text-sm font-medium">
               Type
               <select
                 name="type"
+                aria-label="Type"
                 defaultValue="http_endpoint"
+                data-field-label="Type"
                 className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
               >
                 <option value="http_endpoint">HTTP endpoint</option>
@@ -233,7 +239,9 @@ function ManualWorkflowForm({
               Environment
               <select
                 name="environment"
+                aria-label="Environment"
                 defaultValue="production"
+                data-field-label="Environment"
                 className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
               >
                 <option value="production">Production</option>
@@ -262,8 +270,10 @@ function ManualWorkflowForm({
               Method
               <select
                 name="method"
+                aria-label="Method"
                 value={method}
                 onChange={(event) => setMethod(event.currentTarget.value as WorkflowMethod)}
+                data-field-label="Method"
                 className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
               >
                 <option value="GET">GET</option>
@@ -276,8 +286,10 @@ function ManualWorkflowForm({
               Auth
               <select
                 name="authType"
+                aria-label="Auth"
                 value={authType}
                 onChange={(event) => setAuthType(event.currentTarget.value as WorkflowAuthType)}
+                data-field-label="Auth"
                 className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
               >
                 <option value="none">None</option>
@@ -300,10 +312,13 @@ function ManualWorkflowForm({
                 Request body
                 <textarea
                   name="requestBody"
+                  aria-label="Request body"
                   placeholder='{"ping": true}'
                   rows={4}
+                  data-field-label="Request body"
                   className="mt-2 w-full rounded-lg border border-zinc-950/10 bg-white px-3 py-2 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
                 />
+                <FieldError name="requestBody" />
               </label>
             ) : null}
           </div>
@@ -343,7 +358,7 @@ function ManualWorkflowForm({
             Create workflow
           </FormSubmitButton>
         </div>
-      </form>
+      </ValidatedForm>
     </div>
   );
 }
@@ -371,11 +386,14 @@ function Input({
       <input
         required={required}
         name={name}
+        aria-label={label}
         type={type}
         defaultValue={defaultValue}
         placeholder={placeholder}
+        data-field-label={label}
         className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />
+      <FieldError name={name} />
     </label>
   );
 }
