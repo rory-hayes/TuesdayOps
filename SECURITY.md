@@ -18,6 +18,8 @@ Use Supabase RLS where possible.
 
 Service-role operations must manually verify agency membership before acting.
 
+Tenant-owned child tables use composite foreign keys with `agency_id` where practical so records cannot point across tenant boundaries by UUID. This includes client/workflow/check/check-run/report/test-pack relationships and issue links to both health check runs and synthetic test runs.
+
 ## Secrets
 
 Secrets include:
