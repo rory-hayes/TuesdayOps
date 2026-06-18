@@ -90,3 +90,4 @@ Track meaningful product and engineering changes here.
 - Replaced the oversized workflow detail pass-rate graphic with a compact fixed-scale trend chart that uses sober gridlines and sparse-data context.
 - Re-tuned the dashboard accent system from lavender to neutral zinc/charcoal so buttons, links, focus states, and charts match the left navigation.
 - Hid the Overview activation path once the first proof loop is complete so finished setup no longer consumes dashboard space.
+- Reworked first-run activation into a contained modal wizard with skip behavior, real client/workflow/check/report actions, and focused lifecycle coverage.

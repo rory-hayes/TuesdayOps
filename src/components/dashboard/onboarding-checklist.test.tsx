@@ -1,37 +1,65 @@
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+/* @vitest-environment jsdom */
+
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
-describe("OnboardingChecklist", () => {
-  it("renders the activation path before the first proof loop is complete", () => {
-    const html = renderToStaticMarkup(<OnboardingChecklist data={makeData()} />);
+vi.mock("@/lib/onboarding/actions", () => ({
+  createActivationClientAction: vi.fn(async () => null),
+  createActivationWorkflowAction: vi.fn(async () => null),
+  runActivationCheckAction: vi.fn(async () => null),
+  generateActivationReportAction: vi.fn(async () => null),
+}));
 
-    expect(html).toContain("Activation path");
-    expect(html).toContain("Set up your first workflow proof");
-    expect(html).toContain("Add first client");
+describe("OnboardingChecklist activation wizard", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
   });
 
-  it("hides the activation path after the first proof loop is complete", () => {
-    const html = renderToStaticMarkup(
+  afterEach(() => cleanup());
+
+  it("auto-opens the activation path wizard while setup is incomplete", async () => {
+    render(<OnboardingChecklist data={makeData()} />);
+
+    expect(screen.getByRole("button", { name: "Finish first setup" })).toBeTruthy();
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Add the client" })).toBeTruthy();
+    expect(screen.getByLabelText("Client name")).toBeTruthy();
+  });
+
+  it("persists skip so the modal no longer opens automatically", async () => {
+    render(<OnboardingChecklist data={makeData()} />);
+
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Skip for now" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(window.localStorage.getItem("tuesdayops:activation-wizard-skipped:agency-1")).toBe("true");
+    expect(screen.queryByRole("button", { name: "Finish first setup" })).toBeNull();
+  });
+
+  it("does not render setup prompts after the proof loop is complete", () => {
+    render(
       <OnboardingChecklist
         data={makeData({
           clients: [makeClient()],
           workflows: [makeWorkflow()],
+          checks: [makeCheck()],
           checkRuns: [makeCheckRun()],
           reports: [makeReport()],
         })}
       />,
     );
 
-    expect(html).toBe("");
-    expect(html).not.toContain("Activation path");
-    expect(html).not.toContain("Proof loop ready");
+    expect(screen.queryByRole("button", { name: "Finish first setup" })).toBeNull();
+    expect(screen.queryByText("Activation path")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
 
 function makeData(
-  overrides: Partial<Pick<TuesdayOpsSeedData, "clients" | "workflows" | "checkRuns" | "reports">> = {},
+  overrides: Partial<Pick<TuesdayOpsSeedData, "clients" | "workflows" | "checks" | "checkRuns" | "reports">> = {},
 ): TuesdayOpsSeedData {
   return {
     agency: {
@@ -93,6 +121,21 @@ function makeWorkflow(): TuesdayOpsSeedData["workflows"][number] {
     monthlyCost: 0,
     lastCheckAt: "2026-06-18T12:00:00.000Z",
     includedInReports: true,
+  };
+}
+
+function makeCheck(): TuesdayOpsSeedData["checks"][number] {
+  return {
+    id: "check-1",
+    agencyId: "agency-1",
+    workflowId: "workflow-1",
+    name: "Endpoint health check",
+    type: "health",
+    schedule: "Every 60 minutes",
+    enabled: true,
+    configJson: {},
+    assertionCount: 2,
+    latestStatus: "healthy",
   };
 }
 
