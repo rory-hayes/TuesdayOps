@@ -76,6 +76,22 @@ Existing coverage still protects scheduler auth, pre-auth and persistent schedul
   - Ran against the existing local server; skipped 1 test because the scheduled-check E2E requires Supabase service credentials and `SCHEDULER_SECRET` in the shell.
 - `git diff --check`
   - Passed with exit code 0.
+- `git fetch origin main` and `git merge origin/main`
+  - Pulled latest `main` into the scheduled-monitoring branch.
+  - Resolved conflicts in `ARCHITECTURE.md`, `CHANGELOG.md`, `src/lib/checks/scheduled-runner.ts`, and `src/lib/checks/scheduled-runner.test.ts`.
+  - Preserved main's per-agency scheduled execution rate-limit bucket and combined it with the paged due-check sweep.
+- Post-merge `npm run lint`
+  - Passed with exit code 0.
+- Post-merge `npm run typecheck`
+  - Passed with exit code 0.
+- Post-merge `npx vitest run src/lib/checks/scheduler.test.ts src/lib/checks/scheduled-runner.test.ts src/lib/checks/execution.test.ts src/lib/checks/runner.test.ts src/lib/issues/engine.test.ts src/lib/issues/operations.test.ts src/app/api/scheduler/run-due-checks/route.test.ts src/lib/checks/rate-limits.test.ts`
+  - Passed: 8 files, 62 tests.
+- Post-merge `npm run test`
+  - Passed: 60 files, 330 tests.
+- Post-merge `npm run build`
+  - Passed with exit code 0.
+- Post-merge `PLAYWRIGHT_SKIP_WEBSERVER=true NEXT_PUBLIC_APP_URL=http://localhost:3000 npm run e2e -- e2e/scheduled-checks.spec.ts`
+  - Ran against the existing local server; skipped 1 test because the scheduled-check E2E requires Supabase service credentials and `SCHEDULER_SECRET` in the shell.
 
 ## Remaining Gaps
 
