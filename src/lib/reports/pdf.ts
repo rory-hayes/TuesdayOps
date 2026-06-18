@@ -145,10 +145,10 @@ function drawReportItems(report: ReportDraft): string[] {
   const commands: string[] = [];
   let y = 318;
 
-  for (const item of report.items.slice(0, 4)) {
+  for (const item of report.items.slice(0, 5)) {
     commands.push(drawText(sanitizeReportText(item.title), { x: 44, y, size: 9, font: "F2" }));
     commands.push(drawWrappedText(sanitizeReportText(item.body), { x: 44, y: y - 16, size: 8, width: 42 }));
-    y -= 54;
+    y -= 48;
   }
 
   return commands;

@@ -42,6 +42,46 @@ describe("report PDF helpers", () => {
     expect(text).not.toContain("token=secret");
   });
 
+  it("renders every stored core report module in the PDF artifact", () => {
+    const bytes = renderReportPdfBytes({
+      ...draft,
+      items: [
+        ...draft.items,
+        {
+          category: "issues_caught",
+          title: "Issues caught",
+          body: "1 reportable issue was caught.",
+          sortOrder: 20,
+        },
+        {
+          category: "issues_resolved",
+          title: "Issues resolved",
+          body: "1 reportable issue was resolved.",
+          sortOrder: 30,
+        },
+        {
+          category: "qa_checks",
+          title: "QA checks run",
+          body: "4 synthetic test runs completed with 1 failed case.",
+          sortOrder: 40,
+        },
+        {
+          category: "model_prompt_changes",
+          title: "Model and prompt changes",
+          body: "2 change validation groups logged.",
+          sortOrder: 50,
+        },
+      ],
+    });
+    const text = bytes.toString("latin1");
+
+    expect(text).toContain("Workflow health overview");
+    expect(text).toContain("Issues caught");
+    expect(text).toContain("Issues resolved");
+    expect(text).toContain("QA checks run");
+    expect(text).toContain("Model and prompt changes");
+  });
+
   it("renders a client-ready report layout with scorecard and value sections", () => {
     const bytes = renderReportPdfBytes(draft);
     const text = bytes.toString("latin1");
