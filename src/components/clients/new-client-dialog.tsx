@@ -5,6 +5,7 @@ import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/re
 import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { FieldError, ValidatedForm } from "@/components/ui/validated-form";
 import { cn } from "@/lib/utils";
 
 type NewClientDialogProps = {
@@ -70,7 +71,7 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
               </button>
             </div>
 
-            <form action={action} aria-label="Create client" noValidate className="mt-6 grid gap-5">
+            <ValidatedForm action={action} aria-label="Create client" className="mt-6 grid gap-5">
               <Field label="Client name" name="name" placeholder="Client company" required minLength={2} maxLength={100} />
               <Field
                 label="Slug"
@@ -91,11 +92,14 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
                 Notes
                 <textarea
                   name="notes"
+                  aria-label="Notes"
                   rows={3}
                   maxLength={1000}
                   placeholder="Monitoring scope and reporting notes"
+                  data-field-label="Notes"
                   className="rounded-lg border border-zinc-950/10 bg-white px-3 py-2 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
                 />
+                <FieldError name="notes" />
               </label>
               <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
@@ -106,7 +110,7 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
                   Add client
                 </FormSubmitButton>
               </div>
-            </form>
+            </ValidatedForm>
           </DialogPanel>
         </div>
       </Dialog>
@@ -139,13 +143,17 @@ function Field({
       <input
         required={required}
         name={name}
+        aria-label={label}
         type={type}
         minLength={minLength}
         maxLength={maxLength}
         pattern={pattern}
         placeholder={placeholder}
+        title={pattern ? "Use lowercase letters, numbers, and single hyphens only." : undefined}
+        data-field-label={label}
         className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />
+      <FieldError name={name} />
     </label>
   );
 }
