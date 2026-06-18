@@ -4,7 +4,7 @@ Date: 2026-06-18
 
 Verifier branch: `codex/core-blocker-10-production-verification`
 
-Verified integration base: `origin/main` at `4b787b7033fc50d47914561ad97f8947655005ad` plus this verification audit branch.
+Verified integration base: `origin/main` at `96d9d01cb833ecab8b2726a8f51e44e2ba3ed8f5` plus this verification audit branch.
 
 Production URL: `https://tuesday-ops.vercel.app`
 
@@ -23,7 +23,8 @@ No general observability, eval-suite, CRM, client-portal, billing-management, wo
 - Before merge, `origin/main` advanced first to `0dd6ef4fca5ff867d55f3d32da7ef943a8d1a1d0` with SSRF endpoint-safety, abuse-protection, and tenant-isolation hardening from other core-blocker lanes.
 - Before final merge, `origin/main` advanced again to `68f6e4591abf47cec479a0f4d2dfd62cac4f2e8c` with workflow-maintenance, issue-lifecycle, scheduled-monitoring, and report-truth hardening.
 - Before final integration, `origin/main` advanced again to `4b787b7033fc50d47914561ad97f8947655005ad` with check-execution reliability hardening.
-- Merged the latest `origin/main` into this verification branch and resolved the only conflict in `CHANGELOG.md` by preserving all blocker entries plus the production verification entry.
+- Before final verification, `origin/main` advanced again to `96d9d01cb833ecab8b2726a8f51e44e2ba3ed8f5` with onboarding UX validation and audit updates.
+- Merged the latest `origin/main` into this verification branch. Conflicts were limited to changelog/audit tails and E2E assertion overlap; resolutions preserved all blocker entries, the production verification entry, the workflow-filtered scheduled issue assertion, and the onboarding hydration/value waits.
 - Verification below is for the integrated tree containing latest `origin/main` plus this production verification audit.
 
 ## Documents Reviewed
@@ -59,6 +60,7 @@ npm run lint
 npm run typecheck
 npm run test
 npm run build
+npm run e2e -- e2e/test-packs.spec.ts
 npm run e2e
 npm run smoke:production
 PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production
@@ -70,8 +72,9 @@ Results:
 - `npm ci`: passed, 0 vulnerabilities.
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- `npm run test`: passed, 62 test files and 351 tests.
+- `npm run test`: passed, 64 test files and 356 tests.
 - `npm run build`: passed.
+- `npm run e2e -- e2e/test-packs.spec.ts`: passed, 1 Playwright test.
 - `npm run e2e`: passed, 8 Playwright tests.
 - `npm run smoke:production`: passed, 1 production smoke test.
 - `PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production`: passed, 1 deployed core-loop Playwright test.
@@ -82,7 +85,7 @@ Notes:
 - The first local `npm run e2e` attempt failed before app startup because this worktree had no `.env.local` and the Next server could not load `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - The suite was rerun with the existing local QA environment loaded without printing secret values; the rerun passed.
 - The first deployed E2E attempt skipped because QA Supabase service credentials were absent from this worktree environment. It was rerun with the same hidden QA environment loading and passed.
-- After latest `origin/main` was merged, local E2E exposed two test robustness issues: workspace creation specs could submit before the controlled client onboarding form had hydrated, and scheduled-check screenshots could inject Playwright caret-hiding styles before React hydration finished. The E2E specs were hardened with hydration/value waits across workspace creation helpers, workflow-filtered issue assertions, and `caret: "initial"` screenshots; focused reruns and the full E2E suite then passed.
+- After latest `origin/main` was merged, local E2E exposed test robustness issues: workspace creation specs could submit before the client onboarding form had hydrated, scheduled-check screenshots could inject Playwright caret-hiding styles before React hydration finished, and the synthetic test-pack rerun could click before the `/checks` page action was ready after a fresh navigation. The E2E specs were hardened with hydration/value waits across workspace creation helpers, workflow-filtered issue assertions, `caret: "initial"` screenshots, and a focused test-pack readiness wait; focused reruns and the full E2E suite then passed.
 
 ## Local Core-Loop E2E
 
