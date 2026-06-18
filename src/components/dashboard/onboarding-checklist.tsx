@@ -46,7 +46,7 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
     setGuideOpen(false);
   }
 
-  if (!nextStep) {
+  if (progress.complete || !nextStep) {
     return null;
   }
 
