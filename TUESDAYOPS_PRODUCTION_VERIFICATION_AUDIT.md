@@ -20,7 +20,7 @@ No general observability, eval-suite, CRM, client-portal, billing-management, wo
 
 Date: 2026-06-18
 
-Verified tree: local `main` at `5321a59` plus the JSON textarea validation fix recorded in this changeset.
+Verified tree: local `main` at `5321a59` plus the JSON textarea validation fix recorded in this changeset. The fix was committed as `ba83574` and deployed to Vercel production deployment `dpl_9A8NdZxw8srT6WEg6xnnLmv91oLC`.
 
 Reason for rerun: final production-readiness check focused on every core screen, click path, state-changing action, and supporting command gate for the core offering.
 
@@ -77,16 +77,15 @@ Final command results:
 - `npm run test`: passed, 65 test files and 358 tests.
 - `npm run build`: passed.
 - `npm run e2e`: passed, 8 Playwright tests.
-- `npm run smoke:production`: passed, 1 production smoke test.
-- `PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production`: passed, 1 deployed Playwright test.
+- `npm run smoke:production`: passed, 1 production smoke test; rerun after Vercel reported `ba83574` READY and passed again.
+- `PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production`: passed, 1 deployed Playwright test; rerun after Vercel reported `ba83574` READY and passed again.
 - `npm audit --audit-level=moderate`: passed, 0 vulnerabilities.
 
 Production-readiness verdict from this rerun:
 
 - Core app code gate: passed after the visible JSON validation fix.
 - Local core-loop gate: passed end to end.
-- Deployed production smoke/report E2E gate: passed against `https://tuesday-ops.vercel.app`.
-- Remaining caveat: the deployed production URL does not include the new inline JSON validation fix until this changeset is merged and deployed.
+- Deployed production smoke/report E2E gate: passed against `https://tuesday-ops.vercel.app` after the `ba83574` production deployment became READY.
 - Remaining provider checks are unchanged: verify one real Resend report delivery and one Stripe test-mode Checkout/Portal pass before claiming paid-launch provider readiness.
 
 ## Main Coordination
