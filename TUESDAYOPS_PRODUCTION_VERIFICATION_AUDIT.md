@@ -4,7 +4,7 @@ Date: 2026-06-18
 
 Verifier branch: `codex/core-blocker-10-production-verification`
 
-Verified commit: `161671dc1f0e959c9c0181ebadd08f3346ca063a`
+Verified integration base: `origin/main` at `0dd6ef4fca5ff867d55f3d32da7ef943a8d1a1d0` plus this verification audit branch.
 
 Production URL: `https://tuesday-ops.vercel.app`
 
@@ -18,10 +18,11 @@ No general observability, eval-suite, CRM, client-portal, billing-management, wo
 
 ## Main Coordination
 
-- Fetched `origin/main` on 2026-06-18 before verification.
-- `HEAD`, local `main`, and `origin/main` all pointed at `161671dc1f0e959c9c0181ebadd08f3346ca063a`.
-- No other blocker audit files were present besides `TUESDAYOPS_CORE_LOOP_AUDIT.md` and `TUESDAYOPS_UI_UX_AUDIT.md`.
-- Verification below is against the current `main` at the commit above.
+- Fetched `origin/main` on 2026-06-18 before the first verification pass.
+- At the first pass, `HEAD`, local `main`, and `origin/main` all pointed at `161671dc1f0e959c9c0181ebadd08f3346ca063a`.
+- Before merge, `origin/main` advanced to `0dd6ef4fca5ff867d55f3d32da7ef943a8d1a1d0` with SSRF endpoint-safety, abuse-protection, and tenant-isolation hardening from other core-blocker lanes.
+- Merged the latest `origin/main` into this verification branch and resolved the only conflict in `CHANGELOG.md` by preserving all blocker entries plus the production verification entry.
+- Verification below is for the integrated tree containing latest `origin/main` plus this production verification audit.
 
 ## Documents Reviewed
 
@@ -37,6 +38,9 @@ No general observability, eval-suite, CRM, client-portal, billing-management, wo
 - `TESTING.md`
 - `TUESDAYOPS_CORE_LOOP_AUDIT.md`
 - `TUESDAYOPS_UI_UX_AUDIT.md`
+- `TUESDAYOPS_ABUSE_PROTECTION_AUDIT.md`
+- `TUESDAYOPS_SSRF_ENDPOINT_SAFETY_AUDIT.md`
+- `TUESDAYOPS_TENANT_ISOLATION_AUDIT.md`
 
 ## Commands Run
 

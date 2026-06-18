@@ -3,7 +3,10 @@ import {
   buildRunLogCheckRunInsert,
   buildRunLogIssueContext,
   parseRunLogPayload,
+  recordExternalRunLog,
+  RunLogAuthError,
 } from "./service";
+import { hashRunLogApiKey } from "./api-keys";
 
 const workflow = {
   id: "550e8400-e29b-41d4-a716-446655440000",
@@ -83,5 +86,51 @@ describe("run-log service", () => {
       status: "failed",
       errorMessage: "Bearer [redacted] failed for [redacted-email]",
     });
+  });
+
+  it("rejects public run-log writes when the key belongs to another workflow", async () => {
+    const apiKey = "tops_tenant_boundary_key";
+    const fromCalls: string[] = [];
+    const supabase = {
+      from(table: string) {
+        fromCalls.push(table);
+
+        if (table !== "workflow_api_keys") {
+          throw new Error(`Unexpected write path reached for ${table}`);
+        }
+
+        return {
+          select() {
+            return this;
+          },
+          eq() {
+            return this;
+          },
+          maybeSingle: async () => ({
+            data: {
+              id: "key-1",
+              agency_id: "550e8400-e29b-41d4-a716-446655440001",
+              workflow_id: "550e8400-e29b-41d4-a716-446655440000",
+              key_hash: hashRunLogApiKey(apiKey),
+              revoked_at: null,
+              expires_at: null,
+            },
+            error: null,
+          }),
+        };
+      },
+    };
+
+    await expect(recordExternalRunLog({
+      supabase: supabase as never,
+      apiKey,
+      payload: parseRunLogPayload({
+        workflowId: "550e8400-e29b-41d4-a716-446655440099",
+        status: "success",
+        latencyMs: 120,
+      }),
+    })).rejects.toBeInstanceOf(RunLogAuthError);
+
+    expect(fromCalls).toEqual(["workflow_api_keys"]);
   });
 });

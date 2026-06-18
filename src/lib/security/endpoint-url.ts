@@ -78,11 +78,18 @@ function isPrivateIpv4(value: string): boolean {
 
   return (
     first === 10 ||
+    (first === 100 && second >= 64 && second <= 127) ||
     first === 127 ||
     (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 0 && octets[2] === 0) ||
+    (first === 192 && second === 0 && octets[2] === 2) ||
     (first === 192 && second === 168) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    (first === 198 && second === 51 && octets[2] === 100) ||
+    (first === 203 && second === 0 && octets[2] === 113) ||
     (first === 169 && second === 254) ||
-    first === 0
+    first === 0 ||
+    first >= 224
   );
 }
 
@@ -91,22 +98,56 @@ function isPrivateIpv6(value: string): boolean {
     return false;
   }
 
-  if (value === "::" || value === "::1" || value === "0:0:0:0:0:0:0:1") {
+  const normalized = value.toLowerCase();
+  const mappedIpv4 = parseIpv4MappedIpv6(normalized);
+
+  if (mappedIpv4) {
+    return isPrivateIpv4(mappedIpv4);
+  }
+
+  if (normalized === "::" || normalized === "::1" || normalized === "0:0:0:0:0:0:0:1") {
     return true;
   }
 
-  const mappedIpv4 = value.match(/(?:^|:)ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
-
-  if (mappedIpv4 && isPrivateIpv4(mappedIpv4)) {
-    return true;
-  }
-
-  const firstSegment = value.split(":")[0];
+  const firstSegment = normalized.split(":")[0];
   const firstHextet = Number.parseInt(firstSegment || "0", 16);
 
   if (!Number.isFinite(firstHextet)) {
     return false;
   }
 
-  return (firstHextet & 0xfe00) === 0xfc00 || (firstHextet & 0xffc0) === 0xfe80;
+  return (
+    (firstHextet & 0xfe00) === 0xfc00 ||
+    (firstHextet & 0xffc0) === 0xfe80 ||
+    (firstHextet & 0xff00) === 0xff00 ||
+    firstHextet === 0x2001 && normalized.startsWith("2001:db8:")
+  );
+}
+
+function parseIpv4MappedIpv6(value: string): string | null {
+  const dotted = value.match(/(?:^|:)ffff:(\d+\.\d+\.\d+\.\d+)$/)?.[1];
+
+  if (dotted) {
+    return dotted;
+  }
+
+  const hex = value.match(/(?:^|:)ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+
+  if (!hex) {
+    return null;
+  }
+
+  const high = Number.parseInt(hex[1], 16);
+  const low = Number.parseInt(hex[2], 16);
+
+  if (!Number.isFinite(high) || !Number.isFinite(low)) {
+    return null;
+  }
+
+  return [
+    (high >> 8) & 255,
+    high & 255,
+    (low >> 8) & 255,
+    low & 255,
+  ].join(".");
 }

@@ -1,10 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { executeCheckRun, type ExecuteCheckRunResult } from "@/lib/checks/execution";
+import { consumeScheduledCheckRunRateLimit } from "@/lib/checks/rate-limits";
 import {
   getScheduledWindowStart,
   selectDueChecks,
   type SchedulableCheck,
 } from "@/lib/checks/scheduler";
+import type { RateLimitDecision } from "@/lib/security/rate-limit";
 
 type ExecuteScheduledCheckRun = (input: {
   agencyId: string;
@@ -12,6 +14,8 @@ type ExecuteScheduledCheckRun = (input: {
   trigger: "scheduled";
   scheduledFor: string;
 }) => Promise<ExecuteCheckRunResult | { status: "skipped" }>;
+
+type ConsumeScheduledRateLimit = (input: { agencyId: string }) => Promise<RateLimitDecision>;
 
 export type ScheduledCheckBatchResult = {
   attempted: number;
@@ -53,6 +57,7 @@ export async function runDueScheduledChecks({
     now,
     limit,
     checkId,
+    consumeRateLimit: ({ agencyId }) => consumeScheduledCheckRunRateLimit({ agencyId, supabase }),
     executeCheckRun: ({ agencyId, checkId, scheduledFor, trigger }) =>
       executeCheckRun({ supabase, agencyId, checkId, scheduledFor, trigger }),
   });
@@ -63,12 +68,14 @@ export async function runScheduledCheckBatch({
   now = new Date(),
   limit = 50,
   checkId,
+  consumeRateLimit,
   executeCheckRun,
 }: {
   checks: SchedulableCheck[];
   now?: Date;
   limit?: number;
   checkId?: string;
+  consumeRateLimit?: ConsumeScheduledRateLimit;
   executeCheckRun: ExecuteScheduledCheckRun;
 }): Promise<ScheduledCheckBatchResult> {
   const scheduledFor = getScheduledWindowStart(now).toISOString();
@@ -82,6 +89,20 @@ export async function runScheduledCheckBatch({
 
   for (const check of dueChecks) {
     try {
+      const rateLimit = consumeRateLimit
+        ? await consumeRateLimit({ agencyId: check.agencyId })
+        : null;
+
+      if (rateLimit && !rateLimit.allowed) {
+        summary.skipped += 1;
+        console.warn("Scheduled check run rate limited", {
+          agencyId: check.agencyId,
+          checkId: check.id,
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+        });
+        continue;
+      }
+
       const result = await executeCheckRun({
         agencyId: check.agencyId,
         checkId: check.id,
