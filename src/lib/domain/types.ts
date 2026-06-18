@@ -123,6 +123,7 @@ export type Issue = {
   occurrenceCount: number;
   detectedAt: string;
   lastSeenAt: string;
+  maintenanceNote?: string;
   resolvedAt?: string;
   resolutionNote?: string;
   snoozedUntil?: string;

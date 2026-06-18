@@ -151,6 +151,7 @@ export function ChecksPage({
                     <summary className="cursor-pointer font-medium">Edit check settings</summary>
                     <form action={updateCheckAction} className="mt-3 grid gap-3 md:grid-cols-2">
                       <input type="hidden" name="checkId" value={check.id} />
+                      {workflow?.id ? <input type="hidden" name="workflowId" value={workflow.id} /> : null}
                       <Input label="Check name" name="name" placeholder="Endpoint health check" defaultValue={check.name} required minLength={2} maxLength={120} />
                       <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} defaultValue={getStatusAssertionValue(check.configJson)} />
                       <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required min={100} max={60000} defaultValue={getLatencyAssertionValue(check.configJson)} />

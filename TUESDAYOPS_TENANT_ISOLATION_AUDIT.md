@@ -66,7 +66,7 @@ npx vitest run src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api
 npx vitest run src/lib/data/operational-data.test.ts src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api/reports/[reportId]/download/route.test.ts' src/lib/run-logs/service.test.ts
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run lint
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run typecheck
-PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npx vitest run src/lib/data/operational-data.test.ts src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api/reports/[reportId]/download/route.test.ts' src/lib/run-logs/service.test.ts src/lib/checks/execution.test.ts src/lib/issues/operations.test.ts
+PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npx vitest run src/lib/data/operational-data.test.ts src/lib/security/tenant-isolation-migrations.test.ts 'src/app/api/reports/[reportId]/download/route.test.ts' src/lib/run-logs/service.test.ts src/lib/checks/execution.test.ts src/lib/issues/operations.test.ts src/lib/issues/service.test.ts
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run test
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run build
 PATH=/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH npm run e2e -- e2e/reports.spec.ts
@@ -76,10 +76,10 @@ Results:
 
 - `npm run lint`: passed.
 - `npm run typecheck`: passed.
-- Focused tenant/security/report/API tests: passed, 6 files and 32 tests.
-- `npm run test`: passed, 58 files and 316 tests.
+- Focused tenant/security/report/API tests: passed, 7 files and 42 tests on the final merged tree.
+- `npm run test`: passed, 61 files and 341 tests on the final merged tree.
 - `npm run build`: passed.
-- `npm run e2e -- e2e/reports.spec.ts`: attempted. One earlier run completed with the single report E2E test skipped by existing environment gating. The post-merge rerun failed at web-server startup because `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` are not configured in this shell.
+- `npm run e2e -- e2e/reports.spec.ts`: passed on the main worktree with configured `.env.local`, 1 Playwright test. Earlier branch-worktree attempts either skipped, failed because Supabase public env vars were not configured there, or briefly hit another worktree's reused dev server before rerunning cleanly.
 - `git diff --check`: passed.
 
 Expected red before the fix:
@@ -94,5 +94,5 @@ Tooling note: this shell initially used Node `20.18.0`, below the repo floor of 
 
 ## Remaining Gaps
 
-- E2E should be run against a configured local/remote Supabase test environment before release if report/auth access behavior changes beyond this route-level hardening. This pass changed the report download test coverage and database constraint, not UI flow behavior, and local report E2E could not complete without Supabase public env vars.
+- The report E2E passed on the configured main worktree. Run it again against any target staging/production Supabase project before release if provider configuration changes.
 - The new Supabase migration still needs to be applied to the target database before production traffic relies on the strengthened issue-to-check-run constraint.
