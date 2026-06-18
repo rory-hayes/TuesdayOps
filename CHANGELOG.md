@@ -83,3 +83,4 @@ Track meaningful product and engineering changes here.
 - Hardened scheduled monitoring reliability with paged database due-check sweeps, same-window duplicate preflight before outbound checks, route-level failure-count visibility coverage, and a scheduled-monitoring audit.
 - Tightened report truth boundaries so excluded workflows no longer affect report check totals, pass-rate math, issue counts, or recommendations, and PDF exports now include every stored core report module shown in the generated report preview.
 - Completed the final production verification gate for the current core loop, including local E2E, production smoke, deployed E2E, targeted protected scheduler verification, provider readiness checks, and a documented production verification audit.
+- Added visible inline JSON validation feedback for health-check and synthetic test-pack JSON textareas, with accessible error state coverage from the final core offering E2E gate.

@@ -16,6 +16,79 @@ Agency -> Client -> Workflow -> Check -> Check Run -> Issue -> Resolution -> Rep
 
 No general observability, eval-suite, CRM, client-portal, billing-management, workflow-builder, or integration-platform scope was added.
 
+## Final Core Offering Gate Rerun
+
+Date: 2026-06-18
+
+Verified tree: local `main` at `5321a59` plus the JSON textarea validation fix recorded in this changeset.
+
+Reason for rerun: final production-readiness check focused on every core screen, click path, state-changing action, and supporting command gate for the core offering.
+
+Expanded browser gate:
+
+- Added a temporary Playwright final-gate harness under `output/final-qa/` to cover gaps beyond the maintained E2E suite.
+- Final result: passed, 2 Playwright tests.
+- Covered public/auth paths, agency onboarding, app navigation, overview, client create/search/edit/archive, workflow manual setup/import/detail tabs/settings/archive, preserved endpoint URL display, secret non-display, run-log API key rotate/use/revoke, health check add/edit/run, check-run issue creation, issue filter/detail/snooze/assign/ignore, synthetic test-pack create/validation/case create/pack save/case edit/run/archive/disable, Settings provider cards, archived client detail access, and sign-out.
+
+Screens and paths verified:
+
+- Public/auth: `/sign-in`, `/sign-up`, `/forgot-password`, `/reset-password`; account links, invalid email/password feedback, failed-login feedback, reset-without-session safety.
+- Onboarding: `/onboarding`; agency workspace creation with explicit slug and redirect into the app.
+- Global shell: sidebar links for Overview, Clients, Workflows, Checks, Issues, Reports, Settings; first-run onboarding guide close action.
+- Overview: `/`; operations overview renders after workspace creation.
+- Clients: `/clients`, `/clients/[clientId]`; new-client modal open/cancel/create, client success notice, search empty/result states, edit modal cancel/save, archive client, archived client detail render.
+- Workflows: `/workflows`, `/workflows/[workflowId]`; manual workflow setup, full endpoint path/query preservation, auth secret redaction after save, import workflow preview/create, detail section tabs, cancel back to detail, settings save, Run Check, archive workflow.
+- Checks/run logs: workflow Checks/API tabs and `/checks`; health check add/edit/run, external run-log key rotation, public run-log ingestion with bearer key, active key revocation, synthetic test-pack and case lifecycle.
+- Issues: `/issues`, `/issues/[issueId]`; workflow-filtered inbox, issue detail, snooze, assign, ignore. Maintained E2E also covers rerun, reportable toggle, resolution note, and resolved reporting.
+- Reports: `/reports`, `/reports/[reportId]`, `/api/reports/[reportId]/download`; maintained local and production E2E cover report generation from stored check/issue/test data, web preview, PDF export/download, cross-tenant PDF rejection, and safe send failure.
+- Settings: `/settings`; agency workspace render, safe disabled billing management state when unavailable, provider status cards.
+- APIs/security smoke: `/api/health`, `/api/scheduler/run-due-checks`, `/api/public/run-log`, `/api/stripe/webhook`, gated Sentry smoke routes, auth redirects, and browser security headers through production smoke.
+
+Issue found:
+
+- Synthetic test-case `Input JSON` used browser-native custom validity only. It blocked malformed JSON, but the validation message was not a durable inline UI state, making the error easy to miss and weaker for accessibility/demo confidence.
+
+Fix made:
+
+- `src/components/ui/json-textarea.tsx` now shows an inline `role="alert"` error, sets `aria-invalid`, wires `aria-describedby`, preserves the existing custom validity behavior, and clears the error when JSON becomes valid or empty.
+- Added `src/components/ui/json-textarea.test.tsx` covering malformed JSON feedback and clearing after valid JSON.
+
+Final command gate:
+
+```bash
+npx vitest run src/components/ui/json-textarea.test.tsx
+npx playwright test -c output/final-qa/playwright.config.ts
+npm run lint
+npm run typecheck
+npm run test
+npm run build
+npm run e2e
+npm run smoke:production
+PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production
+npm audit --audit-level=moderate
+```
+
+Final command results:
+
+- Targeted JSON textarea test: passed, 1 file and 2 tests.
+- Expanded final core gate: passed, 2 Playwright tests.
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm run test`: passed, 65 test files and 358 tests.
+- `npm run build`: passed.
+- `npm run e2e`: passed, 8 Playwright tests.
+- `npm run smoke:production`: passed, 1 production smoke test.
+- `PRODUCTION_E2E_URL=https://tuesday-ops.vercel.app npm run e2e:production`: passed, 1 deployed Playwright test.
+- `npm audit --audit-level=moderate`: passed, 0 vulnerabilities.
+
+Production-readiness verdict from this rerun:
+
+- Core app code gate: passed after the visible JSON validation fix.
+- Local core-loop gate: passed end to end.
+- Deployed production smoke/report E2E gate: passed against `https://tuesday-ops.vercel.app`.
+- Remaining caveat: the deployed production URL does not include the new inline JSON validation fix until this changeset is merged and deployed.
+- Remaining provider checks are unchanged: verify one real Resend report delivery and one Stripe test-mode Checkout/Portal pass before claiming paid-launch provider readiness.
+
 ## Main Coordination
 
 - Fetched `origin/main` on 2026-06-18 before the first verification pass.
