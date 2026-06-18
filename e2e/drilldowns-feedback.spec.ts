@@ -74,12 +74,12 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
     page.waitForURL(
       (url) =>
         url.pathname === `/workflows/${workflowId}` &&
-        (url.searchParams.get("notice") ?? "").includes("Check run completed"),
+        (url.searchParams.get("notice") ?? "").includes("Check run failed"),
       { timeout: 30_000, waitUntil: "commit" },
     ),
     runForm.getByRole("button", { name: "Run", exact: true }).click(),
   ]);
-  await expect(page.getByText("Check run completed and history was updated.")).toBeVisible();
+  await expect(page.getByText("Check run failed. Issue tracking and history were updated.")).toBeVisible();
   await page
     .getByRole("navigation", { name: "Workflow detail sections" })
     .getByRole("link", { name: "Overview" })
@@ -201,12 +201,12 @@ async function signInAndCreateWorkspace(
   await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
   if (page.url().includes("/onboarding")) {
-    const agencyNameInput = page.getByLabel("Agency name");
-    const agencySlugInput = page.getByLabel("Slug");
-    await agencyNameInput.fill(input.agencyName);
-    await agencySlugInput.fill(input.agencySlug);
-    await expect(agencyNameInput).toHaveValue(input.agencyName);
-    await expect(agencySlugInput).toHaveValue(input.agencySlug);
+    const agencyNameField = page.getByLabel("Agency name");
+    const slugField = page.getByLabel("Slug");
+    await agencyNameField.fill(input.agencyName);
+    await expect(agencyNameField).toHaveValue(input.agencyName);
+    await slugField.fill(input.agencySlug);
+    await expect(slugField).toHaveValue(input.agencySlug);
     await Promise.all([
       page.waitForURL(`${input.appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),

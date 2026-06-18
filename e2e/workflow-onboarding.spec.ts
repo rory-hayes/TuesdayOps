@@ -35,12 +35,12 @@ test("workflow can be imported from a cURL command", async ({ page, baseURL }) =
   await page.goto("/onboarding", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
   if (page.url().includes("/onboarding")) {
-    const agencyNameInput = page.getByLabel("Agency name");
-    const agencySlugInput = page.getByLabel("Slug");
-    await agencyNameInput.fill(agencyName);
-    await agencySlugInput.fill(agencySlug);
-    await expect(agencyNameInput).toHaveValue(agencyName);
-    await expect(agencySlugInput).toHaveValue(agencySlug);
+    const agencyNameField = page.getByLabel("Agency name");
+    const slugField = page.getByLabel("Slug");
+    await agencyNameField.fill(agencyName);
+    await expect(agencyNameField).toHaveValue(agencyName);
+    await slugField.fill(agencySlug);
+    await expect(slugField).toHaveValue(agencySlug);
     await Promise.all([
       page.waitForURL(`${appUrl}/`, { timeout: 15_000, waitUntil: "commit" }),
       page.getByRole("button", { name: "Create workspace" }).click(),

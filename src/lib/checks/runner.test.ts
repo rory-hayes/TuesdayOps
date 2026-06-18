@@ -275,6 +275,47 @@ describe("runHttpCheck", () => {
     );
   });
 
+  it("only sends auth headers when decrypted auth matches the workflow auth type", async () => {
+    const transport = createTransport([
+      { statusCode: 200, bodyText: "ok", truncated: false },
+      { statusCode: 200, bodyText: "ok", truncated: false },
+    ]);
+    const input = {
+      check: {
+        configJson: {
+          timeoutMs: 1000,
+          assertions: [{ type: "status_code" as const, expected: 200 }],
+        },
+      },
+      transport,
+    };
+
+    await runHttpCheck({
+      ...input,
+      workflow: {
+        endpointUrl: "https://api.example.com/no-auth",
+        method: "GET",
+        authType: "none",
+      },
+      authConfig: { type: "bearer", token: "stale-token" },
+    });
+
+    await runHttpCheck({
+      ...input,
+      workflow: {
+        endpointUrl: "https://api.example.com/bearer",
+        method: "GET",
+        authType: "bearer",
+      },
+      authConfig: { type: "api_key_header", headerName: "x-api-key", value: "stale-key" },
+    });
+
+    expect(transport.mock.calls[0][0].headers.get("authorization")).toBeNull();
+    expect(transport.mock.calls[0][0].headers.get("x-api-key")).toBeNull();
+    expect(transport.mock.calls[1][0].headers.get("authorization")).toBeNull();
+    expect(transport.mock.calls[1][0].headers.get("x-api-key")).toBeNull();
+  });
+
   it("retries transport failures once before recording the result", async () => {
     const transport = createTransport([
       new Error("socket hang up"),
