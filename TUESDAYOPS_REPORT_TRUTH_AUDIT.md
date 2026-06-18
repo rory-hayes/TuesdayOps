@@ -80,6 +80,13 @@ No CRM, client portal, billing expansion, trace explorer, full eval platform, ma
   - `PATH=/opt/homebrew/bin:$PATH npm run test`: passed, 60 files and 327 tests.
   - `PATH=/opt/homebrew/bin:$PATH npm run build`: passed.
   - `PATH=/opt/homebrew/bin:$PATH NEXT_PUBLIC_APP_URL=http://localhost:3002 PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e -- e2e/reports.spec.ts`: passed, 1 Playwright test.
+- Post-latest-remote-main verification after `origin/main` advanced to `c11f2d6`:
+  - `PATH=/opt/homebrew/bin:$PATH npm run lint`: passed.
+  - `PATH=/opt/homebrew/bin:$PATH npm run typecheck`: passed.
+  - `PATH=/opt/homebrew/bin:$PATH npx vitest run src/lib/reports/aggregation.test.ts src/lib/reports/pdf.test.ts 'src/app/api/reports/[reportId]/download/route.test.ts'`: passed, 3 files and 24 tests.
+  - `PATH=/opt/homebrew/bin:$PATH npm run test`: passed, 60 files and 332 tests.
+  - `PATH=/opt/homebrew/bin:$PATH npm run build`: passed.
+  - `PATH=/opt/homebrew/bin:$PATH NEXT_PUBLIC_APP_URL=http://localhost:3002 PLAYWRIGHT_SKIP_WEBSERVER=true npm run e2e -- e2e/reports.spec.ts`: passed, 1 Playwright test.
 
 ## Remaining Gaps
 
