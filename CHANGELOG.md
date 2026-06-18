@@ -76,3 +76,4 @@ Track meaningful product and engineering changes here.
 - Hardened endpoint SSRF safety by blocking additional non-routable/reserved IPv4 and IPv6 ranges, IPv4-mapped blocked IPv6 literals, unsafe DNS answers, and redirect-following during remote OpenAPI imports through a server-only pinned transport.
 - Hardened abuse protection for core-loop check surfaces with agency-wide manual/scheduled execution buckets, global pre-auth public run-log throttling, repeated invalid bearer caching, and redacted invalid-key investigation logs.
 - Hardened tenant isolation for issue-to-check-run links with a composite `agency_id` foreign key, added migration/RLS contract coverage, and expanded focused cross-tenant report/run-log tests.
+- Hardened scheduled monitoring reliability with paged database due-check sweeps, same-window duplicate preflight before outbound checks, route-level failure-count visibility coverage, and a scheduled-monitoring audit.
