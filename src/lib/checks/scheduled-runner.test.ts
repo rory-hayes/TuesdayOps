@@ -94,6 +94,47 @@ describe("scheduled check batch runner", () => {
     }
   });
 
+  it("skips scheduled checks when the agency execution bucket is exhausted", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const executeCheckRun = vi.fn().mockResolvedValue({ status: "completed" });
+
+    try {
+      const result = await runScheduledCheckBatch({
+        checks: [
+          {
+            id: "limited-check",
+            agencyId: "agency-1",
+            workflowId: "workflow-1",
+            workflowEndpointUrl: "https://example.com/health",
+            workflowFrequencyMinutes: 5,
+            enabled: true,
+            latestCompletedAt: null,
+          },
+        ],
+        now,
+        limit: 10,
+        consumeRateLimit: vi.fn().mockResolvedValue({
+          allowed: false,
+          limit: 300,
+          remaining: 0,
+          resetAt: Date.now() + 120_000,
+          retryAfterSeconds: 120,
+        }),
+        executeCheckRun,
+      });
+
+      expect(result).toEqual({ attempted: 1, completed: 0, skipped: 1, failed: 0 });
+      expect(executeCheckRun).not.toHaveBeenCalled();
+      expect(consoleWarn).toHaveBeenCalledWith("Scheduled check run rate limited", {
+        agencyId: "agency-1",
+        checkId: "limited-check",
+        retryAfterSeconds: 120,
+      });
+    } finally {
+      consoleWarn.mockRestore();
+    }
+  });
+
   it("can target one due check for operational smoke tests", async () => {
     const executeCheckRun = vi.fn().mockResolvedValue({ status: "completed" });
 
@@ -271,10 +312,37 @@ describe("scheduled check batch runner", () => {
 
 function createScheduledSupabase({
   dueChecksResponse = { data: [], error: null },
+  rateLimitResponse = {
+    data: {
+      allowed: true,
+      limit_count: 300,
+      remaining: 299,
+      retry_after_seconds: 600,
+      reset_at: "2026-06-13T12:15:00.000Z",
+    },
+    error: null,
+  },
 }: {
   dueChecksResponse?: { data: unknown[] | null; error: { message: string } | null };
+  rateLimitResponse?: {
+    data: {
+      allowed: boolean;
+      limit_count: number;
+      remaining: number;
+      retry_after_seconds: number;
+      reset_at: string;
+    } | null;
+    error: { message: string } | null;
+  };
 } = {}) {
-  const rpc = vi.fn().mockResolvedValue(dueChecksResponse);
+  const rateLimitSingle = vi.fn().mockResolvedValue(rateLimitResponse);
+  const rpc = vi.fn((name: string) => {
+    if (name === "consume_rate_limit") {
+      return { single: rateLimitSingle };
+    }
+
+    return Promise.resolve(dueChecksResponse);
+  });
   const supabase = {
     rpc,
   } as never;

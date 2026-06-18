@@ -76,12 +76,17 @@ Local development and private test environments can set `ALLOW_PRIVATE_WORKFLOW_
 
 ## Public route abuse controls
 
-`POST /api/public/run-log` applies two DB-backed fixed-window limits:
+`POST /api/public/run-log` applies DB-backed fixed-window limits:
 
-- a pre-auth IP/global bucket before bearer token validation or payload parsing
+- a pre-auth client-IP bucket before bearer token validation or payload parsing
+- a pre-auth global bucket before bearer token validation or payload parsing
 - a workflow-key bucket after token extraction
 
 Bucket keys are hashed before persistence so raw API keys and IP identifiers are not stored in plaintext.
+
+Repeated invalid bearer keys are also cached in process memory for a short period using a truncated SHA-256 fingerprint. This reduces repeated database lookup work for the same bad key without storing or logging the raw bearer value. The cache is per app process/instance and is best-effort only; the DB-backed pre-auth IP/global buckets remain the cross-instance deployment control.
+
+Manual health-check execution uses DB-backed agency-wide and user-scoped buckets. Scheduled health-check execution uses a DB-backed agency-wide bucket before each outbound check run. Rate-limit responses return generic safe messages plus standard retry headers and do not include token material, request bodies, auth headers, or raw workflow payloads.
 
 ## Data redaction
 
