@@ -65,6 +65,8 @@ Metrics:
 - failed checks
 - degraded checks
 
+Report metrics must be calculated from stored rows for the selected client and selected period only. Check runs, issues, QA/test runs, and change evidence must be bounded to workflows marked as included in reports so internal or excluded workflows cannot affect client-facing totals.
+
 ### 4. Issues caught
 
 Show:
@@ -139,6 +141,8 @@ MVP should support:
 - store PDF URL
 - download PDF
 - send PDF by email
+
+The generated PDF must render the same stored core report modules used by the web preview for the generated report, including workflow health, issues caught, issues resolved, QA checks, model/prompt change evidence when present, and recommendations.
 
 Reports with blocked readiness remain previewable but cannot be exported, downloaded, or sent until readiness blockers are resolved. Reports in review can still be exported after the operator reviews the warnings.
 
