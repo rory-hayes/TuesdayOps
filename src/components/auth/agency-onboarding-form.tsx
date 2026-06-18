@@ -10,7 +10,6 @@ type AgencyOnboardingFormProps = {
 };
 
 export function AgencyOnboardingForm({ action }: AgencyOnboardingFormProps) {
-  const [agencyName, setAgencyName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugEdited, setSlugEdited] = useState(false);
 
@@ -28,10 +27,8 @@ export function AgencyOnboardingForm({ action }: AgencyOnboardingFormProps) {
           aria-label="Agency name"
           minLength={2}
           maxLength={80}
-          value={agencyName}
           onChange={(event) => {
             const nextName = event.target.value;
-            setAgencyName(nextName);
 
             if (!slugEdited) {
               setSlug(createSlug(nextName, ""));
