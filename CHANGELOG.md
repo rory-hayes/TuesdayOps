@@ -85,3 +85,4 @@ Track meaningful product and engineering changes here.
 - Completed the final production verification gate for the current core loop, including local E2E, production smoke, deployed E2E, targeted protected scheduler verification, provider readiness checks, and a documented production verification audit.
 - Added visible inline JSON validation feedback for health-check and synthetic test-pack JSON textareas, with accessible error state coverage from the final core offering E2E gate.
 - Added hover and keyboard-focus tooltips to pass-rate trend charts so each plotted point explains its date and value.
+- Reworked the Overview right rail into a compact tabbed action center for issues, runs, checks, readiness, and report proof to reduce page scanning and scrolling.
