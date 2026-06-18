@@ -48,6 +48,61 @@ describe("WorkflowDetailPage maintenance UI", () => {
     expect(html).toContain('name="returnTab"');
     expect(html).toContain('value="checks"');
   });
+
+  it("renders workflow pass-rate trends on a sober fixed percentage scale", () => {
+    const { data, workflow } = buildWorkflowDetailFixture();
+    data.checkRuns = [
+      {
+        id: "run-1",
+        agencyId: "agency-1",
+        clientId: "client-1",
+        workflowId: workflow.id,
+        checkId: "check-1",
+        status: "healthy",
+        statusCode: 200,
+        latencyMs: 120,
+        responseSummary: "{\"ok\":true}",
+        startedAt: "2026-06-16T10:00:00.000Z",
+        completedAt: "2026-06-16T10:00:01.000Z",
+      },
+      {
+        id: "run-2",
+        agencyId: "agency-1",
+        clientId: "client-1",
+        workflowId: workflow.id,
+        checkId: "check-1",
+        status: "failed",
+        statusCode: 500,
+        latencyMs: 900,
+        responseSummary: "Server error",
+        startedAt: "2026-06-17T10:00:00.000Z",
+        completedAt: "2026-06-17T10:00:01.000Z",
+      },
+      {
+        id: "run-3",
+        agencyId: "agency-1",
+        clientId: "client-1",
+        workflowId: workflow.id,
+        checkId: "check-1",
+        status: "degraded",
+        statusCode: 200,
+        latencyMs: 1800,
+        responseSummary: "{\"ok\":true}",
+        startedAt: "2026-06-18T10:00:00.000Z",
+        completedAt: "2026-06-18T10:00:01.000Z",
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      <WorkflowDetailPage data={data} workflow={workflow} activeTab="overview" />,
+    );
+
+    expect(html).toContain("Workflow pass-rate trend on a fixed 0 to 100 percent scale");
+    expect(html).toContain("100%");
+    expect(html).toContain("50%");
+    expect(html).toContain("0%");
+    expect(html).toContain("3 daily points shown on a fixed 0-100% scale.");
+  });
 });
 
 function buildWorkflowDetailFixture(): {

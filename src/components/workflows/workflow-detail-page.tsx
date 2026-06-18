@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Cog, LockKeyhole, Play, Plus } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
-import { MiniLineChart } from "@/components/charts/simple-charts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
@@ -21,6 +20,7 @@ import { archiveWorkflowAction, updateWorkflowAction } from "@/lib/workflows/ser
 import { formatDateTime, formatPercentage, formatRelativeTime } from "@/lib/formatting";
 import { buildChangeComparison } from "@/lib/reports/change-comparison";
 import { buildPassRateTrend } from "@/lib/dashboard/charts";
+import type { ChartPoint } from "@/lib/dashboard/charts";
 import { cn } from "@/lib/utils";
 
 type WorkflowDetailTab = "overview" | "checks" | "api" | "endpoint" | "settings";
@@ -213,13 +213,7 @@ function OverviewTab({ runs, issues }: { runs: CheckRun[]; issues: Issue[] }) {
 
   return (
     <section className="grid gap-6">
-      <MiniLineChart
-        label="Workflow pass-rate trend"
-        points={buildPassRateTrend(runs)}
-        suffix="%"
-        className="bg-white p-5 shadow-[var(--shadow-soft)]"
-        chartClassName="h-52 sm:h-64"
-      />
+      <WorkflowPassRateChart points={buildPassRateTrend(runs)} />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)]">
         <Card>
@@ -257,6 +251,119 @@ function OverviewTab({ runs, issues }: { runs: CheckRun[]; issues: Issue[] }) {
 
       <WorkflowIssuesCard issues={issues} />
     </section>
+  );
+}
+
+function WorkflowPassRateChart({ points }: { points: ChartPoint[] }) {
+  const chart = buildWorkflowPassRateChart(points);
+  const latest = points.at(-1)?.value;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-start justify-between gap-4 pb-3">
+        <div>
+          <h2 className="text-base font-semibold">Workflow pass-rate trend</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Daily pass rate from stored completed check runs.
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-xs font-medium uppercase text-muted-foreground">Latest</p>
+          <p className="mt-1 text-sm font-semibold text-zinc-950">{latest === undefined ? "-" : `${latest}%`}</p>
+        </div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        {points.length ? (
+          <div className="grid gap-3">
+            <div className="relative h-40 rounded-lg border border-zinc-950/10 bg-white px-2 py-2">
+              <svg
+                role="img"
+                aria-label="Workflow pass-rate trend on a fixed 0 to 100 percent scale"
+                viewBox={`0 0 ${chart.width} ${chart.height}`}
+                className="h-full w-full"
+                preserveAspectRatio="none"
+              >
+                {[100, 50, 0].map((tick) => {
+                  const y = chart.yForValue(tick);
+
+                  return (
+                    <g key={tick}>
+                      <line
+                        x1={chart.padding.left}
+                        x2={chart.width - chart.padding.right}
+                        y1={y}
+                        y2={y}
+                        stroke="rgba(9,9,11,0.08)"
+                        strokeWidth="1"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                      <text
+                        x={chart.padding.left - 10}
+                        y={y + 3}
+                        textAnchor="end"
+                        className="fill-zinc-400 text-[10px]"
+                      >
+                        {tick}%
+                      </text>
+                    </g>
+                  );
+                })}
+                {chart.line ? (
+                  <path
+                    d={chart.line}
+                    fill="none"
+                    stroke="rgb(109,93,224)"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ) : null}
+                {chart.coordinates.map((point, index) => (
+                  <circle
+                    key={`${points[index].label}-${point.x}-${point.y}`}
+                    cx={point.x}
+                    cy={point.y}
+                    r="3"
+                    fill="white"
+                    stroke="rgb(109,93,224)"
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                  >
+                    <title>{`${points[index].label}: ${points[index].value}%`}</title>
+                  </circle>
+                ))}
+                {chart.coordinates.length ? (
+                  <>
+                    <text
+                      x={chart.coordinates[0].x}
+                      y={chart.height - 5}
+                      textAnchor="start"
+                      className="fill-zinc-400 text-[10px]"
+                    >
+                      {points[0].label}
+                    </text>
+                    <text
+                      x={chart.coordinates.at(-1)?.x}
+                      y={chart.height - 5}
+                      textAnchor="end"
+                      className="fill-zinc-400 text-[10px]"
+                    >
+                      {points.at(-1)?.label}
+                    </text>
+                  </>
+                ) : null}
+              </svg>
+            </div>
+            <p className="text-xs leading-5 text-muted-foreground">{getWorkflowTrendNote(points)}</p>
+          </div>
+        ) : (
+          <p className="rounded-lg bg-muted p-4 text-sm text-muted-foreground">
+            Run a check to start building pass-rate history.
+          </p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -700,6 +807,47 @@ function WorkflowIssuesCard({ issues }: { issues: Issue[] }) {
 
 function formatWorkflowLastCheck(value?: string): string {
   return value ? formatRelativeTime(value) : "Not run yet";
+}
+
+function buildWorkflowPassRateChart(points: ChartPoint[]) {
+  const width = 640;
+  const height = 160;
+  const padding = {
+    top: 16,
+    right: 18,
+    bottom: 26,
+    left: 42,
+  };
+  const plotWidth = width - padding.left - padding.right;
+  const plotHeight = height - padding.top - padding.bottom;
+  const step = points.length > 1 ? plotWidth / (points.length - 1) : 0;
+  const yForValue = (value: number) => padding.top + ((100 - clampPercentage(value)) / 100) * plotHeight;
+  const coordinates = points.map((point, index) => ({
+    x: padding.left + index * step,
+    y: yForValue(point.value),
+  }));
+  const line =
+    coordinates.length > 1
+      ? coordinates.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ")
+      : "";
+
+  return { coordinates, height, line, padding, width, yForValue };
+}
+
+function clampPercentage(value: number): number {
+  return Math.min(100, Math.max(0, value));
+}
+
+function getWorkflowTrendNote(points: ChartPoint[]): string {
+  if (points.length < 2) {
+    return "One daily point so far. More check runs are needed before this becomes a trend.";
+  }
+
+  if (points.length < 5) {
+    return `${points.length} daily points shown on a fixed 0-100% scale. More runs will make this trend steadier.`;
+  }
+
+  return `${points.length} daily points shown on a fixed 0-100% scale.`;
 }
 
 function formatFrequency(minutes: number): string {
