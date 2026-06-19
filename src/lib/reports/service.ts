@@ -65,6 +65,11 @@ type ReportRow = {
   pdf_storage_path: string | null;
 };
 
+type ReportEditStatusRow = {
+  id: string;
+  status: "draft" | "ready_to_send" | "sent" | "failed";
+};
+
 type ReportItemRow = {
   category: ReportItemCategory;
   title: string;
@@ -290,6 +295,16 @@ export async function updateReportNarrativeAction(formData: FormData) {
   let narrative;
 
   try {
+    const reportStatus = await loadReportEditStatus({
+      supabase,
+      agencyId: workspace.agency.id,
+      reportId: parsed.data.reportId,
+    });
+
+    if (reportStatus.status === "sent") {
+      throw new Error("Sent reports cannot be edited. Sent report history is preserved.");
+    }
+
     narrative = buildReportNarrativeUpdate(parsed.data);
     const updateResult = await supabase
       .from("reports")
@@ -300,6 +315,7 @@ export async function updateReportNarrativeAction(formData: FormData) {
         pdf_url: null,
         pdf_storage_path: null,
         email_delivery_id: null,
+        sent_at: null,
         send_error: null,
       })
       .eq("agency_id", workspace.agency.id)
@@ -515,6 +531,29 @@ async function loadReportDraftFromDatabase({
       sortOrder: item.sort_order,
     })),
   };
+}
+
+async function loadReportEditStatus({
+  supabase,
+  agencyId,
+  reportId,
+}: {
+  supabase: SupabaseClient;
+  agencyId: string;
+  reportId: string;
+}): Promise<ReportEditStatusRow> {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("id, status")
+    .eq("agency_id", agencyId)
+    .eq("id", reportId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Report was not found or is not accessible.");
+  }
+
+  return data as ReportEditStatusRow;
 }
 
 async function loadClientForReportEmail({

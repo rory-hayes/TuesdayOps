@@ -124,7 +124,11 @@ export function ReportDetailPage({
         />
 
         <div className="grid gap-6">
-          <ReportNarrativeEditor report={report} reportItems={reportItems} />
+          {report.status === "sent" ? (
+            <SentReportReadOnlyNote />
+          ) : (
+            <ReportNarrativeEditor report={report} reportItems={reportItems} />
+          )}
 
           <Card>
             <CardHeader>
@@ -265,6 +269,21 @@ function ReportDocument({
         </section>
       </article>
     </section>
+  );
+}
+
+function SentReportReadOnlyNote() {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold">Sent report preserved</h2>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm leading-6 text-muted-foreground">
+          This report has already been sent. Sent report history is preserved, so narrative edits are disabled.
+        </p>
+      </CardContent>
+    </Card>
   );
 }
 

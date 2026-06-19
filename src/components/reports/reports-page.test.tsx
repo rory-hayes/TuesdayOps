@@ -53,6 +53,18 @@ describe("report pages", () => {
     );
     expect((screen.getByLabelText("Recommendations") as HTMLTextAreaElement).value).toBe(report.recommendations.join("\n"));
   });
+
+  it("keeps sent reports read-only and preserves sent history", () => {
+    const data = makeData();
+    const report = data.reports[1];
+
+    render(<ReportDetailPage data={data} report={report} />);
+
+    expect(screen.getByRole("heading", { name: "Sent report preserved" })).toBeTruthy();
+    expect(screen.getByText("This report has already been sent. Sent report history is preserved, so narrative edits are disabled.")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Review narrative" })).toBeNull();
+    expect(screen.queryByLabelText("Executive summary")).toBeNull();
+  });
 });
 
 function makeData(): TuesdayOpsSeedData {

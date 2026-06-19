@@ -90,6 +90,7 @@ describe("report server actions", () => {
         pdf_url: null,
         pdf_storage_path: null,
         email_delivery_id: null,
+        sent_at: null,
         send_error: null,
       },
       filters: [
@@ -118,6 +119,28 @@ describe("report server actions", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/reports");
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/reports/${reportId()}`);
   });
+
+  it("rejects narrative edits for sent reports without mutating report history", async () => {
+    const supabase = createReportActionSupabaseStub({ reportStatus: "sent" });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expectRedirect(
+      reportService.updateReportNarrativeAction(formData({
+        reportId: reportId(),
+        summary: "Updated sent report summary.",
+        recommendations: "Keep monitoring cadence.",
+        reportItemCategory: ["workflow_health"],
+        reportItemSortOrder: ["10"],
+        reportItemTitle: ["Workflow health overview"],
+        reportItemBody: ["Attempted sent report edit."],
+      })),
+      `/reports/${reportId()}?error=Sent%20reports%20cannot%20be%20edited.%20Sent%20report%20history%20is%20preserved.`,
+    );
+
+    expect(supabase.updates).toEqual([]);
+    expect(supabase.deletes).toEqual([]);
+    expect(supabase.inserts).toEqual([]);
+  });
 });
 
 async function expectRedirect(action: Promise<void>, url: string) {
@@ -145,8 +168,10 @@ function formData(values: Record<string, string | string[]>) {
 }
 
 function createReportActionSupabaseStub({
+  reportStatus = "draft",
   mutationResult = { data: { id: reportId() }, error: null },
 }: {
+  reportStatus?: "draft" | "ready_to_send" | "failed" | "sent";
   mutationResult?: { data: { id: string } | null; error: { message: string } | null };
 } = {}) {
   const updates: Array<{
@@ -169,6 +194,7 @@ function createReportActionSupabaseStub({
         updates,
         deletes,
         inserts,
+        reportStatus,
         mutationResult,
       });
     },
@@ -187,12 +213,14 @@ function createReportActionQuery({
   updates,
   deletes,
   inserts,
+  reportStatus,
   mutationResult,
 }: {
   table: string;
   updates: Array<{ table: string; payload: unknown; filters: Array<[string, unknown]> }>;
   deletes: Array<{ table: string; filters: Array<[string, unknown]> }>;
   inserts: Array<{ table: string; payload: unknown }>;
+  reportStatus: "draft" | "ready_to_send" | "failed" | "sent";
   mutationResult: { data: { id: string } | null; error: { message: string } | null };
 }) {
   const filters: Array<[string, unknown]> = [];
@@ -222,6 +250,11 @@ function createReportActionQuery({
     maybeSingle: async () => {
       if (updatePayload !== undefined) {
         updates.push({ table, payload: updatePayload, filters: [...filters] });
+        return mutationResult;
+      }
+
+      if (table === "reports") {
+        return { data: { id: reportId(), status: reportStatus }, error: null };
       }
 
       return mutationResult;
