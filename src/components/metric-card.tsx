@@ -6,14 +6,21 @@ type MetricCardProps = {
   label: string;
   value: string | number;
   detail: string;
+  description?: string;
   trend?: string;
   icon?: ReactNode;
   className?: string;
 };
 
-export function MetricCard({ label, value, detail, trend, icon, className }: MetricCardProps) {
+export function MetricCard({ label, value, detail, description, trend, icon, className }: MetricCardProps) {
+  const descriptionId = description ? `metric-card-${toDomId(label)}` : undefined;
+
   return (
-    <Card className={cn("shadow-none", className)}>
+    <Card
+      className={cn("shadow-none", className)}
+      title={description}
+      aria-describedby={descriptionId}
+    >
       <CardContent className="flex min-h-32 flex-col justify-between gap-5">
         <div className="flex items-start justify-between gap-3">
           <p className="text-sm font-medium text-muted-foreground">{label}</p>
@@ -25,8 +32,13 @@ export function MetricCard({ label, value, detail, trend, icon, className }: Met
             <span className="text-muted-foreground">{detail}</span>
             {trend ? <span className="font-medium text-success">{trend}</span> : null}
           </div>
+          {descriptionId ? <p id={descriptionId} className="sr-only">{description}</p> : null}
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function toDomId(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

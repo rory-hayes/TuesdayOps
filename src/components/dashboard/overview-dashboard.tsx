@@ -61,11 +61,41 @@ export function OverviewDashboard({
       <OnboardingChecklist data={data} />
 
       <section className="grid gap-8 md:grid-cols-2 xl:grid-cols-5">
-        <OverviewStat label="Active clients" value={summary.activeClients.toString()} detail="retainers under monitoring" tone="positive" />
-        <OverviewStat label="Monitored workflows" value={summary.monitoredWorkflows.toString()} detail="included in reports" tone="neutral" />
-        <OverviewStat label="Open issues" value={summary.openIssues.toString()} detail="reportable maintenance queue" tone={summary.openIssues ? "negative" : "positive"} />
-        <OverviewStat label="Check pass rate" value={formatPercentage(summary.checkPassRate)} detail="across monitored workflows" tone="positive" />
-        <OverviewStat label="Reports due" value={reportsDue.toString()} detail="client reports needing action" tone={reportsDue ? "negative" : "positive"} />
+        <OverviewStat
+          label="Active clients"
+          value={summary.activeClients.toString()}
+          detail="non-archived client accounts"
+          description="Counts clients still in the active agency portfolio."
+          tone="positive"
+        />
+        <OverviewStat
+          label="Monitored workflows"
+          value={summary.monitoredWorkflows.toString()}
+          detail="workflows included in reports"
+          description="Counts workflows marked for client reporting and health summaries."
+          tone="neutral"
+        />
+        <OverviewStat
+          label="Open issues"
+          value={summary.openIssues.toString()}
+          detail="reportable unresolved issues"
+          description="Counts open or in-review maintenance issues that can appear in client reports."
+          tone={summary.openIssues ? "negative" : "positive"}
+        />
+        <OverviewStat
+          label="Check pass rate"
+          value={formatPercentage(summary.checkPassRate)}
+          detail="average across report-included workflows"
+          description="Averages the stored pass rate for workflows included in reports."
+          tone="positive"
+        />
+        <OverviewStat
+          label="Reports due"
+          value={reportsDue.toString()}
+          detail="active clients needing report action"
+          description="Counts active clients whose next report due date is today or earlier."
+          tone={reportsDue ? "negative" : "positive"}
+        />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -144,13 +174,16 @@ function OverviewStat({
   label,
   value,
   detail,
+  description,
   tone,
 }: {
   label: string;
   value: string;
   detail: string;
+  description: string;
   tone: "positive" | "negative" | "neutral";
 }) {
+  const descriptionId = `overview-stat-${toDomId(label)}`;
   const toneClass =
     tone === "positive"
       ? "bg-lime-400/20 text-lime-700"
@@ -159,7 +192,7 @@ function OverviewStat({
         : "bg-zinc-950/5 text-zinc-600";
 
   return (
-    <div className="border-t border-zinc-950/10 pt-6">
+    <div className="border-t border-zinc-950/10 pt-6" title={description} aria-describedby={descriptionId}>
       <p className="text-sm/6 text-zinc-950">{label}</p>
       <p className="mt-3 text-3xl/9 font-semibold tracking-tight text-zinc-950">{value}</p>
       <p className="mt-3 text-sm/6 text-zinc-500">
@@ -168,8 +201,13 @@ function OverviewStat({
         </span>
         {detail}
       </p>
+      <p id={descriptionId} className="sr-only">{description}</p>
     </div>
   );
+}
+
+function toDomId(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 function WorkflowHealthMobileCard({ workflow }: { workflow: WorkflowHealthRow }) {
