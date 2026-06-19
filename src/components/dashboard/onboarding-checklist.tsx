@@ -151,8 +151,8 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
 
       <Dialog open={open} onClose={setOpen} className="relative z-50">
         <DialogBackdrop className="fixed inset-0 bg-zinc-950/30" />
-        <div className="fixed inset-0 flex w-screen items-center justify-center overflow-y-auto px-4 py-4 sm:py-8">
-          <DialogPanel className="grid max-h-[calc(100vh-2rem)] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-zinc-950/10 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="fixed inset-0 flex w-screen items-start justify-center overflow-y-auto px-4 py-4 sm:items-center sm:py-8">
+          <DialogPanel className="grid max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-zinc-950/10 lg:grid-cols-[320px_minmax(0,1fr)]">
             <aside className="hidden min-h-0 border-r border-zinc-950/10 bg-zinc-50/80 p-6 lg:flex lg:flex-col">
               <div>
                 <p className="text-sm/6 font-medium text-zinc-500">Activation path</p>
@@ -232,7 +232,11 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
                 </button>
               </header>
 
-              <div className="min-h-0 flex-1 overflow-y-auto p-5 sm:p-6">
+              <div
+                role="region"
+                aria-label="Activation wizard content"
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6"
+              >
                 <div className="lg:hidden">
                   <MobileStepTabs
                     steps={context.steps}
@@ -409,10 +413,11 @@ function WizardStepPanel({
       <ReadyPanel
         icon={<FileText aria-hidden="true" />}
         title="First report proof is ready"
-        description="Your Overview will now stay focused on live operations instead of setup tasks."
+        description="Open the preview for this draft, then manage future drafts from the Reports section."
         action={
           <div className="flex flex-wrap gap-2">
             <LinkButton href={`/reports/${context.report.id}`}>Open report preview</LinkButton>
+            <LinkButton href="/reports" variant="secondary">Go to Reports section</LinkButton>
             <Button type="button" variant="secondary" onClick={onClose}>Close</Button>
           </div>
         }
@@ -502,7 +507,7 @@ function WorkflowStepForm({
             Workflow identity
           </div>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <Input label="Workflow name" name="name" placeholder="Lead Intake Assistant" required minLength={2} maxLength={120} />
+            <Input label="Workflow name" name="name" placeholder="e.g. client workflow endpoint" required minLength={2} maxLength={120} />
             <ReadOnlyField label="Client" value={client.name} />
             <Select label="Type" name="type" defaultValue="http_endpoint">
               <option value="http_endpoint">HTTP endpoint</option>
@@ -704,8 +709,13 @@ function ReportStepForm({
       <ReadyPanel
         icon={<FileText aria-hidden="true" />}
         title="Report generated"
-        description={state.message}
-        action={<LinkButton href={`/reports/${state.reportId}`}>Open report preview</LinkButton>}
+        description={`${state.message} Manage future drafts from the Reports section.`}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <LinkButton href={`/reports/${state.reportId}`}>Open report preview</LinkButton>
+            <LinkButton href="/reports" variant="secondary">Go to Reports section</LinkButton>
+          </div>
+        }
       />
     );
   }
@@ -935,11 +945,24 @@ function ReadOnlyField({ label, value }: { label: string; value: string }) {
   );
 }
 
-function LinkButton({ href, children }: { href: string; children: React.ReactNode }) {
+function LinkButton({
+  href,
+  children,
+  variant = "primary",
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: "primary" | "secondary";
+}) {
   return (
     <Link
       href={href}
-      className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-transparent bg-primary px-3.5 text-sm/6 font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-primary/20"
+      className={cn(
+        "inline-flex h-9 items-center justify-center gap-2 rounded-lg border px-3.5 text-sm/6 font-semibold shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20",
+        variant === "primary"
+          ? "border-transparent bg-primary text-primary-foreground hover:bg-zinc-800"
+          : "border-zinc-950/10 bg-white text-zinc-950 hover:bg-zinc-50",
+      )}
     >
       {children}
       <ArrowRight aria-hidden="true" />

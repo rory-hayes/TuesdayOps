@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
@@ -38,6 +38,53 @@ describe("OnboardingChecklist activation wizard", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(window.localStorage.getItem("tuesdayops:activation-wizard-skipped:agency-1")).toBe("true");
     expect(screen.queryByRole("button", { name: "Finish first setup" })).toBeNull();
+  });
+
+  it("uses neutral workflow name guidance instead of a specific assistant example", async () => {
+    render(<OnboardingChecklist data={makeData({ clients: [makeClient()] })} />);
+
+    expect(await screen.findByRole("dialog")).toBeTruthy();
+
+    const workflowName = screen.getByLabelText("Workflow name") as HTMLInputElement;
+
+    expect(workflowName.placeholder).toBe("e.g. client workflow endpoint");
+    expect(workflowName.placeholder).not.toBe("Lead Intake Assistant");
+  });
+
+  it("keeps the wizard body in a mouse-wheel scroll region", async () => {
+    render(<OnboardingChecklist data={makeData({ clients: [makeClient()] })} />);
+
+    const dialog = await screen.findByRole("dialog");
+    const scrollRegion = within(dialog).getByRole("region", { name: "Activation wizard content" });
+
+    expect(scrollRegion.className).toContain("overflow-y-auto");
+    expect(scrollRegion.className).toContain("overscroll-contain");
+    expect(scrollRegion.getAttribute("tabindex")).toBeNull();
+  });
+
+  it("points users to the Reports section after a report is generated", async () => {
+    render(
+      <OnboardingChecklist
+        data={makeData({
+          clients: [makeClient()],
+          workflows: [makeWorkflow()],
+          checks: [makeCheck()],
+          reports: [makeReport()],
+        })}
+      />,
+    );
+
+    const dialog = await screen.findByRole("dialog");
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "5. Report" }));
+
+    expect(within(dialog).getByText(/manage future drafts from the Reports section/i)).toBeTruthy();
+    expect(within(dialog).getByRole("link", { name: /Open report preview/i }).getAttribute("href")).toBe(
+      "/reports/report-1",
+    );
+    expect(within(dialog).getByRole("link", { name: /Go to Reports section/i }).getAttribute("href")).toBe(
+      "/reports",
+    );
   });
 
   it("does not render setup prompts after the proof loop is complete", () => {
