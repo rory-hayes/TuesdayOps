@@ -16,6 +16,7 @@ export function MiniLineChart({
 }) {
   const path = buildLinePath(points);
   const plotClassName = cn("mt-3 h-24 w-full", chartClassName);
+  const accessibleLabel = getChartAccessibleLabel(label, points, suffix);
 
   return (
     <figure className={cn("rounded-lg border border-border p-3", className)}>
@@ -29,7 +30,7 @@ export function MiniLineChart({
         <div className={cn("relative", plotClassName)}>
           <svg
             role="img"
-            aria-label={label}
+            aria-label={accessibleLabel}
             viewBox="0 0 240 80"
             preserveAspectRatio="none"
             className="h-full w-full overflow-visible"
@@ -96,11 +97,12 @@ export function MiniBarChart({
   tone?: "primary" | "risk";
 }) {
   const max = Math.max(1, ...points.map((point) => point.value));
+  const accessibleLabel = getChartAccessibleLabel(label, points);
 
   return (
     <figure className="rounded-lg border border-border p-3">
       <figcaption className="text-sm font-medium">{label}</figcaption>
-      <div className="mt-3 grid gap-2">
+      <div className="mt-3 grid gap-2" role="img" aria-label={accessibleLabel}>
         {points.map((point) => (
           <div key={point.label} className="grid grid-cols-[72px_minmax(0,1fr)_32px] items-center gap-2 text-xs">
             <span className="truncate text-muted-foreground">{point.label}</span>
@@ -144,4 +146,15 @@ function getTooltipLabel(point: ChartPoint | undefined, suffix: string) {
   }
 
   return `${point.label}: ${point.value}${suffix}`;
+}
+
+function getChartAccessibleLabel(label: string, points: ChartPoint[], suffix = "") {
+  if (!points.length) {
+    return `${label} chart. No data yet.`;
+  }
+
+  const values = points.map((point) => getTooltipLabel(point, suffix)).join(". ");
+  const latest = points.at(-1)?.value ?? 0;
+
+  return `${label} chart. ${values}. Latest ${latest}${suffix}.`;
 }

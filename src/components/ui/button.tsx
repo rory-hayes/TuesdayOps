@@ -36,7 +36,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "relative isolate inline-flex items-center justify-center gap-x-2 whitespace-nowrap rounded-lg border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:pointer-events-none disabled:opacity-50 [&>svg]:-mx-0.5 [&>svg]:size-4 [&>svg]:shrink-0",
+        "relative isolate inline-flex items-center justify-center gap-x-2 whitespace-nowrap rounded-lg border font-semibold transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&>svg]:-mx-0.5 [&>svg]:size-4 [&>svg]:shrink-0",
         variants[variant],
         sizes[size],
         className,

@@ -23,16 +23,16 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     status === "sent" ||
     status === "ready_to_send"
   ) {
-    return <Badge variant="success">{label}</Badge>;
+    return <Badge variant="success" aria-label={`Status: ${label}`}>{label}</Badge>;
   }
 
   if (status === "degraded" || status === "in_review" || status === "draft") {
-    return <Badge variant="warning">{label}</Badge>;
+    return <Badge variant="warning" aria-label={`Status: ${label}`}>{label}</Badge>;
   }
 
   if (status === "failed" || status === "open") {
-    return <Badge variant="danger">{label}</Badge>;
+    return <Badge variant="danger" aria-label={`Status: ${label}`}>{label}</Badge>;
   }
 
-  return <Badge variant="muted">{label}</Badge>;
+  return <Badge variant="muted" aria-label={`Status: ${label}`}>{label}</Badge>;
 }
