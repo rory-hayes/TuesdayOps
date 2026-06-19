@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AuthLayout } from "@/components/auth/auth-layout";
-import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { SignInForm } from "@/components/auth/sign-in-form";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { signInAction } from "@/lib/auth/actions";
 
@@ -24,13 +24,7 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
 
       <PageFeedback notice={notice} error={error} />
 
-      <form action={signInAction} aria-label="Sign in to TuesdayOps" noValidate className="grid gap-6">
-        <Field label="Email" name="email" type="email" autoComplete="email" />
-        <Field label="Password" name="password" type="password" autoComplete="current-password" />
-        <FormSubmitButton type="submit" className="w-full" pendingLabel="Signing in...">
-          Sign in
-        </FormSubmitButton>
-      </form>
+      <SignInForm action={signInAction} />
 
       <Link
         href="/forgot-password"
@@ -47,32 +41,6 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
         </Link>
       </p>
     </AuthLayout>
-  );
-}
-
-function Field({
-  label,
-  name,
-  type,
-  autoComplete,
-}: {
-  label: string;
-  name: string;
-  type: string;
-  autoComplete: string;
-}) {
-  return (
-    <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
-      {label}
-      <input
-        required
-        name={name}
-        type={type}
-        minLength={type === "password" ? 8 : undefined}
-        autoComplete={autoComplete}
-        className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
-      />
-    </label>
   );
 }
 
