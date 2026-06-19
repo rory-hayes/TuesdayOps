@@ -1,18 +1,23 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { EditClientDialog } from "@/components/clients/edit-client-dialog";
 import { NewClientDialog } from "@/components/clients/new-client-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { createCheckoutSessionAction } from "@/lib/billing/service";
 import { archiveClientAction, createClientAction, updateClientAction } from "@/lib/clients/service";
 import { getOpenIssues } from "@/lib/domain/summaries";
-import type { TuesdayOpsSeedData } from "@/lib/domain/types";
+import type { Client, TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatRelativeTime } from "@/lib/formatting";
+
+type ClientStatusFilter = "all" | "active" | "archived";
+type ClientSort = "name-asc" | "health-desc" | "health-asc" | "issues-desc" | "activity-desc";
 
 export function ClientsPage({
   data,
@@ -25,17 +30,57 @@ export function ClientsPage({
   error?: string;
   query?: string;
 }) {
-  const openIssues = getOpenIssues(data);
-  const activeClients = data.clients.filter((client) => !client.archived);
-  const normalizedQuery = query?.trim().toLowerCase() ?? "";
-  const visibleClients = normalizedQuery
-    ? data.clients.filter((client) =>
-        [client.name, client.industry, client.reportRecipientEmail]
-          .join(" ")
-          .toLowerCase()
-          .includes(normalizedQuery),
-      )
-    : data.clients;
+  const [searchTerm, setSearchTerm] = useState(query ?? "");
+  const [statusFilter, setStatusFilter] = useState<ClientStatusFilter>("all");
+  const [sortMode, setSortMode] = useState<ClientSort>("name-asc");
+  const openIssues = useMemo(() => getOpenIssues(data), [data]);
+  const activeClients = useMemo(
+    () => data.clients.filter((client) => !client.archived),
+    [data.clients],
+  );
+  const issueCountsByClient = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const issue of openIssues) {
+      counts.set(issue.clientId, (counts.get(issue.clientId) ?? 0) + 1);
+    }
+    return counts;
+  }, [openIssues]);
+  const workflowsByClient = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const workflow of data.workflows) {
+      counts.set(workflow.clientId, (counts.get(workflow.clientId) ?? 0) + 1);
+    }
+    return counts;
+  }, [data.workflows]);
+  const visibleClients = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const rows = data.clients.filter((client) => {
+      if (statusFilter === "active" && client.archived) {
+        return false;
+      }
+
+      if (statusFilter === "archived" && !client.archived) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      return [
+        client.name,
+        client.industry,
+        client.owner,
+        client.reportRecipientEmail,
+        client.reportStatus.replaceAll("_", " "),
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedSearch);
+    });
+
+    return [...rows].sort((a, b) => compareClients(a, b, sortMode, issueCountsByClient));
+  }, [data.clients, issueCountsByClient, searchTerm, sortMode, statusFilter]);
   const averageHealth = activeClients.length
     ? Math.round(activeClients.reduce((total, client) => total + client.healthScore, 0) / activeClients.length)
     : 0;
@@ -50,8 +95,8 @@ export function ClientsPage({
 
       <section className="grid gap-4 md:grid-cols-3">
         <PortfolioTile label="Average health" value={`${averageHealth}%`} detail="Across active clients" />
-        <PortfolioTile label="Active clients" value={activeClients.length.toString()} detail="Tenant-scoped portfolio" />
-        <PortfolioTile label="Open issues" value={openIssues.length.toString()} detail="Reportable queue" />
+        <PortfolioTile label="Active clients" value={activeClients.length.toString()} detail="Non-archived client accounts" />
+        <PortfolioTile label="Open issues" value={openIssues.length.toString()} detail="Reportable maintenance issues" />
       </section>
 
       <PageFeedback notice={notice} error={error} />
@@ -69,23 +114,47 @@ export function ClientsPage({
             <h2 className="text-base font-semibold">Clients</h2>
             <p className="mt-1 text-sm text-muted-foreground">Portfolio health and reporting status.</p>
           </div>
-          <form className="flex flex-col gap-2 sm:flex-row">
+          <div className="grid gap-2 sm:grid-cols-[minmax(14rem,1fr)_10rem_12rem]">
             <label className="relative block">
               <span className="sr-only">Search clients</span>
               <Search size={15} className="pointer-events-none absolute left-3 top-2.5 text-muted-foreground" aria-hidden="true" />
               <input
-                name="q"
                 aria-label="Search clients"
-                defaultValue={query}
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search clients"
                 className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary sm:w-60"
               />
             </label>
-            <Button variant="secondary" size="sm" type="submit">
-              <Search size={15} aria-hidden="true" />
-              Filter
-            </Button>
-          </form>
+            <label className="block">
+              <span className="sr-only">Client status</span>
+              <select
+                aria-label="Client status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as ClientStatusFilter)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              >
+                <option value="all">All clients</option>
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="sr-only">Sort clients</span>
+              <select
+                aria-label="Sort clients"
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as ClientSort)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              >
+                <option value="name-asc">Name A-Z</option>
+                <option value="health-desc">Health high-low</option>
+                <option value="health-asc">Health low-high</option>
+                <option value="issues-desc">Open issues high-low</option>
+                <option value="activity-desc">Last activity</option>
+              </select>
+            </label>
+          </div>
         </CardHeader>
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[1040px] border-collapse text-sm">
@@ -103,8 +172,8 @@ export function ClientsPage({
             </thead>
             <tbody>
               {visibleClients.length ? visibleClients.map((client) => {
-                const workflows = data.workflows.filter((workflow) => workflow.clientId === client.id);
-                const clientIssues = openIssues.filter((issue) => issue.clientId === client.id);
+                const workflowCount = workflowsByClient.get(client.id) ?? 0;
+                const clientIssueCount = issueCountsByClient.get(client.id) ?? 0;
 
                 return (
                   <tr key={client.id} className="border-b border-border last:border-0">
@@ -121,9 +190,9 @@ export function ClientsPage({
                         </div>
                       </div>
                     </td>
-                    <td className="px-5 py-4">{workflows.length}</td>
+                    <td className="px-5 py-4">{workflowCount}</td>
                     <td className="px-5 py-4">{client.healthScore}%</td>
-                    <td className="px-5 py-4">{clientIssues.length}</td>
+                    <td className="px-5 py-4">{clientIssueCount}</td>
                     <td className="px-5 py-4">
                       {client.reportStatus === "ready" ? (
                         <StatusBadge status="ready_to_send" />
@@ -150,8 +219,8 @@ export function ClientsPage({
                 <tr>
                   <td className="px-5 py-8 text-sm text-muted-foreground" colSpan={8}>
                     {data.clients.length
-                      ? "No clients match this search."
-                      : "Add your first client to start the workflow maintenance loop."}
+                      ? "No clients match the current search or filters."
+                      : "No clients yet - add one to get started."}
                   </td>
                 </tr>
               )}
@@ -161,6 +230,33 @@ export function ClientsPage({
       </Card>
     </div>
   );
+}
+
+function compareClients(
+  a: Client,
+  b: Client,
+  sortMode: ClientSort,
+  issueCountsByClient: Map<string, number>,
+): number {
+  const nameComparison = a.name.localeCompare(b.name);
+
+  if (sortMode === "health-desc") {
+    return b.healthScore - a.healthScore || nameComparison;
+  }
+
+  if (sortMode === "health-asc") {
+    return a.healthScore - b.healthScore || nameComparison;
+  }
+
+  if (sortMode === "issues-desc") {
+    return (issueCountsByClient.get(b.id) ?? 0) - (issueCountsByClient.get(a.id) ?? 0) || nameComparison;
+  }
+
+  if (sortMode === "activity-desc") {
+    return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime() || nameComparison;
+  }
+
+  return nameComparison;
 }
 
 function PageHeader({
