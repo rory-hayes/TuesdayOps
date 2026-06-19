@@ -71,6 +71,20 @@ describe("parseWorkflowImport", () => {
     });
   });
 
+  it("keeps simple cURL imports calm when optional flags are missing or malformed", () => {
+    expect(parseWorkflowImport({
+      source: "curl",
+      text: "curl   -H invalid-header https://api.example.com/status",
+    })).toMatchObject({
+      name: "api.example.com status",
+      type: "webhook",
+      endpointUrl: "https://api.example.com/status",
+      method: "GET",
+      authType: "none",
+      requestBody: undefined,
+    });
+  });
+
   it("masks cURL import secrets for shoulder-surfing safety", () => {
     const masked = maskWorkflowImportSecrets(
       `curl -X POST "https://hooks.example.com/lead" -H "Authorization: Bearer token_123" -H "X-API-Key: secret_456" -u "user:password" -d '{"email":"lead@example.com","token":"payload-token"}'`,
@@ -148,6 +162,44 @@ paths:
     })).toMatchObject({
       name: "classifyDocument",
       endpointUrl: "https://api.example.com/root/classify",
+      method: "GET",
+    });
+  });
+
+  it("falls back through OpenAPI parsing for array-shaped or invalid non-object text", () => {
+    expect(() =>
+      parseWorkflowImport({
+        source: "openapi",
+        text: "[1]",
+      }),
+    ).toThrow("OpenAPI import must include at least one supported operation.");
+
+    expect(() =>
+      parseWorkflowImport({
+        source: "openapi",
+        text: "not valid json",
+      }),
+    ).toThrow("OpenAPI import must be valid JSON.");
+  });
+
+  it("ignores blank and non-operation OpenAPI YAML lines", () => {
+    expect(parseWorkflowImport({
+      source: "openapi",
+      text: `
+openapi: 3.1.0
+
+servers:
+  - url: https://api.example.com
+paths:
+  /health:
+    description: ignored path metadata
+    get:
+      description: ignored operation metadata
+      operationId: healthCheck
+`,
+    })).toMatchObject({
+      name: "healthCheck",
+      endpointUrl: "https://api.example.com/health",
       method: "GET",
     });
   });
@@ -428,5 +480,31 @@ paths:
         }),
       }),
     ).toThrow("Unsupported workflow method: DELETE");
+  });
+
+  it("tolerates incomplete optional Postman fields while preserving URL shape", () => {
+    expect(
+      parseWorkflowImport({
+        source: "postman",
+        text: JSON.stringify({
+          item: [
+            {
+              request: {
+                url: {
+                  host: ["status", "example", "com"],
+                  path: [],
+                },
+                header: [{}, { key: " ", value: " " }],
+              },
+            },
+          ],
+        }),
+      }),
+    ).toMatchObject({
+      name: "status.example.com",
+      endpointUrl: "https://status.example.com",
+      method: "GET",
+      authType: "none",
+    });
   });
 });

@@ -29,6 +29,31 @@ describe("synthetic test runner helpers", () => {
     });
   });
 
+  it("defaults missing synthetic input and omits blank optional assertions", () => {
+    expect(
+      buildSyntheticRunConfig({
+        inputJson: undefined,
+        assertionsJson: buildTestCaseAssertions({
+          expectedStatus: 200,
+          maxLatencyMs: 1000,
+          fieldExistsPath: " ",
+          fieldNotEmptyPath: "",
+          containsTextValue: "\n",
+          matchesRegexPattern: "\t",
+          requireValidJson: false,
+          notContainsValue: " ",
+        }),
+      }),
+    ).toEqual({
+      timeoutMs: 10000,
+      requestBody: "{}",
+      assertions: [
+        { type: "status_code", expected: 200 },
+        { type: "latency_under", maxMs: 1000 },
+      ],
+    });
+  });
+
   it("parses empty JSON form input as an empty object", () => {
     expect(parseJsonInput("")).toEqual({});
     expect(parseJsonInput('{"ok":true}')).toEqual({ ok: true });
@@ -257,6 +282,27 @@ describe("synthetic test runner helpers", () => {
       reportable: true,
       last_seen_at: now,
       occurrence_count: 5,
+    });
+
+    expect(
+      buildSyntheticIssueUpdateForRepeatFailure({
+        testRunId: "test-run-1",
+        draft: {
+          fingerprint: "synthetic:pack-1:case-1:failed",
+          severity: "medium",
+          title: "Matter Intake synthetic test failed",
+          description: "Regression pack failed the Missing jurisdiction guard test case.",
+          suggestedAction: "Expected field jurisdiction to exist.",
+          reportable: true,
+        },
+        existing: {
+          occurrenceCount: null,
+        },
+        now,
+      }),
+    ).toMatchObject({
+      test_run_id: "test-run-1",
+      occurrence_count: 2,
     });
   });
 

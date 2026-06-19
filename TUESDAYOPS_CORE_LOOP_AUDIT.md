@@ -139,3 +139,112 @@ Notable fix-loop commands:
 
 - Live Resend delivery and Stripe Checkout/Customer Portal still require provider-side safe production/test-mode credentials and domains to verify outside the local automated suite.
 - Supabase Cron trigger timing in production still depends on deployed Vault secrets and Cron configuration; the protected scheduler route, due-check selector, and scheduled runner are verified locally/E2E.
+
+## 2026-06-19 Full Repo And Functional Rescan
+
+Reason for rescan: confirm whether the core offering is locked in after the UI/onboarding polish and determine whether any parallel Codex thread work still needs fixing or merging.
+
+### Thread And Git State
+
+- Local branch: `main`.
+- Remote tracking: `main` was aligned with `origin/main` before this test-hardening change.
+- Latest pushed commit before this rescan: `9656595 Add first-run activation wizard`.
+- `git branch --remotes --no-merged main` returned no unmerged remote branches.
+- All visible local `codex/*` work branches were already merged into `main`; the older blocker branches are stale/behind current `main`, not pending work.
+- Codex thread search for TuesdayOps work found this active thread and one unrelated/older EvalOps audit thread; I did not find an active unmerged TuesdayOps blocker thread.
+
+### Blocker Found
+
+The core app was functionally green on lint, typecheck, tests, build, smoke, audit, and E2E, but `npm run test:coverage` initially failed the repository's production gate:
+
+```txt
+Branches: 90.84%
+Required: 95%
+```
+
+This mattered because `ACCEPTANCE_CRITERIA.md`, `TASKS.md`, and `README.md` all treat the 95% branch coverage gate as part of MVP service/API readiness.
+
+### Fix Made
+
+No product scope was expanded and no runtime behavior was changed. I added focused tests around existing production paths:
+
+- `src/lib/checks/runner.test.ts`
+  - pinned HTTP transport with a local server
+  - response summary redaction
+  - POST body/content-type behavior
+  - oversized response cap/truncation
+  - configured timeout abort behavior
+- `src/lib/security/rate-limit.test.ts`
+  - default admin-client limiter path
+  - fail-closed RPC error and no-row behavior
+  - normalized empty scope fallback
+- `src/lib/test-packs/runner.test.ts`
+  - missing synthetic input default
+  - blank optional assertion fields
+  - repeat failure count fallback
+- `src/app/api/public/run-log/route.test.ts`
+  - forwarded/real IP pre-auth rate-limit identifiers
+  - invalid bearer cache expiry and revalidation
+- `src/lib/workflows/onboarding.test.ts`
+  - simple cURL import without optional flags
+  - malformed optional cURL header tolerance
+  - OpenAPI fallback/error branches
+  - blank/non-operation YAML lines
+  - incomplete optional Postman fields
+
+### Commands Run
+
+All Node commands were run with the bundled supported Node runtime:
+
+```bash
+git status --short --branch
+git branch --remotes --no-merged main
+git branch --merged main --format='%(refname:short)'
+npm run lint
+npm run typecheck
+npm run test
+npm audit --audit-level=moderate
+npm run build
+npm run smoke:production
+npm run test:coverage
+npx vitest run src/lib/checks/runner.test.ts src/lib/security/rate-limit.test.ts src/lib/test-packs/runner.test.ts
+npx vitest run src/app/api/public/run-log/route.test.ts src/lib/workflows/onboarding.test.ts
+npm run e2e
+```
+
+### Results
+
+- `npm run lint`: passed.
+- `npm run typecheck`: passed.
+- `npm run test`: passed, 68 test files and 379 tests.
+- `npm run test:coverage`: passed, 68 test files and 379 tests.
+- Final coverage: statements 98.52%, branches 95.14%, functions 100%, lines 98.47%.
+- `npm audit --audit-level=moderate`: passed, 0 vulnerabilities.
+- `npm run build`: passed.
+- `npm run smoke:production`: passed, 1 production smoke test.
+- `npm run e2e`: passed, 8 Playwright tests.
+
+### E2E Coverage Reconfirmed
+
+The maintained Playwright suite passed locally against the configured QA Supabase environment and covered:
+
+- confirmed auth and agency onboarding
+- client creation
+- workflow manual setup and cURL import
+- manual check execution and persisted check run history
+- protected scheduled checks
+- issue creation, assignment, rerun, reportable toggle, note, resolution, and reporting
+- synthetic test-pack failure and recovery
+- report generation from real stored check/issue/test data
+- web preview, PDF export/download, safe send failure, and cross-tenant PDF rejection
+- billing limit feedback and onboarding/demo-data safety
+
+### Verdict
+
+The core offering is locked in from the current local repository and functional test perspective. I found no unmerged thread/branch work requiring integration, and the only blocker found in this rescan, the failing coverage gate, is fixed and verified.
+
+Remaining production caveats are unchanged:
+
+- Real Resend delivery should still be tested with a real recipient/domain before paid launch.
+- Stripe Checkout/Portal should still be verified in test mode with live provider credentials before paid launch.
+- Supabase Cron timing depends on deployed Vault/Cron configuration, although the protected scheduler route and scheduled runner are covered locally and by E2E.

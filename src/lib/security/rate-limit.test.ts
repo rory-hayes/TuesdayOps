@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   buildPersistentRateLimitKey,
   buildRateLimitHeaders,
@@ -8,6 +8,20 @@ import {
   RateLimitExceededError,
   assertPersistentRateLimit,
 } from "./rate-limit";
+
+const defaultRateLimitClient = vi.hoisted(() => ({
+  rpc: vi.fn(),
+}));
+
+vi.mock("@/lib/supabase/admin", () => ({
+  createAdminClient: vi.fn(() => ({
+    rpc: defaultRateLimitClient.rpc,
+  })),
+}));
+
+beforeEach(() => {
+  defaultRateLimitClient.rpc.mockReset();
+});
 
 describe("createMemoryRateLimiter", () => {
   it("allows requests until the fixed window limit is reached", () => {
@@ -80,6 +94,7 @@ describe("persistent rate limiting", () => {
     expect(key).toMatch(/^public_run_log:[a-f0-9]{64}$/);
     expect(key).not.toContain("tops_secret_api_key");
     expect(hashRateLimitIdentifier("same")).toBe(hashRateLimitIdentifier("same"));
+    expect(buildPersistentRateLimitKey(" ! ", "user-1")).toMatch(/^rate_limit:[a-f0-9]{64}$/);
   });
 
   it("normalizes Supabase RPC limiter decisions", async () => {
@@ -138,6 +153,77 @@ describe("persistent rate limiting", () => {
         supabase: { rpc: vi.fn(() => ({ single })) } as never,
       }),
     ).rejects.toBeInstanceOf(RateLimitExceededError);
+  });
+
+  it("uses the default admin client when no Supabase client is supplied", async () => {
+    const single = vi.fn().mockResolvedValue({
+      data: {
+        allowed: true,
+        limit_count: 3,
+        remaining: 2,
+        retry_after_seconds: -5,
+        reset_at: "2026-06-17T19:30:00.000Z",
+      },
+      error: null,
+    });
+    defaultRateLimitClient.rpc.mockReturnValue({ single });
+
+    await expect(
+      consumePersistentRateLimit({
+        scope: "manual-run",
+        identifier: "agency-1",
+        limit: 3,
+        windowSeconds: 60,
+      }),
+    ).resolves.toMatchObject({
+      allowed: true,
+      remaining: 2,
+      retryAfterSeconds: 0,
+    });
+    expect(defaultRateLimitClient.rpc).toHaveBeenCalledWith("consume_rate_limit", {
+      p_bucket_key: buildPersistentRateLimitKey("manual-run", "agency-1"),
+      p_limit: 3,
+      p_window_seconds: 60,
+    });
+  });
+
+  it("fails closed when persistent limiter verification returns an error or no row", async () => {
+    const errorClient = {
+      rpc: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: { message: "RPC unavailable" },
+        }),
+      })),
+    };
+    const emptyClient = {
+      rpc: vi.fn(() => ({
+        single: vi.fn().mockResolvedValue({
+          data: null,
+          error: null,
+        }),
+      })),
+    };
+
+    await expect(
+      consumePersistentRateLimit({
+        scope: "manual-run",
+        identifier: "agency-1",
+        limit: 3,
+        windowSeconds: 60,
+        supabase: errorClient as never,
+      }),
+    ).rejects.toThrow("Rate limit could not be verified: RPC unavailable");
+
+    await expect(
+      consumePersistentRateLimit({
+        scope: "manual-run",
+        identifier: "agency-1",
+        limit: 3,
+        windowSeconds: 60,
+        supabase: emptyClient as never,
+      }),
+    ).rejects.toThrow("Rate limit could not be verified: No limiter result returned.");
   });
 
   it("builds standard rate limit headers", () => {

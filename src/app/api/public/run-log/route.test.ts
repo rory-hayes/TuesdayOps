@@ -130,6 +130,43 @@ describe("public run-log route", () => {
     });
   });
 
+  it("uses forwarded client IPs for pre-auth rate limiting", async () => {
+    const response = await POST(buildRequest({
+      key: "tops_key",
+      headers: {
+        "x-forwarded-for": "203.0.113.10, 198.51.100.4",
+        "x-real-ip": "198.51.100.99",
+      },
+      body: JSON.stringify({
+        workflowId: "550e8400-e29b-41d4-a716-446655440000",
+        status: "success",
+      }),
+    }));
+
+    expect(response.status).toBe(201);
+    expect(consumePersistentRateLimit).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      identifier: "203.0.113.10",
+    }));
+  });
+
+  it("falls back to the real IP header when forwarded IP is absent", async () => {
+    const response = await POST(buildRequest({
+      key: "tops_key",
+      headers: {
+        "x-real-ip": "198.51.100.99",
+      },
+      body: JSON.stringify({
+        workflowId: "550e8400-e29b-41d4-a716-446655440000",
+        status: "success",
+      }),
+    }));
+
+    expect(response.status).toBe(201);
+    expect(consumePersistentRateLimit).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      identifier: "198.51.100.99",
+    }));
+  });
+
   it("rate limits pre-auth run-log submissions before token or payload work", async () => {
     vi.mocked(consumePersistentRateLimit).mockResolvedValueOnce({
       allowed: false,
@@ -284,6 +321,46 @@ describe("public run-log route", () => {
     }
   });
 
+  it("revalidates invalid bearer keys after the cache entry expires", async () => {
+    const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const dateNow = vi.spyOn(Date, "now");
+    dateNow.mockReturnValue(1_000);
+    vi.mocked(recordExternalRunLog)
+      .mockRejectedValueOnce(new RunLogAuthError("bad key"))
+      .mockResolvedValueOnce({
+        checkRunId: "run-2",
+        status: "healthy",
+        issueCreated: false,
+      });
+
+    try {
+      const first = await POST(buildRequest({
+        key: "tops_invalid_expiring_key",
+        body: JSON.stringify({
+          workflowId: "550e8400-e29b-41d4-a716-446655440000",
+          status: "success",
+        }),
+      }));
+
+      dateNow.mockReturnValue(1_000 + (5 * 60 * 1000) + 1);
+
+      const second = await POST(buildRequest({
+        key: "tops_invalid_expiring_key",
+        body: JSON.stringify({
+          workflowId: "550e8400-e29b-41d4-a716-446655440000",
+          status: "success",
+        }),
+      }));
+
+      expect(first.status).toBe(401);
+      expect(second.status).toBe(201);
+      expect(recordExternalRunLog).toHaveBeenCalledTimes(2);
+    } finally {
+      dateNow.mockRestore();
+      consoleWarn.mockRestore();
+    }
+  });
+
   it("returns a safe generic error when the run log cannot be stored", async () => {
     vi.mocked(recordExternalRunLog).mockRejectedValueOnce(new Error("database exploded"));
 
@@ -301,11 +378,23 @@ describe("public run-log route", () => {
   });
 });
 
-function buildRequest({ key, body }: { key?: string; body: string }) {
+function buildRequest({
+  key,
+  body,
+  headers: extraHeaders,
+}: {
+  key?: string;
+  body: string;
+  headers?: Record<string, string>;
+}) {
   const headers = new Headers({ "content-type": "application/json" });
 
   if (key) {
     headers.set("authorization", `Bearer ${key}`);
+  }
+
+  for (const [key, value] of Object.entries(extraHeaders ?? {})) {
+    headers.set(key, value);
   }
 
   return new Request("https://app.example.com/api/public/run-log", {

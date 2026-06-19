@@ -1,4 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import http from "node:http";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { resolveSafeWorkflowEndpoint } from "@/lib/security/endpoint-url-server";
 import { runHttpCheck, type WorkflowHttpTransport } from "./runner";
 
 vi.mock("@/lib/security/endpoint-url-server", () => ({
@@ -8,6 +10,16 @@ vi.mock("@/lib/security/endpoint-url-server", () => ({
     resolvedAddress: "203.0.113.10",
   })),
 }));
+
+const mockedResolveSafeWorkflowEndpoint = vi.mocked(resolveSafeWorkflowEndpoint);
+
+afterEach(() => {
+  mockedResolveSafeWorkflowEndpoint.mockImplementation(async (value: string) => ({
+    endpointUrl: value,
+    url: new URL(value),
+    resolvedAddress: "203.0.113.10",
+  }));
+});
 
 describe("runHttpCheck", () => {
   it("does not automatically follow workflow endpoint redirects", async () => {
@@ -413,6 +425,129 @@ describe("runHttpCheck", () => {
       errorMessage: "Request timed out.",
     });
   });
+
+  it("uses the pinned HTTP transport for real requests without storing raw sensitive responses", async () => {
+    const { server, url, requests } = await startHttpServer((request, response) => {
+      const chunks: Buffer[] = [];
+
+      request.on("data", (chunk: Buffer) => chunks.push(chunk));
+      request.on("end", () => {
+        requests.push({
+          method: request.method ?? "",
+          url: request.url ?? "",
+          headers: request.headers,
+          body: Buffer.concat(chunks).toString("utf8"),
+        });
+        response.statusCode = 200;
+        response.setHeader("content-type", "application/json");
+        response.end(JSON.stringify({ ok: true, email: "ops@example.com", api_key: "secret-value" }));
+      });
+    });
+
+    try {
+      mockPinnedEndpoint(url);
+
+      const result = await runHttpCheck({
+        workflow: {
+          endpointUrl: url,
+          method: "POST",
+          authType: "none",
+        },
+        check: {
+          configJson: {
+            timeoutMs: 1000,
+            requestBody: "{\"ping\":true}",
+            assertions: [
+              { type: "status_code", expected: 200 },
+              { type: "field_exists", path: "ok" },
+            ],
+          },
+        },
+        authConfig: { type: "none" },
+      });
+
+      expect(result.status).toBe("healthy");
+      expect(result.responseSummary).toContain("[redacted-email]");
+      expect(result.responseSummary).toContain('"api_key":"[redacted]"');
+      expect(requests[0]).toMatchObject({
+        method: "POST",
+        url: "/health?source=runner",
+        body: "{\"ping\":true}",
+      });
+      expect(requests[0].headers.host).toBe(new URL(url).host);
+      expect(requests[0].headers["content-type"]).toBe("application/json");
+    } finally {
+      await closeServer(server);
+    }
+  });
+
+  it("caps oversized responses in the pinned HTTP transport", async () => {
+    const { server, url } = await startHttpServer((_request, response) => {
+      response.statusCode = 200;
+      response.write("x".repeat(70_000));
+      response.end();
+    });
+
+    try {
+      mockPinnedEndpoint(url);
+
+      const result = await runHttpCheck({
+        workflow: {
+          endpointUrl: url,
+          method: "GET",
+          authType: "none",
+        },
+        check: {
+          configJson: {
+            timeoutMs: 1000,
+            assertions: [{ type: "status_code", expected: 200 }],
+          },
+        },
+        authConfig: { type: "none" },
+      });
+
+      expect(result.status).toBe("healthy");
+      expect(result.responseSummary).toContain("[truncated]");
+      expect(result.responseSummary.length).toBeLessThanOrEqual(600);
+    } finally {
+      await closeServer(server);
+    }
+  });
+
+  it("aborts pinned HTTP requests that exceed the configured timeout", async () => {
+    const { server, url } = await startHttpServer((_request, response) => {
+      setTimeout(() => {
+        response.statusCode = 200;
+        response.end("late");
+      }, 1500);
+    });
+
+    try {
+      mockPinnedEndpoint(url);
+
+      await expect(
+        runHttpCheck({
+          workflow: {
+            endpointUrl: url,
+            method: "GET",
+            authType: "none",
+          },
+          check: {
+            configJson: {
+              timeoutMs: 1000,
+              assertions: [{ type: "status_code", expected: 200 }],
+            },
+          },
+          authConfig: { type: "none" },
+        }),
+      ).resolves.toMatchObject({
+        status: "failed",
+        errorMessage: "Request timed out.",
+      });
+    } finally {
+      await closeServer(server);
+    }
+  });
 });
 
 function createTransport(
@@ -430,5 +565,63 @@ function createTransport(
     }
 
     return result;
+  });
+}
+
+function mockPinnedEndpoint(endpointUrl: string) {
+  const url = new URL(endpointUrl);
+  mockedResolveSafeWorkflowEndpoint.mockResolvedValue({
+    endpointUrl,
+    url,
+    resolvedAddress: "127.0.0.1",
+  });
+}
+
+async function startHttpServer(
+  handler: http.RequestListener,
+): Promise<{
+  server: http.Server;
+  url: string;
+  requests: Array<{
+    method: string;
+    url: string;
+    headers: http.IncomingHttpHeaders;
+    body: string;
+  }>;
+}> {
+  const requests: Array<{
+    method: string;
+    url: string;
+    headers: http.IncomingHttpHeaders;
+    body: string;
+  }> = [];
+  const server = http.createServer(handler);
+
+  await new Promise<void>((resolve) => {
+    server.listen(0, "127.0.0.1", resolve);
+  });
+
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    throw new Error("HTTP test server did not expose a port.");
+  }
+
+  return {
+    server,
+    url: `http://workflow.example:${address.port}/health?source=runner`,
+    requests,
+  };
+}
+
+async function closeServer(server: http.Server) {
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
   });
 }
