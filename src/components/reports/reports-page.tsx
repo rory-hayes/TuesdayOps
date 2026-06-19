@@ -38,8 +38,8 @@ export function ReportsPage({
   const activeReportBlocked = reportQuality.status === "blocked";
 
   return (
-    <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-      <section className="flex flex-col gap-6">
+    <div className="mx-auto grid w-full max-w-7xl gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+      <section className="flex min-w-0 flex-col gap-6">
         <div>
           <p className="text-sm font-medium text-primary">Reports</p>
           <h1 className="mt-2 text-2xl font-semibold tracking-normal md:text-3xl">
@@ -103,7 +103,7 @@ export function ReportsPage({
 
         <Card>
           <CardHeader>
-            <h2 className="text-base font-semibold">Report queue</h2>
+            <h2 className="text-base font-semibold">Report history</h2>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.reports.length ? (
@@ -119,6 +119,22 @@ export function ReportsPage({
                       <p className="mt-1 text-sm text-muted-foreground">{item.periodLabel}</p>
                     </div>
                     <StatusBadge status={item.status} />
+                  </div>
+                  <div className="mt-4 grid gap-2 rounded-lg bg-muted p-3 text-xs text-muted-foreground sm:grid-cols-2">
+                    <p className="grid gap-1">
+                      <span className="font-medium uppercase text-zinc-500">Generated</span>
+                      <span>{item.generatedAt ? formatDateTime(item.generatedAt) : "Queued"}</span>
+                    </p>
+                    <p className="grid gap-1">
+                      {item.sentAt ? (
+                        <>
+                          <span className="font-medium uppercase text-zinc-500">Sent</span>
+                          <span>{formatDateTime(item.sentAt)}</span>
+                        </>
+                      ) : (
+                        <span className="font-medium text-zinc-500">Not sent yet</span>
+                      )}
+                    </p>
                   </div>
                   <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
                     <ReportStat label="Checks" value={item.checksRun.toLocaleString("en-IE")} />
@@ -141,7 +157,7 @@ export function ReportsPage({
         </Card>
       </section>
 
-      <Card>
+      <Card className="min-w-0">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
             <Badge variant="success">white-label preview</Badge>
@@ -192,7 +208,13 @@ export function ReportsPage({
             {activeReport ? (
               <form action={sendReportAction}>
                 <input type="hidden" name="reportId" value={activeReport.id} />
-                <FormSubmitButton size="sm" type="submit" pendingLabel="Sending..." disabled={activeReportBlocked}>
+                <FormSubmitButton
+                  size="sm"
+                  type="submit"
+                  pendingLabel="Sending..."
+                  disabled={activeReportBlocked}
+                  confirmMessage="Send this report to the client recipient now?"
+                >
                   <Send size={15} aria-hidden="true" />
                   Send
                 </FormSubmitButton>
@@ -282,10 +304,10 @@ function ReportDocumentPreview({
     : ["Generate a report to create client-safe recommendations."];
 
   return (
-    <div className="rounded-xl bg-zinc-100 p-4 ring-1 ring-zinc-950/5 sm:p-6">
-      <article className="mx-auto max-w-3xl bg-white p-7 shadow-[0_18px_60px_rgb(24_24_27_/_12%)] ring-1 ring-zinc-950/10 sm:p-9">
+    <div className="min-w-0 overflow-hidden rounded-xl bg-zinc-100 p-4 ring-1 ring-zinc-950/5 sm:p-6">
+      <article className="mx-auto w-full max-w-3xl bg-white p-5 shadow-[0_18px_60px_rgb(24_24_27_/_12%)] ring-1 ring-zinc-950/10 sm:p-9">
         <header className="border-b border-zinc-950/10 pb-6">
-          <div className="flex items-start justify-between gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div>
               <p className="text-sm font-semibold text-primary">{agencyName}</p>
               <h3 className="mt-3 text-2xl font-semibold tracking-normal text-zinc-950">
@@ -296,7 +318,7 @@ function ReportDocumentPreview({
                 Prepared for {clientName} - {periodLabel}
               </p>
             </div>
-            <div className="grid size-12 place-items-center rounded-lg bg-primary text-primary-foreground">
+            <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
               <FileText size={22} aria-hidden="true" />
             </div>
           </div>

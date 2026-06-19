@@ -13,9 +13,11 @@ import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
 import { buildReportEmail, buildReportPdfAttachment, renderReportPdfBytes } from "@/lib/reports/pdf";
 import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
+import { sanitizeReportText } from "@/lib/reports/sanitize";
 import { buildReportSendRedirect, formatReportSendError } from "@/lib/reports/send-feedback";
 import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
 import { formatActionError } from "@/lib/server-actions/feedback";
+import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -26,6 +28,25 @@ const generateReportFormSchema = z.object({
 
 const reportIdFormSchema = z.object({
   reportId: z.string().uuid(),
+});
+
+const reportItemCategorySchema = z.enum([
+  "workflow_health",
+  "issues_caught",
+  "issues_resolved",
+  "qa_checks",
+  "model_prompt_changes",
+  "recommendation",
+]);
+
+const updateReportNarrativeFormSchema = z.object({
+  reportId: z.string().uuid(),
+  summary: z.string().trim().min(10).max(2000),
+  recommendations: z.string().max(2000).optional().default(""),
+  reportItemCategories: z.array(reportItemCategorySchema),
+  reportItemSortOrders: z.array(z.coerce.number().int().min(0).max(1000)),
+  reportItemTitles: z.array(z.string().trim().min(2).max(120)),
+  reportItemBodies: z.array(z.string().trim().min(3).max(1200)),
 });
 
 type ReportRow = {
@@ -42,6 +63,11 @@ type ReportRow = {
   recommendations_json: string[];
   pdf_url: string | null;
   pdf_storage_path: string | null;
+};
+
+type ReportEditStatusRow = {
+  id: string;
+  status: "draft" | "ready_to_send" | "sent" | "failed";
 };
 
 type ReportItemRow = {
@@ -252,6 +278,91 @@ export async function sendReportAction(formData: FormData) {
   }));
 }
 
+export async function updateReportNarrativeAction(formData: FormData) {
+  const parsed = parseUpdateReportNarrativeForm(formData);
+  const rawReportId = formData.get("reportId");
+  const fallbackReportId = typeof rawReportId === "string" ? rawReportId : undefined;
+
+  if (!parsed.success) {
+    redirect(buildReportNarrativeErrorRedirect(
+      fallbackReportId,
+      "Report narrative needs a summary, section copy, and client-safe recommendations.",
+    ));
+  }
+
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  let narrative;
+
+  try {
+    const reportStatus = await loadReportEditStatus({
+      supabase,
+      agencyId: workspace.agency.id,
+      reportId: parsed.data.reportId,
+    });
+
+    if (reportStatus.status === "sent") {
+      throw new Error("Sent reports cannot be edited. Sent report history is preserved.");
+    }
+
+    narrative = buildReportNarrativeUpdate(parsed.data);
+    const updateResult = await supabase
+      .from("reports")
+      .update({
+        summary: narrative.summary,
+        recommendations_json: narrative.recommendations,
+        status: "draft",
+        pdf_url: null,
+        pdf_storage_path: null,
+        email_delivery_id: null,
+        sent_at: null,
+        send_error: null,
+      })
+      .eq("agency_id", workspace.agency.id)
+      .eq("id", parsed.data.reportId)
+      .select("id")
+      .maybeSingle();
+
+    assertMutationTouchedRow(updateResult, "Report was not found or is not accessible.");
+
+    const deleteResult = await supabase
+      .from("report_items")
+      .delete()
+      .eq("agency_id", workspace.agency.id)
+      .eq("report_id", parsed.data.reportId);
+
+    if (deleteResult.error) {
+      throw new Error(`Report sections could not be replaced: ${deleteResult.error.message}`);
+    }
+
+    if (narrative.items.length) {
+      const { error: itemError } = await supabase.from("report_items").insert(
+        narrative.items.map((item) => ({
+          agency_id: workspace.agency.id,
+          report_id: parsed.data.reportId,
+          category: item.category,
+          title: item.title,
+          body: item.body,
+          sort_order: item.sortOrder,
+        })),
+      );
+
+      if (itemError) {
+        throw new Error(`Report sections could not be saved: ${itemError.message}`);
+      }
+    }
+  } catch (error) {
+    redirect(buildReportNarrativeErrorRedirect(
+      parsed.data.reportId,
+      formatActionError(error, "Report narrative could not be saved."),
+    ));
+  }
+
+  revalidatePath("/reports");
+  revalidatePath(`/reports/${parsed.data.reportId}`);
+  redirect(`/reports/${parsed.data.reportId}?notice=${encodeURIComponent("Report narrative saved.")}`);
+}
+
 export async function saveReportDraft({
   supabase,
   agencyId,
@@ -422,6 +533,29 @@ async function loadReportDraftFromDatabase({
   };
 }
 
+async function loadReportEditStatus({
+  supabase,
+  agencyId,
+  reportId,
+}: {
+  supabase: SupabaseClient;
+  agencyId: string;
+  reportId: string;
+}): Promise<ReportEditStatusRow> {
+  const { data, error } = await supabase
+    .from("reports")
+    .select("id, status")
+    .eq("agency_id", agencyId)
+    .eq("id", reportId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw new Error(error?.message ?? "Report was not found or is not accessible.");
+  }
+
+  return data as ReportEditStatusRow;
+}
+
 async function loadClientForReportEmail({
   supabase,
   agencyId,
@@ -472,6 +606,70 @@ function getReportPeriod(period: string) {
   const periodEnd = new Date(Date.UTC(year, month, 0)).toISOString().slice(0, 10);
 
   return { periodStart, periodEnd };
+}
+
+function parseUpdateReportNarrativeForm(formData: FormData) {
+  return updateReportNarrativeFormSchema.safeParse({
+    reportId: formData.get("reportId"),
+    summary: formData.get("summary"),
+    recommendations: formData.get("recommendations") ?? "",
+    reportItemCategories: formData.getAll("reportItemCategory").map(String),
+    reportItemSortOrders: formData.getAll("reportItemSortOrder").map(String),
+    reportItemTitles: formData.getAll("reportItemTitle").map(String),
+    reportItemBodies: formData.getAll("reportItemBody").map(String),
+  });
+}
+
+function buildReportNarrativeUpdate({
+  summary,
+  recommendations,
+  reportItemCategories,
+  reportItemSortOrders,
+  reportItemTitles,
+  reportItemBodies,
+}: z.infer<typeof updateReportNarrativeFormSchema>) {
+  const itemCount = reportItemTitles.length;
+
+  if (
+    reportItemCategories.length !== itemCount ||
+    reportItemSortOrders.length !== itemCount ||
+    reportItemBodies.length !== itemCount
+  ) {
+    throw new Error("Report sections could not be matched.");
+  }
+
+  return {
+    summary: sanitizeRequiredReportText(summary, "Executive summary"),
+    recommendations: recommendations
+      .split(/\r?\n/)
+      .map((item) => sanitizeReportText(item))
+      .filter(Boolean)
+      .slice(0, 5),
+    items: reportItemTitles.map((title, index) => ({
+      category: reportItemCategories[index] as ReportItemCategory,
+      title: sanitizeRequiredReportText(title, "Report section title"),
+      body: sanitizeRequiredReportText(reportItemBodies[index], "Report section body"),
+      sortOrder: reportItemSortOrders[index],
+    })),
+  };
+}
+
+function sanitizeRequiredReportText(value: string, label: string) {
+  const sanitized = sanitizeReportText(value);
+
+  if (!sanitized) {
+    throw new Error(`${label} needs client-safe copy.`);
+  }
+
+  return sanitized;
+}
+
+function buildReportNarrativeErrorRedirect(reportId: string | undefined, message: string) {
+  const target = reportId && z.string().uuid().safeParse(reportId).success
+    ? `/reports/${reportId}`
+    : "/reports";
+
+  return `${target}?error=${encodeURIComponent(message)}`;
 }
 
 function sanitizeReportError(value: string) {
