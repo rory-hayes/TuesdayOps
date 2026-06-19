@@ -37,7 +37,9 @@ describe("ChecksPage", () => {
     const createAdvanced = screen.getAllByText("Advanced settings")[0]?.closest("details");
     expect(createAdvanced).toBeTruthy();
     expect((createAdvanced as HTMLDetailsElement).open).toBe(false);
-    expect(within(createAdvanced as HTMLElement).getByLabelText("Timeout ms")).toBeTruthy();
+    const createTimeout = within(createAdvanced as HTMLElement).getByLabelText("Timeout ms") as HTMLInputElement;
+    expect(createTimeout.value).toBe("10000");
+    expect(createTimeout.required).toBe(false);
     expect(within(createAdvanced as HTMLElement).getByText("Stop waiting after this many milliseconds.")).toBeTruthy();
 
     fireEvent.click(within(createAdvanced as HTMLElement).getByText("Advanced settings"));

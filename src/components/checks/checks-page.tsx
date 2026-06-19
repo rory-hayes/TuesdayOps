@@ -468,7 +468,7 @@ function AdvancedCheckSettings({
           name="timeoutMs"
           placeholder="10000"
           type="number"
-          required
+          required={configJson !== undefined}
           min={1000}
           max={60000}
           defaultValue={getTimeoutMs(configJson)}
