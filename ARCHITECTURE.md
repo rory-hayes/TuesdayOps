@@ -48,6 +48,7 @@ Browser
 - Newly created high/critical issues attempt Resend email alerts with redacted, report-safe copy.
 - Synthetic test packs can be created from the Checks page, contain tenant-scoped test cases, support required JSON/text/regex/field assertions, run manually through the shared HTTP runner, persist `test_runs`, and create deduped issues linked to `test_run_id` when cases fail.
 - Monthly reports aggregate uncapped selected-client, selected-period workflow, check, issue, synthetic run, and model/prompt comparison data into reproducible report records with report items, private Supabase Storage PDFs, authenticated download, and Resend send attempts that attach the generated PDF.
+- Report narratives can be edited before send through tenant-scoped server actions that sanitize report-safe copy, reset stale PDF/send state, and preserve sent reports as read-only history.
 - Monthly report draft automation can generate prior-month report drafts for clients that opt in. It does not send email automatically.
 - Overview, client, and workflow pages render lightweight SVG trend charts from stored pass-rate, run-volume, and severity data.
 - The Workflows page is registry-first; the Add workflow dialog contains quick import and manual setup so agencies can find existing workflows before starting a new onboarding path.
@@ -188,6 +189,7 @@ User selects client + month
   -> aggregate workflow health
   -> aggregate test pack results
   -> generate client-safe executive summary and report items
+  -> optionally edit report-safe narrative sections before send
   -> calculate report readiness from source data, sections, recommendations, and open high-risk issues
   -> render report preview from stored report data
   -> generate PDF from stored report data

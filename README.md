@@ -198,9 +198,11 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - tenant-scoped synthetic test packs, test cases, test runs, extended assertion types, and manual pack execution from the Checks page
 - failed synthetic test cases create deduped reportable issues linked to `test_run_id`
 - tenant-scoped monthly report generation from uncapped selected-client period source data, report items, preview UI, PDF storage/download, and Resend-backed send attempts with PDF attachments
+- pre-send report narrative editing for client-safe summaries, report sections, and recommendations while sent reports remain read-only history
 - monthly report draft automation fields and protected scheduler route
 - model/prompt comparison report items and workflow-level change validation summaries
 - overview, client, and workflow trend charts from stored check-run and issue data
+- client/workflow registry search, filter, sort, empty states, accessible chart/status semantics, and Checks Basic/Advanced configuration modes
 - OpenAPI import from JSON, YAML, pasted text, or a safe public URL
 - production deployment checklist, Supabase migration checklist, smoke checklist, Node runtime floor, and clean dependency audit
 - GitHub Actions CI plus a production smoke workflow that checks public app/Supabase health, route protections, billing webhook safety, gated Sentry example routes, and browser security headers without requiring provider secrets

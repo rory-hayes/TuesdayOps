@@ -91,3 +91,4 @@ Track meaningful product and engineering changes here.
 - Re-tuned the dashboard accent system from lavender to neutral zinc/charcoal so buttons, links, focus states, and charts match the left navigation.
 - Hid the Overview activation path once the first proof loop is complete so finished setup no longer consumes dashboard space.
 - Reworked first-run activation into a contained modal wizard with skip behavior, real client/workflow/check/report actions, and focused lifecycle coverage.
+- Completed a UX audit remediation pass with explicit auth labels, real-time sign-up validation, password visibility toggles, onboarding modal scroll/report links, accessible chart/status semantics, client/workflow table filtering, Checks Basic/Advanced modes, and editable pre-send report narratives with send confirmation/history.

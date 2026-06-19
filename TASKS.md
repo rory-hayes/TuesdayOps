@@ -690,3 +690,72 @@ Acceptance:
 Acceptance:
 
 - Reports, scheduled checks, workflow maintenance, endpoint execution safety, public ingestion, and issue triage are production-hardened without expanding beyond the core loop.
+
+## Milestone 20 — UX Audit Remediation
+
+### T20.1 Form labels and validation
+
+- [x] Replace duplicated auth form fields with explicit reusable labelled fields.
+- [x] Add real-time sign-up validation for email format, password strength, and password confirmation.
+- [x] Preserve entered sign-up values while showing inline validation errors.
+- [x] Add accessible show/hide controls for password fields.
+
+Acceptance:
+
+- sign-up validation updates before submit once fields are touched
+- auth password fields can be revealed and hidden without losing input
+
+### T20.2 Onboarding wizard usability
+
+- [x] Keep the activation wizard body in a mouse-wheel scroll region.
+- [x] Replace specific workflow placeholder copy with neutral guidance.
+- [x] Add final report instructions with links to the report preview and Reports section.
+
+Acceptance:
+
+- users can scroll the wizard body without relying on tab focus
+- completed report setup directs users to Reports
+
+### T20.3 Accessibility semantics
+
+- [x] Strengthen shared button focus-visible styling.
+- [x] Add data-rich accessible names to compact charts.
+- [x] Add contextual accessible names to shared status badges.
+
+Acceptance:
+
+- shared chart and status components expose useful screen-reader context
+
+### T20.4 Dashboard and tables
+
+- [x] Clarify overview metric descriptions.
+- [x] Add accessible metric descriptions/tooltips.
+- [x] Add client-side search, filter, and sort controls to Clients and Workflows tables.
+- [x] Improve client/workflow empty states.
+
+Acceptance:
+
+- users can scan, search, filter, and sort client/workflow registry data without leaving the page
+
+### T20.5 Checks Basic mode
+
+- [x] Add Basic mode for health-check create/edit forms.
+- [x] Move timeout, request body, JSON, field, text, regex, and negative assertions into Advanced settings with inline help.
+- [x] Preserve server action field names and default timeout behavior.
+
+Acceptance:
+
+- Basic mode exposes only workflow/name/status/latency essentials while Advanced keeps full check configuration available
+
+### T20.6 Report enhancements
+
+- [x] Add pre-send report narrative editing for summary, sections, and recommendations.
+- [x] Preserve sent reports as read-only history.
+- [x] Add confirmation before report send actions.
+- [x] Display generated/sent report history timestamps and statuses.
+- [x] Constrain report previews for responsive layouts.
+
+Acceptance:
+
+- report copy can be edited before send without mutating sent report history
+- sending a report requires confirmation
