@@ -1,5 +1,6 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { Beaker, Plus, Play } from "lucide-react";
+import { Beaker, Info, Plus, Play } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -57,39 +58,15 @@ export function ChecksPage({
         </CardHeader>
         <CardContent>
           {data.workflows.length ? (
-            <form action={createCheckAction} className="grid gap-3 md:grid-cols-4">
-              <label className="block text-sm font-medium md:col-span-2">
-                Workflow
-                <select
-                  required
-                  name="workflowId"
-                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                >
-                  {data.workflows.map((workflow) => (
-                    <option key={workflow.id} value={workflow.id}>
-                      {workflow.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Input label="Check name" name="name" placeholder="Endpoint health check" required minLength={2} maxLength={120} />
-              <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} />
-              <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required min={100} max={60000} />
-              <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required min={1000} max={60000} />
-              <CheckboxInput label="Require valid JSON" name="requireValidJson" />
-              <TextArea
-                className="md:col-span-2"
-                label="Request body"
-                name="requestBody"
-                placeholder='{"ping":true}'
-                maxLength={4000}
+            <form action={createCheckAction} className="space-y-4">
+              <BasicCheckSettings
+                workflows={data.workflows}
+                legendSuffix="for new health check"
+                gridClassName="md:grid-cols-4"
+                nameClassName="md:col-span-2"
               />
-              <Input label="Response contains" name="responseContains" placeholder="ok" maxLength={200} />
-              <Input label="Required field" name="jsonFieldPath" placeholder="result.id" maxLength={120} />
-              <Input label="Required non-empty field" name="fieldNotEmptyPath" placeholder="result.answer" maxLength={120} />
-              <Input label="Must match regex" name="matchesRegexPattern" placeholder="case-[0-9]+" maxLength={500} />
-              <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={200} />
-              <FormSubmitButton type="submit" className="md:col-span-4 md:w-fit" pendingLabel="Adding...">
+              <AdvancedCheckSettings gridClassName="md:grid-cols-4" />
+              <FormSubmitButton type="submit" className="md:w-fit" pendingLabel="Adding...">
                 <Plus size={15} aria-hidden="true" />
                 Add check
               </FormSubmitButton>
@@ -149,28 +126,18 @@ export function ChecksPage({
                   </div>
                   <details className="mt-4 rounded-lg bg-muted p-3 text-sm">
                     <summary className="cursor-pointer font-medium">Edit check settings</summary>
-                    <form action={updateCheckAction} className="mt-3 grid gap-3 md:grid-cols-2">
+                    <form action={updateCheckAction} className="mt-3 space-y-3">
                       <input type="hidden" name="checkId" value={check.id} />
                       {workflow?.id ? <input type="hidden" name="workflowId" value={workflow.id} /> : null}
-                      <Input label="Check name" name="name" placeholder="Endpoint health check" defaultValue={check.name} required minLength={2} maxLength={120} />
-                      <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} defaultValue={getStatusAssertionValue(check.configJson)} />
-                      <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" required min={100} max={60000} defaultValue={getLatencyAssertionValue(check.configJson)} />
-                      <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" required min={1000} max={60000} defaultValue={getTimeoutMs(check.configJson)} />
-                      <CheckboxInput label="Require valid JSON" name="requireValidJson" defaultChecked={hasValidJsonAssertion(check.configJson)} />
-                      <TextArea
-                        className="md:col-span-2"
-                        label="Request body"
-                        name="requestBody"
-                        placeholder='{"ping":true}'
-                        defaultValue={getRequestBody(check.configJson)}
-                        maxLength={4000}
+                      <BasicCheckSettings
+                        legendSuffix={`for ${check.name}`}
+                        gridClassName="md:grid-cols-2"
+                        checkNameDefaultValue={check.name}
+                        expectedStatusDefaultValue={getStatusAssertionValue(check.configJson)}
+                        maxLatencyDefaultValue={getLatencyAssertionValue(check.configJson)}
                       />
-                      <Input label="Response contains" name="responseContains" placeholder="ok" maxLength={200} defaultValue={getContainsTextAssertionValue(check.configJson)} />
-                      <Input label="Required field" name="jsonFieldPath" placeholder="result.id" maxLength={120} defaultValue={getFieldExistsAssertionValue(check.configJson)} />
-                      <Input label="Required non-empty field" name="fieldNotEmptyPath" placeholder="result.answer" maxLength={120} defaultValue={getFieldNotEmptyAssertionValue(check.configJson)} />
-                      <Input label="Must match regex" name="matchesRegexPattern" placeholder="case-[0-9]+" maxLength={500} defaultValue={getMatchesRegexAssertionValue(check.configJson)} />
-                      <Input label="Must not contain" name="notContainsValue" placeholder="error" maxLength={200} defaultValue={getNotContainsAssertionValue(check.configJson)} />
-                      <FormSubmitButton type="submit" size="sm" variant="secondary" className="md:col-span-2 md:w-fit" pendingLabel="Saving...">
+                      <AdvancedCheckSettings configJson={check.configJson} gridClassName="md:grid-cols-2" />
+                      <FormSubmitButton type="submit" size="sm" variant="secondary" className="md:w-fit" pendingLabel="Saving...">
                         Save check
                       </FormSubmitButton>
                     </form>
@@ -408,45 +375,211 @@ export function ChecksPage({
   );
 }
 
+function BasicCheckSettings({
+  workflows,
+  legendSuffix,
+  gridClassName,
+  nameClassName = "",
+  checkNameDefaultValue,
+  expectedStatusDefaultValue,
+  maxLatencyDefaultValue,
+}: {
+  workflows?: TuesdayOpsSeedData["workflows"];
+  legendSuffix: string;
+  gridClassName: string;
+  nameClassName?: string;
+  checkNameDefaultValue?: string;
+  expectedStatusDefaultValue?: number;
+  maxLatencyDefaultValue?: number;
+}) {
+  return (
+    <fieldset aria-label={`Basic settings ${legendSuffix}`} className={`grid gap-3 ${gridClassName}`}>
+      <legend className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+        <span>Basic settings</span>
+        <span className="sr-only"> {legendSuffix}</span>
+      </legend>
+      {workflows ? <WorkflowSelect workflows={workflows} /> : null}
+      <Input
+        className={nameClassName}
+        label="Check name"
+        name="name"
+        placeholder="Endpoint health check"
+        defaultValue={checkNameDefaultValue}
+        required
+        minLength={2}
+        maxLength={120}
+      />
+      <Input
+        label="Expected status"
+        name="expectedStatus"
+        placeholder="200"
+        type="number"
+        required
+        min={100}
+        max={599}
+        defaultValue={expectedStatusDefaultValue}
+      />
+      <Input
+        label="Max latency ms"
+        name="maxLatencyMs"
+        placeholder="5000"
+        type="number"
+        required
+        min={100}
+        max={60000}
+        defaultValue={maxLatencyDefaultValue}
+      />
+    </fieldset>
+  );
+}
+
+function WorkflowSelect({ workflows }: { workflows: TuesdayOpsSeedData["workflows"] }) {
+  return (
+    <label className="block text-sm font-medium md:col-span-2">
+      Workflow
+      <select
+        required
+        name="workflowId"
+        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+      >
+        {workflows.map((workflow) => (
+          <option key={workflow.id} value={workflow.id}>
+            {workflow.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function AdvancedCheckSettings({
+  configJson,
+  gridClassName,
+}: {
+  configJson?: unknown;
+  gridClassName: string;
+}) {
+  return (
+    <details className="rounded-lg border border-border bg-muted/50 p-3">
+      <summary className="cursor-pointer text-sm font-medium">Advanced settings</summary>
+      <div className={`mt-3 grid gap-3 ${gridClassName}`}>
+        <Input
+          label="Timeout ms"
+          name="timeoutMs"
+          placeholder="10000"
+          type="number"
+          required
+          min={1000}
+          max={60000}
+          defaultValue={getTimeoutMs(configJson)}
+          helpText="Stop waiting after this many milliseconds."
+        />
+        <CheckboxInput
+          label="Require valid JSON"
+          name="requireValidJson"
+          defaultChecked={hasValidJsonAssertion(configJson)}
+          helpText="Fail the check when the response is not parseable JSON."
+        />
+        <TextArea
+          className="md:col-span-2"
+          label="Request body"
+          name="requestBody"
+          placeholder='{"ping":true}'
+          defaultValue={getRequestBody(configJson)}
+          maxLength={4000}
+          helpText="Optional JSON payload for POST, PUT, or PATCH workflows."
+        />
+        <Input
+          label="Response contains"
+          name="responseContains"
+          placeholder="ok"
+          maxLength={200}
+          defaultValue={getContainsTextAssertionValue(configJson)}
+          helpText="Pass only when the response text includes this exact snippet."
+        />
+        <Input
+          label="Required field"
+          name="jsonFieldPath"
+          placeholder="result.id"
+          maxLength={120}
+          defaultValue={getFieldExistsAssertionValue(configJson)}
+          helpText="Use dot notation for JSON paths that must exist, such as result.id."
+        />
+        <Input
+          label="Required non-empty field"
+          name="fieldNotEmptyPath"
+          placeholder="result.answer"
+          maxLength={120}
+          defaultValue={getFieldNotEmptyAssertionValue(configJson)}
+          helpText="Use a JSON path that must exist and contain a non-empty value."
+        />
+        <Input
+          label="Must match regex"
+          name="matchesRegexPattern"
+          placeholder="case-[0-9]+"
+          maxLength={500}
+          defaultValue={getMatchesRegexAssertionValue(configJson)}
+          helpText="Validate response text with a regular expression pattern."
+        />
+        <Input
+          label="Must not contain"
+          name="notContainsValue"
+          placeholder="error"
+          maxLength={200}
+          defaultValue={getNotContainsAssertionValue(configJson)}
+          helpText="Negative assertion: fail when this text appears in the response."
+        />
+      </div>
+    </details>
+  );
+}
+
 function Input({
   label,
   name,
   placeholder,
   type = "text",
+  className = "",
   required = false,
   defaultValue,
   min,
   max,
   minLength,
   maxLength,
+  helpText,
 }: {
   label: string;
   name: string;
   placeholder: string;
   type?: string;
+  className?: string;
   required?: boolean;
   defaultValue?: string | number;
   min?: number;
   max?: number;
   minLength?: number;
   maxLength?: number;
+  helpText?: string;
 }) {
   return (
-    <label className="block text-sm font-medium">
-      {label}
-      <input
-        required={required}
-        name={name}
-        type={type}
-        defaultValue={defaultValue}
-        min={min}
-        max={max}
-        minLength={minLength}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-      />
-    </label>
+    <div className={`block text-sm font-medium ${className}`}>
+      <label className="block">
+        <FieldLabel label={label} helpText={helpText} />
+        <input
+          required={required}
+          name={name}
+          type={type}
+          defaultValue={defaultValue}
+          min={min}
+          max={max}
+          minLength={minLength}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+        />
+      </label>
+      <FieldHelp helpText={helpText} />
+    </div>
   );
 }
 
@@ -454,21 +587,26 @@ function CheckboxInput({
   label,
   name,
   defaultChecked = false,
+  helpText,
 }: {
   label: string;
   name: string;
   defaultChecked?: boolean;
+  helpText?: string;
 }) {
   return (
-    <label className="flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium">
-      <input
-        type="checkbox"
-        name={name}
-        defaultChecked={defaultChecked}
-        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
-      />
-      {label}
-    </label>
+    <div>
+      <label className="flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium">
+        <input
+          type="checkbox"
+          name={name}
+          defaultChecked={defaultChecked}
+          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+        />
+        <FieldLabel label={label} helpText={helpText} />
+      </label>
+      <FieldHelp helpText={helpText} />
+    </div>
   );
 }
 
@@ -480,6 +618,7 @@ function TextArea({
   defaultValue,
   maxLength,
   validateJson = false,
+  helpText,
 }: {
   label: string;
   name: string;
@@ -488,22 +627,43 @@ function TextArea({
   defaultValue?: string;
   maxLength?: number;
   validateJson?: boolean;
+  helpText?: string;
 }) {
   const TextAreaElement = validateJson ? JsonTextArea : "textarea";
 
   return (
-    <label className={`block text-sm font-medium ${className}`}>
-      {label}
-      <TextAreaElement
-        name={name}
-        placeholder={placeholder}
-        defaultValue={defaultValue}
-        maxLength={maxLength}
-        rows={3}
-        className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
-      />
-    </label>
+    <div className={`block text-sm font-medium ${className}`}>
+      <label className="block">
+        <FieldLabel label={label} helpText={helpText} />
+        <TextAreaElement
+          name={name}
+          placeholder={placeholder}
+          defaultValue={defaultValue}
+          maxLength={maxLength}
+          rows={3}
+          className="mt-2 w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+      </label>
+      <FieldHelp helpText={helpText} />
+    </div>
   );
+}
+
+function FieldLabel({ label, helpText }: { label: string; helpText?: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      {label}
+      {helpText ? (
+        <span title={helpText} aria-hidden="true" className="inline-flex text-muted-foreground">
+          <Info size={13} />
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+function FieldHelp({ helpText }: { helpText?: ReactNode }) {
+  return helpText ? <p className="mt-1 text-xs leading-5 text-muted-foreground">{helpText}</p> : null;
 }
 
 function formatJsonValue(value: unknown): string {
