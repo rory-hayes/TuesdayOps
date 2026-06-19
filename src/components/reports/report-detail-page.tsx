@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Download, FileText, Send } from "lucide-react";
+import { ArrowLeft, Download, FileText, Save, Send } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { buildReportQuality } from "@/lib/reports/quality";
 import {
   generateReportPdfAction,
   sendReportAction,
+  updateReportNarrativeAction,
 } from "@/lib/reports/service";
 import { cn } from "@/lib/utils";
 
@@ -88,7 +89,13 @@ export function ReportDetailPage({
           )}
           <form action={sendReportAction}>
             <input type="hidden" name="reportId" value={report.id} />
-            <FormSubmitButton size="sm" type="submit" pendingLabel="Sending..." disabled={reportBlocked}>
+            <FormSubmitButton
+              size="sm"
+              type="submit"
+              pendingLabel="Sending..."
+              disabled={reportBlocked}
+              confirmMessage="Send this report to the client recipient now?"
+            >
               <Send size={15} aria-hidden="true" />
               Send
             </FormSubmitButton>
@@ -117,6 +124,8 @@ export function ReportDetailPage({
         />
 
         <div className="grid gap-6">
+          <ReportNarrativeEditor report={report} reportItems={reportItems} />
+
           <Card>
             <CardHeader>
               <h2 className="text-base font-semibold">Report readiness</h2>
@@ -196,10 +205,10 @@ function ReportDocument({
     : ["Generate report source data before sending."];
 
   return (
-    <section className="rounded-xl bg-zinc-100 p-4 ring-1 ring-zinc-950/5 sm:p-6">
-      <article className="mx-auto bg-white p-7 shadow-[0_18px_60px_rgb(24_24_27_/_12%)] ring-1 ring-zinc-950/10 sm:p-9">
+    <section className="min-w-0 overflow-hidden rounded-xl bg-zinc-100 p-4 ring-1 ring-zinc-950/5 sm:p-6">
+      <article className="mx-auto w-full max-w-3xl bg-white p-5 shadow-[0_18px_60px_rgb(24_24_27_/_12%)] ring-1 ring-zinc-950/10 sm:p-9">
         <header className="border-b border-zinc-950/10 pb-6">
-          <div className="flex items-start justify-between gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
             <div>
               <p className="text-sm font-semibold text-primary">{agencyName}</p>
               <h2 className="mt-3 text-2xl font-semibold tracking-normal text-zinc-950">
@@ -210,7 +219,7 @@ function ReportDocument({
                 Prepared for {report.clientName} - {report.periodLabel}
               </p>
             </div>
-            <div className="grid size-12 place-items-center rounded-lg bg-primary text-primary-foreground">
+            <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
               <FileText size={22} aria-hidden="true" />
             </div>
           </div>
@@ -256,6 +265,137 @@ function ReportDocument({
         </section>
       </article>
     </section>
+  );
+}
+
+function ReportNarrativeEditor({
+  report,
+  reportItems,
+}: {
+  report: ReportSummary;
+  reportItems: TuesdayOpsSeedData["reportItems"];
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <h2 className="text-base font-semibold">Review narrative</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Edit client-safe report copy before export or send.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <form action={updateReportNarrativeAction} className="grid gap-4">
+          <input type="hidden" name="reportId" value={report.id} />
+          <NarrativeTextArea
+            label="Executive summary"
+            name="summary"
+            defaultValue={report.summary}
+            rows={5}
+            required
+            maxLength={2000}
+          />
+          <div className="grid gap-3">
+            <p className="text-xs font-medium uppercase text-muted-foreground">Report sections</p>
+            {reportItems.length ? (
+              reportItems.map((item) => (
+                <div key={item.id} className="grid gap-3 rounded-lg border border-border p-3">
+                  <input type="hidden" name="reportItemId" value={item.id} />
+                  <input type="hidden" name="reportItemCategory" value={item.category} />
+                  <input type="hidden" name="reportItemSortOrder" value={item.sortOrder} />
+                  <NarrativeInput
+                    label={`${item.title} title`}
+                    name="reportItemTitle"
+                    defaultValue={item.title}
+                    required
+                    maxLength={120}
+                  />
+                  <NarrativeTextArea
+                    label={`${item.title} body`}
+                    name="reportItemBody"
+                    defaultValue={item.body}
+                    rows={4}
+                    required
+                    maxLength={1200}
+                  />
+                </div>
+              ))
+            ) : (
+              <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                Generate report sections before editing this narrative.
+              </p>
+            )}
+          </div>
+          <NarrativeTextArea
+            label="Recommendations"
+            name="recommendations"
+            defaultValue={report.recommendations.join("\n")}
+            rows={4}
+            maxLength={2000}
+          />
+          <FormSubmitButton type="submit" size="sm" className="w-fit" pendingLabel="Saving...">
+            <Save size={15} aria-hidden="true" />
+            Save narrative
+          </FormSubmitButton>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+function NarrativeInput({
+  label,
+  name,
+  defaultValue,
+  required,
+  maxLength,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+  required?: boolean;
+  maxLength?: number;
+}) {
+  return (
+    <label className="block text-sm font-medium">
+      {label}
+      <input
+        name={name}
+        defaultValue={defaultValue}
+        required={required}
+        maxLength={maxLength}
+        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+      />
+    </label>
+  );
+}
+
+function NarrativeTextArea({
+  label,
+  name,
+  defaultValue,
+  rows,
+  required,
+  maxLength,
+}: {
+  label: string;
+  name: string;
+  defaultValue: string;
+  rows: number;
+  required?: boolean;
+  maxLength?: number;
+}) {
+  return (
+    <label className="block text-sm font-medium">
+      {label}
+      <textarea
+        name={name}
+        defaultValue={defaultValue}
+        rows={rows}
+        required={required}
+        maxLength={maxLength}
+        className="mt-2 w-full resize-y rounded-md border border-border bg-background px-3 py-2 text-sm leading-6 outline-none focus:border-primary"
+      />
+    </label>
   );
 }
 
