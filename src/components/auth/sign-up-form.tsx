@@ -16,6 +16,7 @@ type SignUpValues = {
 };
 
 type SignUpErrors = Partial<Record<keyof SignUpValues, string>>;
+type SignUpTouched = Partial<Record<keyof SignUpValues, boolean>>;
 
 export function SignUpForm({ action }: SignUpFormProps) {
   const [values, setValues] = useState<SignUpValues>({
@@ -23,24 +24,18 @@ export function SignUpForm({ action }: SignUpFormProps) {
     password: "",
     confirmPassword: "",
   });
-  const [errors, setErrors] = useState<SignUpErrors>({});
+  const [touched, setTouched] = useState<SignUpTouched>({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+  const errors = getVisibleSignUpErrors(values, touched, submitAttempted);
 
   function updateValue(name: keyof SignUpValues, value: string) {
     setValues((current) => ({ ...current, [name]: value }));
-    setErrors((current) => {
-      if (!current[name]) {
-        return current;
-      }
-
-      const next = { ...current };
-      delete next[name];
-      return next;
-    });
+    setTouched((current) => ({ ...current, [name]: true }));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const nextErrors = validateSignUpValues(values);
-    setErrors(nextErrors);
+    setSubmitAttempted(true);
 
     if (Object.keys(nextErrors).length) {
       event.preventDefault();
@@ -123,6 +118,23 @@ function validateSignUpValues(values: SignUpValues): SignUpErrors {
   }
 
   return errors;
+}
+
+function getVisibleSignUpErrors(
+  values: SignUpValues,
+  touched: SignUpTouched,
+  submitAttempted: boolean,
+): SignUpErrors {
+  const errors = validateSignUpValues(values);
+  const visibleErrors: SignUpErrors = {};
+
+  for (const field of Object.keys(errors) as Array<keyof SignUpErrors>) {
+    if (submitAttempted || touched[field]) {
+      visibleErrors[field] = errors[field];
+    }
+  }
+
+  return visibleErrors;
 }
 
 function isEmailAddress(value: string) {

@@ -43,6 +43,51 @@ describe("SignUpPage", () => {
     expect(confirmPassword.value).toBe("different");
   });
 
+  it("updates inline sign-up validation as touched fields change before submit", async () => {
+    render(await SignUpPage({ searchParams: Promise.resolve({}) }));
+
+    const email = screen.getByLabelText("Email") as HTMLInputElement;
+    const password = screen.getByLabelText("New password") as HTMLInputElement;
+    const confirmPassword = screen.getByLabelText("Confirm password") as HTMLInputElement;
+
+    fireEvent.change(email, { target: { value: "not-an-email" } });
+    expect(screen.getByText("Enter a valid email address.")).toBeTruthy();
+
+    fireEvent.change(email, { target: { value: "owner@example.com" } });
+    expect(screen.queryByText("Enter a valid email address.")).toBeNull();
+
+    fireEvent.change(password, { target: { value: "short" } });
+    expect(
+      screen
+        .getAllByRole("alert")
+        .some(
+          (alert) =>
+            alert.textContent ===
+            "Use at least 12 characters with uppercase, lowercase, number, and symbol.",
+        ),
+    ).toBeTruthy();
+
+    fireEvent.change(password, { target: { value: "TuesdayOps-2026!" } });
+    expect(
+      screen
+        .queryAllByRole("alert")
+        .some(
+          (alert) =>
+            alert.textContent ===
+            "Use at least 12 characters with uppercase, lowercase, number, and symbol.",
+        ),
+    ).toBe(false);
+
+    fireEvent.change(confirmPassword, { target: { value: "TuesdayOps-2027!" } });
+    expect(screen.getByText("Password and confirmation must match.")).toBeTruthy();
+
+    fireEvent.change(confirmPassword, { target: { value: "TuesdayOps-2026!" } });
+    expect(screen.queryByText("Password and confirmation must match.")).toBeNull();
+    expect(email.value).toBe("owner@example.com");
+    expect(password.value).toBe("TuesdayOps-2026!");
+    expect(confirmPassword.value).toBe("TuesdayOps-2026!");
+  });
+
   it("lets users reveal and hide sign-up password fields", async () => {
     render(await SignUpPage({ searchParams: Promise.resolve({}) }));
 
