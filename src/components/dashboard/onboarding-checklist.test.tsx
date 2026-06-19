@@ -14,6 +14,7 @@ vi.mock("@/lib/onboarding/actions", () => ({
 
 describe("OnboardingChecklist activation wizard", () => {
   beforeEach(() => {
+    installLocalStorageMock();
     window.localStorage.clear();
   });
 
@@ -57,6 +58,20 @@ describe("OnboardingChecklist activation wizard", () => {
     expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
+
+function installLocalStorageMock() {
+  const values = new Map<string, string>();
+
+  Object.defineProperty(window, "localStorage", {
+    configurable: true,
+    value: {
+      clear: () => values.clear(),
+      getItem: (key: string) => values.get(key) ?? null,
+      removeItem: (key: string) => values.delete(key),
+      setItem: (key: string, value: string) => values.set(key, value),
+    },
+  });
+}
 
 function makeData(
   overrides: Partial<Pick<TuesdayOpsSeedData, "clients" | "workflows" | "checks" | "checkRuns" | "reports">> = {},
