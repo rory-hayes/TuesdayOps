@@ -1,5 +1,6 @@
 const SIGN_IN_ERROR = "Email or password did not match an active account.";
 const SIGN_UP_ERROR = "Account could not be created. Check the details and try again.";
+const OAUTH_ERROR = "Google sign-in could not be started. Try again.";
 const EXISTING_ACCOUNT_ERROR = "An account with this email already exists. Sign in instead.";
 const AGENCY_ERROR = "Workspace could not be created. Check the details and try again.";
 const DUPLICATE_AGENCY_SLUG_ERROR = "That workspace slug is already in use. Try another slug.";
@@ -27,6 +28,16 @@ export function formatSignUpError(error: unknown): string {
   }
 
   return SIGN_UP_ERROR;
+}
+
+export function formatOAuthError(error: unknown): string {
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+
+  if (message.includes("rate limit") || message.includes("too many")) {
+    return "Too many attempts. Try again in a few minutes.";
+  }
+
+  return OAUTH_ERROR;
 }
 
 export function formatAgencyError(error: unknown): string {

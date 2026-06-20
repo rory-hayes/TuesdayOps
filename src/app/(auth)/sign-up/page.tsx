@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { AuthDivider, GoogleAuthForm } from "@/components/auth/google-auth-form";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { SignUpForm } from "@/components/auth/sign-up-form";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { signUpAction } from "@/lib/auth/actions";
+import { signInWithGoogleAction, signUpAction } from "@/lib/auth/actions";
 
 type AuthPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -22,6 +23,10 @@ export default async function SignUpPage({ searchParams }: AuthPageProps) {
       </div>
 
       <PageFeedback error={error} variant="inline" />
+
+      <GoogleAuthForm action={signInWithGoogleAction} source="sign-up" />
+
+      <AuthDivider />
 
       <SignUpForm action={signUpAction} />
 
