@@ -91,9 +91,9 @@ export function ClientDetailPage({
                       className="border-b border-zinc-950/5 last:border-0"
                     >
                       <td className="px-5 py-4">
-                        <Link href={`/workflows/${workflow.id}`} className="font-medium text-zinc-950 group-hover:text-primary group-hover:underline">
+                        <span className="font-medium text-zinc-950 group-hover:text-primary group-hover:underline">
                           {workflow.name}
-                        </Link>
+                        </span>
                         <p className="mt-1 max-w-[28rem] break-all font-mono text-xs/5 text-zinc-500">
                           {workflow.endpointUrl}
                         </p>

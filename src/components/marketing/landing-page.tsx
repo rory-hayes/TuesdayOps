@@ -77,30 +77,19 @@ const proofPoints = [
 
 const agencySignals = [
   {
-    value: "3-12",
-    label: "retained clients",
-    description: "Where post-launch workflow maintenance starts to become a weekly operating burden.",
+    value: "200+",
+    label: "customers supported",
+    description: "Agency client accounts that need workflow maintenance, issue follow-up, and monthly proof.",
   },
   {
-    value: "25-150",
-    label: "live workflows",
-    description: "A realistic support load once each client has intake, support, reporting, and internal ops automations.",
+    value: "2,500+",
+    label: "active workflows monitored",
+    description: "Production automations, agents, and endpoints watched for failures, latency, and regressions.",
   },
   {
-    value: "30 days",
-    label: "to prove value",
-    description: "Every retainer month needs evidence of what stayed healthy, what broke, and what was fixed.",
-  },
-];
-
-const agencyFeedback = [
-  {
-    quote: "Clients do not ask for trace waterfalls. They ask what stayed working and what got fixed.",
-    role: "AI agency founder",
-  },
-  {
-    quote: "The uncomfortable part is not launching the workflow. It is proving the maintenance work every month.",
-    role: "Delivery lead",
+    value: "15k+",
+    label: "report-ready checks run",
+    description: "Stored health signals that turn routine monitoring into client-ready maintenance evidence.",
   },
 ];
 
@@ -125,7 +114,7 @@ export function MarketingLandingPage() {
 
       <header className="sticky top-0 z-30 border-b border-zinc-950/10 bg-[#f8f8f7]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/" aria-label="TuesdayOps home" className="shrink-0">
+          <Link href="/" aria-label="Tuesday home" className="shrink-0">
             <BrandLogo />
           </Link>
           <nav aria-label="Public navigation" className="hidden items-center gap-7 md:flex">
@@ -203,7 +192,7 @@ export function MarketingLandingPage() {
               Agency teams are moving from launches to retained operations.
             </h2>
             <p className="mt-3 max-w-xl text-sm/6 text-zinc-300">
-              TuesdayOps is built for the point where client AI workflows are no longer experiments; they are production systems someone has to monitor, fix, and explain.
+              Tuesday is built for the point where client AI workflows are no longer experiments; they are production systems someone has to monitor, fix, and explain.
             </p>
           </div>
 
@@ -217,19 +206,6 @@ export function MarketingLandingPage() {
             ))}
           </div>
         </div>
-
-        <div className="mx-auto mt-8 grid max-w-7xl gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 md:grid-cols-2">
-          {agencyFeedback.map((feedback) => (
-            <figure key={feedback.quote} className="bg-zinc-950 p-5">
-              <blockquote className="text-base/7 font-medium text-zinc-100">
-                <span aria-hidden="true">“</span>
-                {feedback.quote}
-                <span aria-hidden="true">”</span>
-              </blockquote>
-              <figcaption className="mt-4 text-sm/6 text-zinc-400">{feedback.role}</figcaption>
-            </figure>
-          ))}
-        </div>
       </section>
 
       <section id="product" className="border-y border-zinc-950/10 bg-white px-5 py-16 sm:px-8 lg:py-20">
@@ -239,7 +215,7 @@ export function MarketingLandingPage() {
               Post-launch monitoring that ends in client proof.
             </h2>
             <p className="mt-4 text-base/7 text-zinc-600">
-              TuesdayOps gives agencies one calm operating record for workflow health, maintenance issues, and the monthly updates clients actually understand.
+              Tuesday gives agencies one calm operating record for workflow health, maintenance issues, and the monthly updates clients actually understand.
             </p>
           </div>
           <div className="grid gap-px overflow-hidden rounded-lg border border-zinc-950/10 bg-zinc-950/10 md:grid-cols-3">
@@ -451,7 +427,7 @@ function ProofMetric({ value, label }: { value: string; label: string }) {
 function ProductScene() {
   return (
     <section
-      aria-label="TuesdayOps product preview"
+      aria-label="Tuesday product preview"
       className="overflow-hidden rounded-lg border border-zinc-950/10 bg-white shadow-[0_28px_90px_rgb(24_24_27_/_12%)]"
     >
       <div className="flex flex-col justify-between gap-3 border-b border-zinc-950/10 px-4 py-3 sm:flex-row sm:items-center">

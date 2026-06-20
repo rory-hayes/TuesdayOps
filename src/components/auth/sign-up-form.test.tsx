@@ -25,12 +25,12 @@ describe("SignUpForm", () => {
     fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "Tuesday-2027!" } });
 
     await waitFor(() => {
-      expect((screen.getByLabelText("Confirm password") as HTMLInputElement).validity.valid).toBe(false);
+      expect(screen.getByText("Password and confirmation must match.")).toBeTruthy();
     });
 
     fireEvent.submit(screen.getByRole("form", { name: "Create Tuesday account" }));
 
-    expect(screen.getByRole("alert").textContent).toContain("Passwords do not match.");
+    expect(screen.getByRole("alert").textContent).toContain("Password and confirmation must match.");
     expect(action).not.toHaveBeenCalled();
   });
 

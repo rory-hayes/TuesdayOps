@@ -67,7 +67,9 @@ test("billing settings show limits and starter client limit is enforced", async 
   for (let index = 1; index <= 3; index += 1) {
     const clientName = `Billing Client ${runId}-${index}`;
     await createClient(page, clientName, `qa-billing-${runId}-${index}@example.invalid`);
-    await expect(page.getByRole("table").getByRole("link", { name: clientName, exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("table").getByRole("link", { name: `Open client ${clientName}`, exact: true }),
+    ).toBeVisible();
   }
 
   await createClient(page, overflowClient, `qa-billing-overflow-${runId}@example.invalid`);

@@ -21,11 +21,13 @@ describe("report pages", () => {
 
   it("asks for confirmation before sending the active report", () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const data = makeData();
+    const report = data.reports[0];
 
-    render(<ReportsPage data={makeData()} />);
+    render(<ReportDetailPage data={data} report={report} />);
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
 
-    expect(confirm).toHaveBeenCalledWith("Send this report to the client recipient now?");
+    expect(confirm).toHaveBeenCalledWith("Are you sure you want to send report to Acme?");
   });
 
   it("renders a timestamped generated and sent report history", () => {
@@ -45,13 +47,22 @@ describe("report pages", () => {
 
     render(<ReportDetailPage data={data} report={report} />);
 
-    expect(screen.getByRole("heading", { name: "Review narrative" })).toBeTruthy();
-    expect((screen.getByLabelText("Executive summary") as HTMLTextAreaElement).value).toBe(report.summary);
-    expect((screen.getByLabelText("Workflow health overview title") as HTMLInputElement).value).toBe("Workflow health overview");
-    expect((screen.getByLabelText("Workflow health overview body") as HTMLTextAreaElement).value).toBe(
-      "Two production workflows stayed within the agreed maintenance window.",
-    );
-    expect((screen.getByLabelText("Recommendations") as HTMLTextAreaElement).value).toBe(report.recommendations.join("\n"));
+    expect(screen.getByRole("article", { name: "Client report preview" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit executive summary" }));
+    expect(screen.getByDisplayValue(report.summary)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Workflow health overview title" }));
+    expect(screen.getByDisplayValue("Workflow health overview")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit Workflow health overview body" }));
+    expect(screen.getByDisplayValue("Two production workflows stayed within the agreed maintenance window.")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit recommendations" }));
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe(report.recommendations.join("\n"));
   });
 
   it("keeps sent reports read-only and preserves sent history", () => {
@@ -62,8 +73,8 @@ describe("report pages", () => {
 
     expect(screen.getByRole("heading", { name: "Sent report preserved" })).toBeTruthy();
     expect(screen.getByText("This report has already been sent. Sent report history is preserved, so narrative edits are disabled.")).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Review narrative" })).toBeNull();
-    expect(screen.queryByLabelText("Executive summary")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit executive summary" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Edit recommendations" })).toBeNull();
   });
 });
 

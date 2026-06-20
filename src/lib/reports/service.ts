@@ -11,6 +11,7 @@ import { getOperationalData, getReportSourceData } from "@/lib/data/operational-
 import type { ReportDraft, ReportItemCategory } from "@/lib/domain/types";
 import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
+import { prepareReportNarrativeEdit, type ReportNarrativeEditField } from "@/lib/reports/narrative-edits";
 import { buildReportEmail, buildReportPdfAttachment, renderReportPdfBytes } from "@/lib/reports/pdf";
 import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
 import { sanitizeReportText } from "@/lib/reports/sanitize";
@@ -47,6 +48,15 @@ const updateReportNarrativeFormSchema = z.object({
   reportItemSortOrders: z.array(z.coerce.number().int().min(0).max(1000)),
   reportItemTitles: z.array(z.string().trim().min(2).max(120)),
   reportItemBodies: z.array(z.string().trim().min(3).max(1200)),
+});
+
+const reportNarrativeEditFieldSchema = z.enum(["summary", "recommendations", "itemTitle", "itemBody"]);
+
+const updateInlineReportNarrativeFormSchema = z.object({
+  reportId: z.string().uuid(),
+  field: reportNarrativeEditFieldSchema,
+  itemId: z.string().uuid().optional(),
+  value: z.string().max(2000),
 });
 
 type ReportRow = {
@@ -279,6 +289,13 @@ export async function sendReportAction(formData: FormData) {
 }
 
 export async function updateReportNarrativeAction(formData: FormData) {
+  const inlineParsed = parseInlineReportNarrativeForm(formData);
+
+  if (inlineParsed.success) {
+    await updateInlineReportNarrative(inlineParsed.data);
+    return;
+  }
+
   const parsed = parseUpdateReportNarrativeForm(formData);
   const rawReportId = formData.get("reportId");
   const fallbackReportId = typeof rawReportId === "string" ? rawReportId : undefined;
@@ -361,6 +378,97 @@ export async function updateReportNarrativeAction(formData: FormData) {
   revalidatePath("/reports");
   revalidatePath(`/reports/${parsed.data.reportId}`);
   redirect(`/reports/${parsed.data.reportId}?notice=${encodeURIComponent("Report narrative saved.")}`);
+}
+
+async function updateInlineReportNarrative({
+  field,
+  itemId,
+  reportId,
+  value,
+}: z.infer<typeof updateInlineReportNarrativeFormSchema>) {
+  const workspace = await requireWorkspace();
+  const supabase = await createClient();
+  let edit;
+
+  try {
+    const reportStatus = await loadReportEditStatus({
+      supabase,
+      agencyId: workspace.agency.id,
+      reportId,
+    });
+
+    if (reportStatus.status === "sent") {
+      throw new Error("Sent reports cannot be edited. Sent report history is preserved.");
+    }
+
+    edit = prepareReportNarrativeEdit({
+      field: field as ReportNarrativeEditField,
+      value,
+    });
+
+    if (edit.target === "item") {
+      if (!itemId) {
+        throw new Error("Report item was missing for this edit.");
+      }
+
+      const itemUpdateResult = await supabase
+        .from("report_items")
+        .update(edit.updates)
+        .eq("agency_id", workspace.agency.id)
+        .eq("report_id", reportId)
+        .eq("id", itemId)
+        .select("id")
+        .maybeSingle();
+
+      assertMutationTouchedRow(itemUpdateResult, "Report item was not found or is not accessible.");
+    } else {
+      const reportUpdateResult = await supabase
+        .from("reports")
+        .update(edit.updates)
+        .eq("agency_id", workspace.agency.id)
+        .eq("id", reportId)
+        .select("id")
+        .maybeSingle();
+
+      assertMutationTouchedRow(reportUpdateResult, "Report was not found or is not accessible.");
+    }
+
+    const statusUpdateResult = await supabase
+      .from("reports")
+      .update({
+        status: "draft",
+        pdf_url: null,
+        pdf_storage_path: null,
+        email_delivery_id: null,
+        sent_at: null,
+        send_error: null,
+      })
+      .eq("agency_id", workspace.agency.id)
+      .eq("id", reportId)
+      .select("id")
+      .maybeSingle();
+
+    assertMutationTouchedRow(statusUpdateResult, "Report was not found or is not accessible.");
+
+    await recordReportAuditEvent({
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      action: "report.updated",
+      reportId,
+      metadata: {
+        field: edit.auditField,
+      },
+    });
+  } catch (error) {
+    redirect(buildReportNarrativeErrorRedirect(
+      reportId,
+      formatActionError(error, "Report narrative could not be saved."),
+    ));
+  }
+
+  revalidatePath("/reports");
+  revalidatePath(`/reports/${reportId}`);
+  redirect(`/reports/${reportId}?notice=${encodeURIComponent("Report narrative saved.")}`);
 }
 
 export async function saveReportDraft({
@@ -620,6 +728,15 @@ function parseUpdateReportNarrativeForm(formData: FormData) {
   });
 }
 
+function parseInlineReportNarrativeForm(formData: FormData) {
+  return updateInlineReportNarrativeFormSchema.safeParse({
+    reportId: formData.get("reportId"),
+    field: formData.get("field"),
+    itemId: formData.get("itemId") || undefined,
+    value: formData.get("value") ?? "",
+  });
+}
+
 function buildReportNarrativeUpdate({
   summary,
   recommendations,
@@ -689,7 +806,7 @@ async function recordReportAuditEvent({
 }: {
   agencyId: string;
   actorUserId: string;
-  action: "report.generated" | "report.pdf_generated" | "report.send_attempted";
+  action: "report.generated" | "report.updated" | "report.pdf_generated" | "report.send_attempted";
   reportId: string;
   metadata: Record<string, unknown>;
 }) {

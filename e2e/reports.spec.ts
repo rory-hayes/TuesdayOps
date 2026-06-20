@@ -70,7 +70,10 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
   await blockedReportForm.getByLabel("Period").fill("2026-05");
   await blockedReportForm.getByRole("button", { name: "Generate" }).click();
   await expect(page.getByText(`${clientName} May 2026`)).toBeVisible();
-  await expect(page.getByText("Resolve blocked readiness items before exporting or sending this report.")).toBeVisible();
+  await page.getByRole("button", { name: "Not ready" }).click();
+  await expect(page.getByRole("dialog", { name: "Resolve report readiness" })).toBeVisible();
+  await expect(page.getByText("Report has no check runs for this period.")).toBeVisible();
+  await page.getByRole("button", { name: "Close" }).click();
   await expect(page.getByRole("button", { name: "PDF" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Send" })).toBeDisabled();
 
@@ -168,7 +171,7 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
   await page.goto(`/reports/${report.id}`, { waitUntil: "domcontentloaded" });
   const sendForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Send" }) });
   page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toBe("Send this report to the client recipient now?");
+    expect(dialog.message()).toBe(`Are you sure you want to send report to ${clientName}?`);
     await dialog.accept();
   });
   await sendForm.getByRole("button", { name: "Send" }).click();

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { BillingUpgradeDialog } from "@/components/billing/billing-upgrade-dialog";
@@ -191,9 +190,9 @@ export function ClientsPage({
                           {client.name.slice(0, 1).toUpperCase()}
                         </div>
                         <div className="min-w-0">
-                          <Link href={`/clients/${client.id}`} className="font-medium hover:text-zinc-700">
+                          <span className="font-medium text-zinc-950 group-hover:text-zinc-700">
                             {client.name}
-                          </Link>
+                          </span>
                           <p className="mt-1 text-xs text-muted-foreground">{client.industry}</p>
                         </div>
                       </div>

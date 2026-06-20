@@ -1,10 +1,11 @@
-import Link from "next/link";
+"use client";
+
+import { useMemo, useState } from "react";
 import { Activity, Play, Search } from "lucide-react";
 import { BillingUpgradeDialog } from "@/components/billing/billing-upgrade-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { AddWorkflowDialog } from "@/components/workflows/add-workflow-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ClickableTableRow } from "@/components/ui/clickable-table-row";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
@@ -13,8 +14,11 @@ import { createCheckoutSessionAction } from "@/lib/billing/service";
 import { getPlanLimitUpgradePrompt } from "@/lib/billing/upgrade";
 import { runCheckAction } from "@/lib/checks/service";
 import { createWorkflowAction, createWorkflowFromImportAction } from "@/lib/workflows/service";
-import type { TuesdayOpsSeedData } from "@/lib/domain/types";
+import type { TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
+
+type WorkflowStatusFilter = "all" | Workflow["status"] | "attention";
+type WorkflowSort = "name-asc" | "pass-rate-asc" | "pass-rate-desc" | "latency-asc" | "last-check-desc";
 
 export function WorkflowsPage({
   data,
@@ -33,27 +37,43 @@ export function WorkflowsPage({
   environment?: string;
   status?: string;
 }) {
-  const activeClients = data.clients
-    .filter((client) => !client.archived)
-    .map((client) => ({ id: client.id, name: client.name }));
-  const normalizedQuery = query?.trim().toLowerCase() ?? "";
-  const visibleWorkflows = data.workflows.filter((workflow) => {
-    const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
-    const matchesSearch = normalizedQuery
-      ? [
-          workflow.name,
-          workflow.endpointUrl,
-          workflow.type,
-          workflow.environment,
-          client?.name ?? "",
-        ].join(" ").toLowerCase().includes(normalizedQuery)
-      : true;
-    const matchesClient = clientId ? workflow.clientId === clientId : true;
-    const matchesEnvironment = environment ? workflow.environment === environment : true;
-    const matchesStatus = status ? workflow.status === status : true;
+  const [searchTerm, setSearchTerm] = useState(query ?? "");
+  const [clientFilter, setClientFilter] = useState(clientId ?? "");
+  const [environmentFilter, setEnvironmentFilter] = useState(environment ?? "");
+  const [statusFilter, setStatusFilter] = useState<WorkflowStatusFilter>(normalizeWorkflowStatusFilter(status));
+  const [sortMode, setSortMode] = useState<WorkflowSort>("name-asc");
+  const activeClients = useMemo(
+    () => data.clients
+      .filter((client) => !client.archived)
+      .map((client) => ({ id: client.id, name: client.name })),
+    [data.clients],
+  );
+  const visibleWorkflows = useMemo(() => {
+    const normalizedQuery = searchTerm.trim().toLowerCase();
+    const rows = data.workflows.filter((workflow) => {
+      const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
+      const matchesSearch = normalizedQuery
+        ? [
+            workflow.name,
+            workflow.endpointUrl,
+            workflow.type,
+            workflow.environment,
+            client?.name ?? "",
+          ].join(" ").toLowerCase().includes(normalizedQuery)
+        : true;
+      const matchesClient = clientFilter ? workflow.clientId === clientFilter : true;
+      const matchesEnvironment = environmentFilter ? workflow.environment === environmentFilter : true;
+      const matchesStatus = statusFilter === "all"
+        ? true
+        : statusFilter === "attention"
+          ? workflow.status === "degraded" || workflow.status === "failed"
+          : workflow.status === statusFilter;
 
-    return matchesSearch && matchesClient && matchesEnvironment && matchesStatus;
-  });
+      return matchesSearch && matchesClient && matchesEnvironment && matchesStatus;
+    });
+
+    return [...rows].sort((a, b) => compareWorkflows(a, b, sortMode));
+  }, [clientFilter, data.clients, data.workflows, environmentFilter, searchTerm, sortMode, statusFilter]);
   const upgradePrompt = getPlanLimitUpgradePrompt({
     error,
     plan: data.agency.plan,
@@ -95,14 +115,14 @@ export function WorkflowsPage({
               Production checks and report inclusion. Showing {visibleWorkflows.length} of {data.workflows.length}.
             </p>
           </div>
-          <form className="grid gap-2 md:grid-cols-[minmax(14rem,1fr)_12rem_10rem_10rem_auto]">
+          <div className="grid gap-2 md:grid-cols-[minmax(14rem,1fr)_12rem_10rem_10rem_12rem]">
             <label className="relative block">
               <span className="sr-only">Search workflows</span>
               <Search size={15} className="pointer-events-none absolute left-3 top-2.5 text-muted-foreground" aria-hidden="true" />
               <input
-                name="q"
                 aria-label="Search workflows"
-                defaultValue={query}
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search workflows or endpoints"
                 className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
               />
@@ -110,9 +130,9 @@ export function WorkflowsPage({
             <label>
               <span className="sr-only">Filter by client</span>
               <select
-                name="clientId"
                 aria-label="Filter by client"
-                defaultValue={clientId ?? ""}
+                value={clientFilter}
+                onChange={(event) => setClientFilter(event.target.value)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               >
                 <option value="">All clients</option>
@@ -126,9 +146,9 @@ export function WorkflowsPage({
             <label>
               <span className="sr-only">Filter by environment</span>
               <select
-                name="environment"
                 aria-label="Filter by environment"
-                defaultValue={environment ?? ""}
+                value={environmentFilter}
+                onChange={(event) => setEnvironmentFilter(event.target.value)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               >
                 <option value="">All envs</option>
@@ -138,25 +158,37 @@ export function WorkflowsPage({
               </select>
             </label>
             <label>
-              <span className="sr-only">Filter by status</span>
+              <span className="sr-only">Workflow status</span>
               <select
-                name="status"
-                aria-label="Filter by status"
-                defaultValue={status ?? ""}
+                aria-label="Workflow status"
+                value={statusFilter}
+                onChange={(event) => setStatusFilter(event.target.value as WorkflowStatusFilter)}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               >
-                <option value="">All health</option>
+                <option value="all">All health</option>
+                <option value="attention">Needs attention</option>
                 <option value="healthy">Healthy</option>
                 <option value="degraded">Degraded</option>
                 <option value="failed">Failed</option>
                 <option value="unknown">Unknown</option>
               </select>
             </label>
-            <Button variant="secondary" size="sm" type="submit">
-              <Search size={15} aria-hidden="true" />
-              Filter
-            </Button>
-          </form>
+            <label>
+              <span className="sr-only">Sort workflows</span>
+              <select
+                aria-label="Sort workflows"
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as WorkflowSort)}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              >
+                <option value="name-asc">Name A-Z</option>
+                <option value="pass-rate-asc">Pass rate low-high</option>
+                <option value="pass-rate-desc">Pass rate high-low</option>
+                <option value="latency-asc">Latency low-high</option>
+                <option value="last-check-desc">Last check</option>
+              </select>
+            </label>
+          </div>
         </CardHeader>
         <CardContent className={data.workflows.length ? "overflow-x-auto p-0" : ""}>
           {data.workflows.length ? (
@@ -189,9 +221,9 @@ export function WorkflowsPage({
                       className="border-b border-border last:border-0"
                     >
                       <td className="max-w-[34rem] px-5 py-4">
-                        <Link href={`/workflows/${workflow.id}`} className="font-medium text-primary">
+                        <span className="font-medium text-primary">
                           {workflow.name}
-                        </Link>
+                        </span>
                         <div className="mt-2 flex items-start gap-2">
                           <Badge variant="muted">{workflow.method}</Badge>
                           <p className="min-w-0 break-all font-mono text-xs leading-5 text-muted-foreground">
@@ -231,12 +263,6 @@ export function WorkflowsPage({
                               </FormSubmitButton>
                             </form>
                           ) : null}
-                          <Link
-                            href={`/workflows/${workflow.id}`}
-                            className="inline-flex h-8 items-center justify-center rounded-lg border border-border bg-card px-3 text-sm font-semibold text-foreground shadow-sm transition-colors hover:bg-muted"
-                          >
-                            View
-                          </Link>
                         </div>
                       </td>
                     </ClickableTableRow>
@@ -279,4 +305,42 @@ function formatFrequency(minutes: number): string {
   }
 
   return `${minutes} min`;
+}
+
+function normalizeWorkflowStatusFilter(value?: string): WorkflowStatusFilter {
+  if (
+    value === "healthy" ||
+    value === "degraded" ||
+    value === "failed" ||
+    value === "unknown" ||
+    value === "attention"
+  ) {
+    return value;
+  }
+
+  return "all";
+}
+
+function compareWorkflows(a: Workflow, b: Workflow, sortMode: WorkflowSort): number {
+  if (sortMode === "pass-rate-asc") {
+    return a.passRate - b.passRate || a.name.localeCompare(b.name);
+  }
+
+  if (sortMode === "pass-rate-desc") {
+    return b.passRate - a.passRate || a.name.localeCompare(b.name);
+  }
+
+  if (sortMode === "latency-asc") {
+    return a.latencyMs - b.latencyMs || a.name.localeCompare(b.name);
+  }
+
+  if (sortMode === "last-check-desc") {
+    return toTime(b.lastCheckAt) - toTime(a.lastCheckAt) || a.name.localeCompare(b.name);
+  }
+
+  return a.name.localeCompare(b.name);
+}
+
+function toTime(value?: string): number {
+  return value ? new Date(value).getTime() : 0;
 }

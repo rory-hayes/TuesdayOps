@@ -89,13 +89,15 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
   expect(workflowId).toBeTruthy();
 
   await page.goto("/checks", { waitUntil: "domcontentloaded" });
+  const packDisclosure = page.locator("details").filter({ hasText: "Add test pack" });
+  await packDisclosure.locator("summary").click();
   const packForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Add test pack" }) });
   await packForm.getByLabel("Workflow").selectOption({ label: workflowName });
   await packForm.getByLabel("Pack name").fill(packName);
   await packForm.getByLabel("Description").fill("Synthetic regression coverage for the QA handoff.");
   await packForm.getByRole("button", { name: "Add test pack" }).click();
   await expect(page.getByText("Test pack added.")).toBeVisible();
-  await expect(page.getByText(packName)).toBeVisible();
+  await expect(page.getByText(packName, { exact: true })).toBeVisible();
 
   const pack = await poll(async () => {
     const rows = await getRows<TestPackRow>(
@@ -106,7 +108,14 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
   }, "created test pack");
   expect(pack.workflow_id).toBe(workflowId);
 
-  const caseForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Add case" }) });
+  const packConfiguration = page
+    .locator("details")
+    .filter({ has: page.getByText("Configure pack, cases, and recent runs") })
+    .last();
+  await packConfiguration.locator("summary").first().click();
+  const addCaseDisclosure = packConfiguration.locator("details").filter({ hasText: "Add case" });
+  await addCaseDisclosure.locator("summary").click();
+  const caseForm = addCaseDisclosure.locator("form").filter({ has: page.getByRole("button", { name: "Add case" }) });
   await caseForm.getByLabel("Case name").fill(caseName);
   await caseForm.getByLabel("Input JSON").fill('{"leadId":"qa-001","intent":"book"}');
   await caseForm.getByLabel("Expected status").fill("200");
@@ -115,6 +124,13 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
   await caseForm.getByLabel("Must not contain").fill("fatal");
   await caseForm.getByRole("button", { name: "Add case" }).click();
   await expect(page.getByText("Test case added.")).toBeVisible();
+  await page
+    .locator("details")
+    .filter({ has: page.getByText("Configure pack, cases, and recent runs") })
+    .last()
+    .locator("summary")
+    .first()
+    .click();
   await expect(page.getByText(caseName)).toBeVisible();
 
   const testCase = await poll(async () => {
@@ -174,6 +190,13 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
 
   await page.goto("/checks", { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
+  await page
+    .locator("details")
+    .filter({ has: page.getByText("Configure pack, cases, and recent runs") })
+    .last()
+    .locator("summary")
+    .first()
+    .click();
   await expect(page.getByText(caseName).first()).toBeVisible();
   await page
     .locator("form")
@@ -207,6 +230,13 @@ test("synthetic test pack run stores failures and resolves recovered issues", as
   expect(resolvedIssue.resolved_at).toBeTruthy();
 
   await page.goto("/checks", { waitUntil: "domcontentloaded" });
+  await page
+    .locator("details")
+    .filter({ has: page.getByText("Configure pack, cases, and recent runs") })
+    .last()
+    .locator("summary")
+    .first()
+    .click();
   await expect(page.getByText(caseName).first()).toBeVisible();
   await expect(page.getByText("passed").first()).toBeVisible();
   await testInfo.attach("test-pack-checks", {

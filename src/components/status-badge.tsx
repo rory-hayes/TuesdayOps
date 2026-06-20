@@ -14,7 +14,7 @@ type StatusBadgeProps = {
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
-  const label = status.replaceAll("_", " ");
+  const label = status === "draft" ? "in progress" : status.replaceAll("_", " ");
 
   if (
     status === "healthy" ||

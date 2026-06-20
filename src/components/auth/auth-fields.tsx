@@ -87,7 +87,8 @@ export function AuthPasswordField({
   const descriptionId = showDescription ? `${id}-help` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [descriptionId, errorId].filter(Boolean).join(" ");
-  const actionLabel = visible ? `Hide ${revealLabel}` : `Show ${revealLabel}`;
+  const actionLabel = visible ? "Hide entered characters" : "Show entered characters";
+  const titleLabel = `${actionLabel} for ${revealLabel}`;
 
   return (
     <div className="grid gap-2 text-sm/6 font-medium text-zinc-950">
@@ -111,7 +112,7 @@ export function AuthPasswordField({
           aria-label={actionLabel}
           aria-controls={id}
           aria-pressed={visible}
-          title={actionLabel}
+          title={titleLabel}
           onClick={() => setVisible((current) => !current)}
           className="absolute inset-y-1 right-1 inline-grid size-8 place-items-center rounded-md text-zinc-500 transition hover:bg-zinc-950/5 hover:text-zinc-950 focus:outline-none focus:ring-2 focus:ring-zinc-950/10"
         >

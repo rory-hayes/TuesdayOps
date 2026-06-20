@@ -5,6 +5,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ClientsPage } from "@/components/clients/clients-page";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock("@/lib/billing/service", () => ({
   createCheckoutSessionAction: vi.fn(),
 }));
@@ -28,12 +32,16 @@ describe("ClientsPage table controls", () => {
       target: { value: "health-desc" },
     });
 
-    const clientLinks = screen
+    const clientRows = screen
       .getAllByRole("link")
-      .map((link) => link.textContent)
-      .filter((text) => text === "Acme Retail" || text === "Delta Finance" || text === "Beta Logistics");
+      .map((link) => link.getAttribute("aria-label"))
+      .filter((text) =>
+        text === "Open client Acme Retail" ||
+        text === "Open client Delta Finance" ||
+        text === "Open client Beta Logistics"
+      );
 
-    expect(clientLinks).toEqual(["Delta Finance", "Acme Retail"]);
+    expect(clientRows).toEqual(["Open client Delta Finance", "Open client Acme Retail"]);
     expect(screen.queryByText("Beta Logistics")).toBeNull();
   });
 });

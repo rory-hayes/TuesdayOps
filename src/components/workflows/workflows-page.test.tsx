@@ -5,6 +5,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { WorkflowsPage } from "@/components/workflows/workflows-page";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock("@/lib/billing/service", () => ({
   createCheckoutSessionAction: vi.fn(),
 }));
@@ -34,12 +38,16 @@ describe("WorkflowsPage table controls", () => {
       target: { value: "pass-rate-asc" },
     });
 
-    const workflowLinks = screen
+    const workflowRows = screen
       .getAllByRole("link")
-      .map((link) => link.textContent)
-      .filter((text) => text === "Lead intake" || text === "Invoice sync" || text === "Support bot");
+      .map((link) => link.getAttribute("aria-label"))
+      .filter((text) =>
+        text === "Open workflow Lead intake" ||
+        text === "Open workflow Invoice sync" ||
+        text === "Open workflow Support bot"
+      );
 
-    expect(workflowLinks).toEqual(["Invoice sync", "Support bot"]);
+    expect(workflowRows).toEqual(["Open workflow Invoice sync", "Open workflow Support bot"]);
     expect(screen.queryByText("Lead intake")).toBeNull();
   });
 });

@@ -216,9 +216,9 @@ function IssuesPanel({ issues, data }: { issues: Issue[]; data: TuesdayOpsSeedDa
                   className="border-b border-zinc-950/5 last:border-0"
                 >
                   <td className="py-3 pr-6">
-                    <Link href={`/issues/${issue.id}`} className="font-semibold text-zinc-950 hover:text-primary">
+                    <span className="font-semibold text-zinc-950 group-hover:text-primary">
                       {issue.title}
-                    </Link>
+                    </span>
                     <p className="mt-1 line-clamp-1 text-xs text-zinc-500">{issue.suggestedAction}</p>
                   </td>
                   <td className="px-6 py-3 text-zinc-500">
@@ -287,9 +287,9 @@ function RunsPanel({ runs, data }: { runs: CheckRun[]; data: TuesdayOpsSeedData 
                   className="border-b border-zinc-950/5 last:border-0"
                 >
                   <td className="py-3 pr-6">
-                    <Link href={`/workflows/${run.workflowId}`} className="font-semibold text-zinc-950 hover:text-primary">
+                    <span className="font-semibold text-zinc-950 group-hover:text-primary">
                       {workflow?.name ?? "Unknown workflow"}
-                    </Link>
+                    </span>
                     <p className="mt-1 line-clamp-1 text-xs text-zinc-500">{run.responseSummary}</p>
                   </td>
                   <td className="px-6 py-3 text-zinc-500">{client?.name ?? "Unknown client"}</td>
@@ -352,9 +352,9 @@ function ChecksPanel({ checks, data }: { checks: Check[]; data: TuesdayOpsSeedDa
                   className="border-b border-zinc-950/5 last:border-0"
                 >
                   <td className="py-3 pr-6">
-                    <Link href="/checks" className="font-semibold text-zinc-950 hover:text-primary">
+                    <span className="font-semibold text-zinc-950 group-hover:text-primary">
                       {check.name}
-                    </Link>
+                    </span>
                     <p className="mt-1 text-xs text-zinc-500">{check.assertionCount} assertions</p>
                   </td>
                   <td className="px-6 py-3 text-zinc-500">{workflow?.name ?? "Unknown workflow"}</td>
@@ -445,9 +445,9 @@ function ProofPanel({ clients, data }: { clients: Client[]; data: TuesdayOpsSeed
                     className="border-t border-zinc-950/5"
                   >
                     <td className="px-4 py-3">
-                      <Link href={`/clients/${client.id}`} className="font-semibold text-zinc-950 hover:text-primary">
+                      <span className="font-semibold text-zinc-950 group-hover:text-primary">
                         {client.name}
-                      </Link>
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-zinc-500">{client.owner}</td>
                     <td className="px-4 py-3 text-zinc-500">{client.nextReportDueOn ?? "-"}</td>

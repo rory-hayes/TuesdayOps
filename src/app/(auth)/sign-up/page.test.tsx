@@ -31,7 +31,7 @@ describe("SignUpPage", () => {
     fireEvent.change(email, { target: { value: "not-an-email" } });
     fireEvent.change(password, { target: { value: "short" } });
     fireEvent.change(confirmPassword, { target: { value: "different" } });
-    fireEvent.submit(screen.getByRole("form", { name: "Create TuesdayOps account" }));
+    fireEvent.submit(screen.getByRole("form", { name: "Create Tuesday account" }));
 
     expect(screen.getByText("Enter a valid email address.")).toBeTruthy();
     expect(
@@ -67,7 +67,7 @@ describe("SignUpPage", () => {
         ),
     ).toBeTruthy();
 
-    fireEvent.change(password, { target: { value: "TuesdayOps-2026!" } });
+    fireEvent.change(password, { target: { value: "Tuesday-2026!" } });
     expect(
       screen
         .queryAllByRole("alert")
@@ -78,14 +78,14 @@ describe("SignUpPage", () => {
         ),
     ).toBe(false);
 
-    fireEvent.change(confirmPassword, { target: { value: "TuesdayOps-2027!" } });
+    fireEvent.change(confirmPassword, { target: { value: "Tuesday-2027!" } });
     expect(screen.getByText("Password and confirmation must match.")).toBeTruthy();
 
-    fireEvent.change(confirmPassword, { target: { value: "TuesdayOps-2026!" } });
+    fireEvent.change(confirmPassword, { target: { value: "Tuesday-2026!" } });
     expect(screen.queryByText("Password and confirmation must match.")).toBeNull();
     expect(email.value).toBe("owner@example.com");
-    expect(password.value).toBe("TuesdayOps-2026!");
-    expect(confirmPassword.value).toBe("TuesdayOps-2026!");
+    expect(password.value).toBe("Tuesday-2026!");
+    expect(confirmPassword.value).toBe("Tuesday-2026!");
   });
 
   it("lets users reveal and hide sign-up password fields", async () => {
@@ -97,14 +97,16 @@ describe("SignUpPage", () => {
     expect(password.type).toBe("password");
     expect(confirmPassword.type).toBe("password");
 
-    fireEvent.click(screen.getByRole("button", { name: "Show new password" }));
-    fireEvent.click(screen.getByRole("button", { name: "Show confirmed password" }));
+    const showButtons = screen.getAllByRole("button", { name: "Show entered characters" });
+    fireEvent.click(showButtons[0]);
+    fireEvent.click(showButtons[1]);
 
     expect(password.type).toBe("text");
     expect(confirmPassword.type).toBe("text");
 
-    fireEvent.click(screen.getByRole("button", { name: "Hide new password" }));
-    fireEvent.click(screen.getByRole("button", { name: "Hide confirmed password" }));
+    const hideButtons = screen.getAllByRole("button", { name: "Hide entered characters" });
+    fireEvent.click(hideButtons[0]);
+    fireEvent.click(hideButtons[1]);
 
     expect(password.type).toBe("password");
     expect(confirmPassword.type).toBe("password");

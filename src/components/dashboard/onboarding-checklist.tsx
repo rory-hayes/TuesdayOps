@@ -371,7 +371,7 @@ function WizardStepPanel({
       return (
         <BlockedPanel
           title="Create the health check first"
-          description="TuesdayOps creates the first health check when you connect a workflow endpoint."
+          description="Tuesday creates the first health check when you connect a workflow endpoint."
           onClick={() => onContinue("workflow")}
         />
       );
@@ -673,7 +673,7 @@ function RunCheckStepForm({
           <div>
             <h3 className="text-base/7 font-semibold text-zinc-950">Run the first health check</h3>
             <p className="mt-1 text-sm/6 text-zinc-500">
-              TuesdayOps will call the configured endpoint, store the result, update workflow health, and create an issue if the run fails or degrades.
+              Tuesday will call the configured endpoint, store the result, update workflow health, and create an issue if the run fails or degrades.
             </p>
             {workflow ? (
               <p className="mt-3 break-all rounded-lg bg-zinc-50 p-3 font-mono text-xs/5 text-zinc-600 ring-1 ring-zinc-950/5">
@@ -1110,7 +1110,7 @@ function getStepDescription(step: WizardStepId): string {
     agency: "The workspace anchors every client, workflow, check, issue, and report.",
     client: "Start with one retained client so monitoring data has the right owner.",
     workflow: "Preserve the full endpoint URL and configure the check that proves it is healthy.",
-    check_run: "Send a safe request, store the result, and let TuesdayOps update health and issues.",
+    check_run: "Send a safe request, store the result, and let Tuesday update health and issues.",
     report: "Create a client-facing proof draft from the real source data collected so far.",
   };
 

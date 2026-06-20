@@ -9,7 +9,7 @@ type SignInFormProps = {
 
 export function SignInForm({ action }: SignInFormProps) {
   return (
-    <form action={action} aria-label="Sign in to TuesdayOps" noValidate className="grid gap-6">
+    <form action={action} aria-label="Sign in to Tuesday" noValidate className="grid gap-6">
       <AuthInputField
         id="sign-in-email"
         label="Email"

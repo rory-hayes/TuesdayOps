@@ -10,6 +10,7 @@ import type { ReportNarrativeEditField } from "@/lib/reports/narrative-edits";
 
 type EditableReportDocumentProps = {
   agencyName: string;
+  readOnly?: boolean;
   report: ReportSummary;
   reportItems: ReportItem[];
   updateReportNarrativeAction: (formData: FormData) => void | Promise<void>;
@@ -17,6 +18,7 @@ type EditableReportDocumentProps = {
 
 export function EditableReportDocument({
   agencyName,
+  readOnly = false,
   report,
   reportItems,
   updateReportNarrativeAction,
@@ -54,6 +56,7 @@ export function EditableReportDocument({
           <EditableSectionHeader
             label="Executive summary"
             editLabel="Edit executive summary"
+            readOnly={readOnly}
             onEdit={() => setEditingKey("summary")}
           />
           {editingKey === "summary" ? (
@@ -87,6 +90,7 @@ export function EditableReportDocument({
                 editingKey={editingKey}
                 item={item}
                 reportId={report.id}
+                readOnly={readOnly}
                 setEditingKey={setEditingKey}
               />
             ))
@@ -101,6 +105,7 @@ export function EditableReportDocument({
           <EditableSectionHeader
             label="Recommendations"
             editLabel="Edit recommendations"
+            readOnly={readOnly}
             onEdit={() => setEditingKey("recommendations")}
           />
           {editingKey === "recommendations" ? (
@@ -132,12 +137,14 @@ function ReportItemEditor({
   editingKey,
   item,
   reportId,
+  readOnly,
   setEditingKey,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   editingKey: string | null;
   item: ReportItem;
   reportId: string;
+  readOnly: boolean;
   setEditingKey: (key: string | null) => void;
 }) {
   const titleKey = `item-title-${item.id}`;
@@ -157,7 +164,7 @@ function ReportItemEditor({
       ) : (
         <div className="flex items-start justify-between gap-3">
           <p className="text-sm font-semibold text-zinc-950">{item.title}</p>
-          <EditIconButton label={`Edit ${item.title} title`} onClick={() => setEditingKey(titleKey)} />
+          {readOnly ? null : <EditIconButton label={`Edit ${item.title} title`} onClick={() => setEditingKey(titleKey)} />}
         </div>
       )}
 
@@ -174,7 +181,7 @@ function ReportItemEditor({
       ) : (
         <div className="mt-2 flex items-start justify-between gap-3">
           <p className="text-sm leading-6 text-zinc-600">{item.body}</p>
-          <EditIconButton label={`Edit ${item.title} body`} onClick={() => setEditingKey(bodyKey)} />
+          {readOnly ? null : <EditIconButton label={`Edit ${item.title} body`} onClick={() => setEditingKey(bodyKey)} />}
         </div>
       )}
     </div>
@@ -237,15 +244,17 @@ function EditableSectionHeader({
   editLabel,
   label,
   onEdit,
+  readOnly = false,
 }: {
   editLabel: string;
   label: string;
   onEdit: () => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <p className="text-xs font-semibold uppercase text-zinc-500">{label}</p>
-      <EditIconButton label={editLabel} onClick={onEdit} />
+      {readOnly ? null : <EditIconButton label={editLabel} onClick={onEdit} />}
     </div>
   );
 }

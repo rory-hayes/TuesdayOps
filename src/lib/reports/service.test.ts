@@ -120,6 +120,51 @@ describe("report server actions", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith(`/reports/${reportId()}`);
   });
 
+  it("saves inline report summary edits and clears stale send/export state", async () => {
+    const supabase = createReportActionSupabaseStub();
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expectRedirect(
+      reportService.updateReportNarrativeAction(formData({
+        reportId: reportId(),
+        field: "summary",
+        value: "Client-safe inline summary with api_key=secret-value.",
+      })),
+      `/reports/${reportId()}?notice=Report%20narrative%20saved.`,
+    );
+
+    expect(supabase.updates).toContainEqual({
+      table: "reports",
+      payload: {
+        summary: "Client-safe inline summary with api_key=[redacted]",
+      },
+      filters: [
+        ["agency_id", "agency-1"],
+        ["id", reportId()],
+      ],
+    });
+    expect(supabase.updates).toContainEqual({
+      table: "reports",
+      payload: {
+        status: "draft",
+        pdf_url: null,
+        pdf_storage_path: null,
+        email_delivery_id: null,
+        sent_at: null,
+        send_error: null,
+      },
+      filters: [
+        ["agency_id", "agency-1"],
+        ["id", reportId()],
+      ],
+    });
+    expect(mocks.recordAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
+      action: "report.updated",
+      agencyId: "agency-1",
+      metadata: { field: "summary" },
+    }));
+  });
+
   it("rejects narrative edits for sent reports without mutating report history", async () => {
     const supabase = createReportActionSupabaseStub({ reportStatus: "sent" });
     mocks.createClient.mockResolvedValue(supabase.client);
