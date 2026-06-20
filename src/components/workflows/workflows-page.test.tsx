@@ -11,6 +11,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/billing/service", () => ({
   createCheckoutSessionAction: vi.fn(),
+  requestAgencyPlusContactAction: vi.fn(),
 }));
 
 vi.mock("@/lib/checks/service", () => ({

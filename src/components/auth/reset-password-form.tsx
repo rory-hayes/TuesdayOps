@@ -20,7 +20,7 @@ export function ResetPasswordForm({
   return (
     <ValidatedForm
       action={action}
-      aria-label="Update Tuesday password"
+      aria-label="Update Maintain Flow password"
       className="grid gap-6"
     >
       <AuthPasswordField

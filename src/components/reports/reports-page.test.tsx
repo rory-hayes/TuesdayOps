@@ -65,6 +65,29 @@ describe("report pages", () => {
     expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toBe(report.recommendations.join("\n"));
   });
 
+  it("shows blocked readiness as an explicit details button", () => {
+    const data = makeData();
+    data.reports[0] = {
+      ...data.reports[0],
+      checksRun: 0,
+      workflowsMonitored: 0,
+    };
+    const report = data.reports[0];
+
+    render(<ReportDetailPage data={data} report={report} />);
+
+    const readinessButton = screen.getByRole("button", {
+      name: "Report readiness: Not ready. View details",
+    });
+
+    expect(readinessButton.textContent).toContain("Not ready");
+    expect(readinessButton.textContent).toContain("View details");
+
+    fireEvent.click(readinessButton);
+
+    expect(screen.getByRole("dialog", { name: "Resolve report readiness" })).toBeTruthy();
+  });
+
   it("keeps sent reports read-only and preserves sent history", () => {
     const data = makeData();
     const report = data.reports[1];

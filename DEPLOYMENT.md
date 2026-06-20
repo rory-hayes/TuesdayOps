@@ -1,10 +1,10 @@
-# Tuesday Deployment Readiness
+# Maintain Flow Deployment Readiness
 
 This document is the production handoff checklist for design-partner deployments.
 
 ## Runtime
 
-Tuesday requires:
+Maintain Flow requires:
 
 ```txt
 Node.js >=20.19.0
@@ -49,7 +49,8 @@ SCHEDULER_SECRET=
 SUPABASE_CRON_ENABLED=
 
 RESEND_API_KEY=
-RESEND_FROM_EMAIL=
+RESEND_FROM_EMAIL="MaintainFlow Reports <reports@maintainflow.io>"
+RESEND_VERIFIED_SENDER_DOMAIN=maintainflow.io
 ```
 
 Billing, observability, and reserved analytics variables:
@@ -60,7 +61,6 @@ STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID_STARTER=
 STRIPE_PRICE_ID_GROWTH=
 STRIPE_PRICE_ID_SCALE=
-STRIPE_PRICE_ID_AGENCY_PLUS=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 
 NEXT_PUBLIC_POSTHOG_KEY=
@@ -77,6 +77,17 @@ Never add service-role keys, Resend keys, Stripe keys, scheduler secrets, or wor
 `NEXT_PUBLIC_SENTRY_DSN` is intentionally public and is required for browser-side error capture. Leave `SENTRY_EXAMPLE_ENABLED` unset except during a temporary deployed Sentry smoke test.
 Leave `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS` unset in production. It exists only for local/private test environments that intentionally monitor localhost or private-network endpoints.
 PostHog env values can stay empty for the current design-partner plan.
+
+## Google OAuth
+
+Google sign-in is configured through Supabase Auth, not through app environment variables.
+
+Before launch:
+
+- Enable the Google provider in Supabase Auth.
+- Add the Google OAuth client ID and secret in Supabase provider settings.
+- Add the Supabase callback URL to Google Authorized Redirect URIs, for example `https://<project-ref>.supabase.co/auth/v1/callback`.
+- Add `${NEXT_PUBLIC_APP_URL}/auth/callback` to the Supabase Auth redirect allowlist for production and preview environments that should support Google sign-in.
 
 ## Supabase Migration Procedure
 

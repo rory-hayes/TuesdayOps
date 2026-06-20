@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatAgencyError,
+  formatOAuthError,
   formatPasswordResetError,
   formatSignInError,
   formatSignUpError,
@@ -24,6 +25,16 @@ describe("auth feedback formatting", () => {
     expect(formatSignUpError(new Error("Database error saving new user with SUPABASE_SECRET_KEY=abc123"))).toBe(
       "Account could not be created. Check the details and try again.",
     );
+  });
+
+  it("keeps OAuth provider startup failures generic", () => {
+    const message = formatOAuthError(
+      new Error("Google OAuth failed for ops@example.com with access_token=abc123"),
+    );
+
+    expect(message).toBe("Google sign-in could not be started. Try again.");
+    expect(message).not.toContain("ops@example.com");
+    expect(message).not.toContain("abc123");
   });
 
   it("maps workspace duplicate-slug errors without exposing database internals", () => {

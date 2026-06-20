@@ -7,6 +7,7 @@ import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 vi.mock("@/lib/billing/service", () => ({
   createCheckoutSessionAction: "createCheckoutSessionAction",
   createCustomerPortalSessionAction: "createCustomerPortalSessionAction",
+  requestAgencyPlusContactAction: "requestAgencyPlusContactAction",
 }));
 
 describe("SettingsPage billing", () => {
@@ -19,7 +20,30 @@ describe("SettingsPage billing", () => {
     expect(html).not.toContain('name="plan" value="starter"');
     expect(html).toContain('name="plan" value="growth"');
     expect(html).toContain('name="plan" value="scale"');
-    expect(html).toContain('name="plan" value="agency_plus"');
+    expect(html).not.toContain('name="plan" value="agency_plus"');
+    expect(html).toContain("Contact sales");
+  });
+
+  it("does not show internal provider integrations as customer settings", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPage workspace={workspace} data={data} />,
+    );
+
+    expect(html).not.toContain("Integrations");
+    expect(html).not.toContain("Approved MVP services");
+    expect(html).not.toContain("operator managed");
+    expect(html).not.toContain("Runtime provider readiness");
+  });
+
+  it("does not show report branding controls in customer settings", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPage workspace={workspace} data={data} />,
+    );
+
+    expect(html).not.toContain("Report branding");
+    expect(html).not.toContain("Verified sender email");
+    expect(html).not.toContain("Reply-to email");
+    expect(html).not.toContain("Send test email");
   });
 });
 

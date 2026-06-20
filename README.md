@@ -1,12 +1,12 @@
-# Tuesday
+# Maintain Flow
 
-Tuesday is a white-label AI workflow maintenance platform for agencies.
+Maintain Flow is a white-label AI workflow maintenance platform for agencies.
 
 It helps AI and automation agencies monitor client AI workflows after launch, run lightweight QA checks, detect failures, manage maintenance issues, and generate monthly client-ready proof-of-work reports.
 
 ## Product promise
 
-> Connect your client AI workflows. Tuesday monitors them, flags issues, runs QA checks, and generates monthly reports that prove what was maintained, fixed, and improved.
+> Connect your client AI workflows. Maintain Flow monitors them, flags issues, runs QA checks, and generates monthly reports that prove what was maintained, fixed, and improved.
 
 ## MVP scope
 
@@ -115,13 +115,13 @@ ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=
 SCHEDULER_SECRET=
 SUPABASE_CRON_ENABLED=
 RESEND_API_KEY=
-RESEND_FROM_EMAIL=
+RESEND_FROM_EMAIL="MaintainFlow Reports <reports@maintainflow.io>"
+RESEND_VERIFIED_SENDER_DOMAIN=maintainflow.io
 STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_PRICE_ID_STARTER=
 STRIPE_PRICE_ID_GROWTH=
 STRIPE_PRICE_ID_SCALE=
-STRIPE_PRICE_ID_AGENCY_PLUS=
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=
 SENTRY_DSN=
 NEXT_PUBLIC_SENTRY_DSN=
@@ -132,10 +132,11 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 `SUPABASE_SECRET_KEY` and `SCHEDULER_SECRET` are server-only values. They must never be exposed to browser code or committed to the repo.
-`RESEND_API_KEY` and `RESEND_FROM_EMAIL` are required for live email alerts.
+`RESEND_API_KEY` and `RESEND_FROM_EMAIL` are required for live email alerts and report sends. `RESEND_FROM_EMAIL` must use a Resend-verified domain; use `RESEND_VERIFIED_SENDER_DOMAIN` to mark the verified sender domain for report email settings.
 `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` should both be set to the project DSN so server and browser errors are captured. `SENTRY_EXAMPLE_ENABLED=true` can temporarily expose `/sentry-example-page` in production for verification, but leave it unset for normal operation.
 `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` are reserved for a later analytics pass and are not launch-blocking while PostHog is intentionally skipped.
 `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is only for local/private test environments. Production should leave it unset so workflow checks cannot call localhost, private networks, or metadata endpoints.
+Google sign-in is configured in Supabase Auth provider settings. Add `${NEXT_PUBLIC_APP_URL}/auth/callback` to the Supabase redirect allowlist and add the Supabase provider callback URL to Google Authorized Redirect URIs.
 
 Scheduled checks are triggered by Supabase Cron calling `/api/scheduler/run-due-checks`. Monthly report draft automation uses the same scheduler secret on `/api/scheduler/run-monthly-reports`. The Cron SQL reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, so the scheduler secret is not stored in migrations or client code. Set `SUPABASE_CRON_ENABLED=true` only after the Cron job and Vault secrets are configured.
 
@@ -177,7 +178,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - Next.js App Router app
 - TypeScript and Tailwind CSS
 - public logged-out landing page with authenticated dashboard routing preserved
-- Tuesday app shell
+- Maintain Flow app shell
 - Supabase SSR auth clients and protected app routes
 - agency onboarding through a tenant-safe Supabase RPC
 - Supabase migration for profiles, agencies, memberships, clients, workflows, checks, check runs, and issues

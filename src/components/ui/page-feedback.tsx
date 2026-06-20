@@ -94,7 +94,7 @@ function Toast({ item }: { item: FeedbackItem }) {
         <Icon size={16} aria-hidden="true" />
       </span>
       <span className="min-w-0">
-        <span className="block text-xs font-semibold text-zinc-500">Tuesday</span>
+        <span className="block text-xs font-semibold text-zinc-500">Maintain Flow</span>
         <span className="mt-0.5 block text-sm/5 font-medium">{item.message}</span>
       </span>
     </div>

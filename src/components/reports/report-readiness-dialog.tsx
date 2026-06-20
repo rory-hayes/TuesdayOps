@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { ReportQuality } from "@/lib/reports/quality";
@@ -19,6 +19,7 @@ export function ReportReadinessDialog({
   const ready = quality.status === "ready";
   const variant = ready ? "success" : quality.status === "review" ? "warning" : "danger";
   const label = ready ? "Ready" : "Not ready";
+  const detailLabel = quality.status === "review" ? "Review details" : "View details";
 
   if (ready) {
     return (
@@ -34,15 +35,19 @@ export function ReportReadinessDialog({
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
+        aria-label={`Report readiness: ${label}. ${detailLabel}`}
         className={cn(
-          "inline-flex h-6 items-center rounded-md border px-2 text-xs/5 font-medium transition focus:outline-none focus:ring-2",
+          "inline-flex h-6 items-center gap-1.5 rounded-md border px-2 text-xs/5 font-medium transition hover:shadow-sm focus:outline-none focus:ring-2",
           variant === "warning"
             ? "border-amber-500/20 bg-amber-50 text-amber-700 hover:bg-amber-100 focus:ring-amber-500/20"
             : "border-red-500/20 bg-danger-background text-danger hover:bg-red-100 focus:ring-red-500/20",
         )}
         onClick={() => setOpen(true)}
       >
-        {label}
+        <AlertCircle size={13} strokeWidth={2.2} aria-hidden="true" />
+        <span>{label}</span>
+        <span className="text-current/75">{detailLabel}</span>
+        <ChevronRight size={13} strokeWidth={2.2} aria-hidden="true" />
       </button>
 
       {open ? (
