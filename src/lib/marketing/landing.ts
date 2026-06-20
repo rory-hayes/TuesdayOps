@@ -20,13 +20,13 @@ export function getLandingContent(): LandingContent {
       title: "TuesdayOps",
       eyebrow: "Operational proof for AI agencies",
       description:
-        "Monitor live client workflows, catch silent failures, and turn Check Run, Issue, and Monthly Report data into clear proof-of-work updates.",
+        "Monitor live client workflows, turn failed checks into accountable issues, and generate monthly proof-of-work reports from stored operational evidence.",
     },
     sections: [
       {
         title: "Built around the MVP loop",
         description:
-          "TuesdayOps stays focused on the operational path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
+          "TuesdayOps stays focused on the operating path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
         items: [
           {
             label: "Agency",
