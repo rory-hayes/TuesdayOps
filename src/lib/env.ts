@@ -47,7 +47,11 @@ export function getSchedulerSecret(): string {
 }
 
 export function getAppUrl(): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const appUrl =
+    process.env.NEXT_PUBLIC_APP_URL ??
+    toHttpsUrl(process.env.VERCEL_PROJECT_PRODUCTION_URL) ??
+    toHttpsUrl(process.env.VERCEL_URL) ??
+    "http://localhost:3000";
 
   try {
     const parsedUrl = new URL(appUrl);
@@ -60,6 +64,18 @@ export function getAppUrl(): string {
   } catch {
     throw new Error("Invalid NEXT_PUBLIC_APP_URL. Set it to an absolute http(s) URL.");
   }
+}
+
+function toHttpsUrl(host: string | undefined): string | undefined {
+  const normalizedHost = host?.trim();
+
+  if (!normalizedHost) {
+    return undefined;
+  }
+
+  return normalizedHost.startsWith("http://") || normalizedHost.startsWith("https://")
+    ? normalizedHost
+    : `https://${normalizedHost}`;
 }
 
 export function getResendApiKey(): string {
