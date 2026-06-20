@@ -25,12 +25,31 @@ describe("getAppUrl", () => {
 
   it("falls back to localhost when no app URL is configured", () => {
     delete process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    delete process.env.VERCEL_URL;
 
     expect(getAppUrl()).toBe("http://localhost:3000");
   });
 
+  it("falls back to the Vercel production URL when no app URL is configured", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "tuesday-ops.vercel.app";
+    process.env.VERCEL_URL = "tuesday-preview.vercel.app";
+
+    expect(getAppUrl()).toBe("https://tuesday-ops.vercel.app");
+  });
+
+  it("falls back to the Vercel deployment URL when no production URL is configured", () => {
+    delete process.env.NEXT_PUBLIC_APP_URL;
+    delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+    process.env.VERCEL_URL = "tuesday-preview.vercel.app";
+
+    expect(getAppUrl()).toBe("https://tuesday-preview.vercel.app");
+  });
+
   it("requires an absolute http URL when app URL is configured", () => {
     process.env.NEXT_PUBLIC_APP_URL = "tuesday-ops.vercel.app";
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "tuesday-ops.vercel.app";
 
     expect(() => getAppUrl()).toThrow("Invalid NEXT_PUBLIC_APP_URL");
   });
