@@ -47,6 +47,14 @@ describe("getAppUrl", () => {
     expect(getAppUrl()).toBe("https://tuesday-preview.vercel.app");
   });
 
+  it("ignores a localhost app URL in Vercel and uses the production URL", () => {
+    process.env.VERCEL = "1";
+    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = "tuesday-ops.vercel.app";
+
+    expect(getAppUrl()).toBe("https://tuesday-ops.vercel.app");
+  });
+
   it("requires an absolute http URL when app URL is configured", () => {
     process.env.NEXT_PUBLIC_APP_URL = "tuesday-ops.vercel.app";
     process.env.VERCEL_PROJECT_PRODUCTION_URL = "tuesday-ops.vercel.app";
