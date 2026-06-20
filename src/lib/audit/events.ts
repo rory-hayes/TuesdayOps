@@ -21,6 +21,7 @@ export type AuditAction =
   | "report.updated"
   | "report.pdf_generated"
   | "report.send_attempted"
+  | "billing.sales_contact_requested"
   | "billing.webhook_processed";
 
 export type AuditTargetType =

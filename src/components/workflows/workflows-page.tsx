@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ClickableTableRow } from "@/components/ui/clickable-table-row";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { createCheckoutSessionAction } from "@/lib/billing/service";
+import { createCheckoutSessionAction, requestAgencyPlusContactAction } from "@/lib/billing/service";
 import { getPlanLimitUpgradePrompt } from "@/lib/billing/upgrade";
 import { runCheckAction } from "@/lib/checks/service";
 import { createWorkflowAction, createWorkflowFromImportAction } from "@/lib/workflows/service";
@@ -102,7 +102,13 @@ export function WorkflowsPage({
       </section>
 
       <PageFeedback notice={notice} error={upgradePrompt ? undefined : error} />
-      <BillingUpgradeDialog prompt={upgradePrompt} checkoutAction={createCheckoutSessionAction} />
+      <BillingUpgradeDialog
+        prompt={upgradePrompt}
+        checkoutAction={createCheckoutSessionAction}
+        agencyPlusContactAction={requestAgencyPlusContactAction}
+        defaultContactName=""
+        defaultContactEmail=""
+      />
 
       <Card>
         <CardHeader className="flex flex-col gap-4">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { CreditCard, X } from "lucide-react";
+import { AgencyPlusContactDialog } from "@/components/billing/agency-plus-contact-dialog";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import type { PlanLimitUpgradePrompt } from "@/lib/billing/upgrade";
@@ -11,9 +12,18 @@ import type { PlanLimitUpgradePrompt } from "@/lib/billing/upgrade";
 type BillingUpgradeDialogProps = {
   prompt?: PlanLimitUpgradePrompt;
   checkoutAction: (formData: FormData) => void | Promise<void>;
+  agencyPlusContactAction: (formData: FormData) => void | Promise<void>;
+  defaultContactName: string;
+  defaultContactEmail: string;
 };
 
-export function BillingUpgradeDialog({ prompt, checkoutAction }: BillingUpgradeDialogProps) {
+export function BillingUpgradeDialog({
+  prompt,
+  checkoutAction,
+  agencyPlusContactAction,
+  defaultContactName,
+  defaultContactEmail,
+}: BillingUpgradeDialogProps) {
   if (!prompt) {
     return null;
   }
@@ -23,11 +33,20 @@ export function BillingUpgradeDialog({ prompt, checkoutAction }: BillingUpgradeD
       key={`${prompt.recommendedPlanKey}-${prompt.usageLabel}`}
       prompt={prompt}
       checkoutAction={checkoutAction}
+      agencyPlusContactAction={agencyPlusContactAction}
+      defaultContactName={defaultContactName}
+      defaultContactEmail={defaultContactEmail}
     />
   );
 }
 
-function BillingUpgradeDialogContent({ prompt, checkoutAction }: Required<BillingUpgradeDialogProps>) {
+function BillingUpgradeDialogContent({
+  prompt,
+  checkoutAction,
+  agencyPlusContactAction,
+  defaultContactName,
+  defaultContactEmail,
+}: Required<BillingUpgradeDialogProps>) {
   const [open, setOpen] = useState(true);
 
   return (
@@ -76,13 +95,21 @@ function BillingUpgradeDialogContent({ prompt, checkoutAction }: Required<Billin
             <Button type="button" variant="ghost" onClick={() => setOpen(false)}>
               Stay here
             </Button>
-            <form action={checkoutAction}>
-              <input type="hidden" name="plan" value={prompt.recommendedPlanKey} />
-              <FormSubmitButton type="submit" pendingLabel="Opening billing...">
-                <CreditCard size={15} aria-hidden="true" />
-                {prompt.ctaLabel}
-              </FormSubmitButton>
-            </form>
+            {prompt.recommendedPlanKey === "agency_plus" ? (
+              <AgencyPlusContactDialog
+                action={agencyPlusContactAction}
+                defaultContactName={defaultContactName}
+                defaultContactEmail={defaultContactEmail}
+              />
+            ) : (
+              <form action={checkoutAction}>
+                <input type="hidden" name="plan" value={prompt.recommendedPlanKey} />
+                <FormSubmitButton type="submit" pendingLabel="Opening billing...">
+                  <CreditCard size={15} aria-hidden="true" />
+                  {prompt.ctaLabel}
+                </FormSubmitButton>
+              </form>
+            )}
           </div>
         </DialogPanel>
       </div>

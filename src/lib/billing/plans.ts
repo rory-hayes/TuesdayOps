@@ -50,14 +50,14 @@ export const PUBLIC_BILLING_PLANS: BillingPlan[] = [
   {
     key: "agency_plus",
     name: "Agency+",
-    priceLabel: "€999+",
-    cadence: "/mo",
+    priceLabel: "Contact sales",
+    cadence: "",
     limits: {
       clients: Number.POSITIVE_INFINITY,
       workflows: Number.POSITIVE_INFINITY,
     },
     limitLabel: "Custom limits",
-    purpose: "Larger agencies / MSPs",
+    purpose: "Sales-led setup for larger agencies / MSPs",
   },
 ];
 

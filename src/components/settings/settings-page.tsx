@@ -1,7 +1,12 @@
 import { CreditCard, FileText, PlugZap, ShieldCheck } from "lucide-react";
-import { createCheckoutSessionAction, createCustomerPortalSessionAction } from "@/lib/billing/service";
+import {
+  createCheckoutSessionAction,
+  createCustomerPortalSessionAction,
+  requestAgencyPlusContactAction,
+} from "@/lib/billing/service";
 import { formatLimit, getPlanLimits } from "@/lib/billing/limits";
 import { getBillingPlanName, PUBLIC_BILLING_PLANS } from "@/lib/billing/plans";
+import { AgencyPlusContactDialog } from "@/components/billing/agency-plus-contact-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -100,6 +105,12 @@ export function SettingsPage({
                           <CreditCard size={15} aria-hidden="true" />
                           Current plan
                         </Button>
+                      ) : plan.key === "agency_plus" ? (
+                        <AgencyPlusContactDialog
+                          action={requestAgencyPlusContactAction}
+                          defaultContactName={workspace.user.user_metadata?.name ?? ""}
+                          defaultContactEmail={workspace.user.email ?? ""}
+                        />
                       ) : (
                         <form action={createCheckoutSessionAction}>
                           <input type="hidden" name="plan" value={plan.key} />

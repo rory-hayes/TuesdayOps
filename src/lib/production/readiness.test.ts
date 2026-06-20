@@ -19,7 +19,6 @@ const completeEnv: ReadinessEnv = {
   STRIPE_PRICE_ID_STARTER: "price_starter",
   STRIPE_PRICE_ID_GROWTH: "price_growth",
   STRIPE_PRICE_ID_SCALE: "price_scale",
-  STRIPE_PRICE_ID_AGENCY_PLUS: "price_agency_plus",
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_live_public",
   SENTRY_DSN: "https://sentry.example/1",
   NEXT_PUBLIC_POSTHOG_KEY: "phc_public",
@@ -107,6 +106,25 @@ describe("buildProductionReadiness", () => {
     expect(app?.status).toBe("missing");
     expect(readiness.launchReady).toBe(false);
     expect(readiness.missingRequired).toContain("NEXT_PUBLIC_APP_URL");
+  });
+
+  it("blocks production readiness when Stripe API keys are still sandbox keys", () => {
+    const readiness = buildProductionReadiness({
+      ...completeEnv,
+      STRIPE_SECRET_KEY: "sk_test_secret",
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_public",
+    });
+
+    const billing = readiness.groups.find((group) => group.id === "billing");
+
+    expect(billing?.status).toBe("missing");
+    expect(readiness.launchReady).toBe(false);
+    expect(readiness.missingRequired).toEqual([
+      "STRIPE_SECRET_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    ]);
+    expect(JSON.stringify(readiness)).not.toContain("sk_test_secret");
+    expect(JSON.stringify(readiness)).not.toContain("pk_test_public");
   });
 });
 

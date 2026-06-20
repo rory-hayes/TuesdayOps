@@ -57,7 +57,8 @@ test("billing settings show limits and starter client limit is enforced", async 
   await expect(page.getByText("0 / 10")).toBeVisible();
   await expect(page.getByRole("button", { name: "Manage billing" })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Current plan" })).toBeDisabled();
-  await expect(page.getByRole("button", { name: "Choose" })).toHaveCount(3);
+  await expect(page.getByRole("button", { name: "Choose" })).toHaveCount(2);
+  await expect(page.getByRole("button", { name: "Contact sales" })).toBeVisible();
   await page.getByRole("button", { name: "Choose" }).first().click();
   const upgradeResult = await waitForCheckoutOrBillingError(page);
   expect(["checkout", "config-error"]).toContain(upgradeResult);

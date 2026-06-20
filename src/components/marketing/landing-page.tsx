@@ -114,7 +114,7 @@ export function MarketingLandingPage() {
 
       <header className="sticky top-0 z-30 border-b border-zinc-950/10 bg-[#f8f8f7]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <Link href="/" aria-label="Tuesday home" className="shrink-0">
+          <Link href="/" aria-label="Maintain Flow home" className="shrink-0">
             <BrandLogo />
           </Link>
           <nav aria-label="Public navigation" className="hidden items-center gap-7 md:flex">
@@ -192,7 +192,7 @@ export function MarketingLandingPage() {
               Agency teams are moving from launches to retained operations.
             </h2>
             <p className="mt-3 max-w-xl text-sm/6 text-zinc-300">
-              Tuesday is built for the point where client AI workflows are no longer experiments; they are production systems someone has to monitor, fix, and explain.
+              Maintain Flow is built for the point where client AI workflows are no longer experiments; they are production systems someone has to monitor, fix, and explain.
             </p>
           </div>
 
@@ -215,7 +215,7 @@ export function MarketingLandingPage() {
               Post-launch monitoring that ends in client proof.
             </h2>
             <p className="mt-4 text-base/7 text-zinc-600">
-              Tuesday gives agencies one calm operating record for workflow health, maintenance issues, and the monthly updates clients actually understand.
+              Maintain Flow gives agencies one calm operating record for workflow health, maintenance issues, and the monthly updates clients actually understand.
             </p>
           </div>
           <div className="grid gap-px overflow-hidden rounded-lg border border-zinc-950/10 bg-zinc-950/10 md:grid-cols-3">
@@ -329,7 +329,7 @@ export function MarketingLandingPage() {
                       : "bg-zinc-950 !text-white hover:bg-zinc-800 focus:ring-zinc-950/20",
                   ].join(" ")}
                 >
-                  Start with {plan.name}
+                  {plan.key === "agency_plus" ? "Contact sales" : `Start with ${plan.name}`}
                 </Link>
               </article>
             ))}
@@ -427,7 +427,7 @@ function ProofMetric({ value, label }: { value: string; label: string }) {
 function ProductScene() {
   return (
     <section
-      aria-label="Tuesday product preview"
+      aria-label="Maintain Flow product preview"
       className="overflow-hidden rounded-lg border border-zinc-950/10 bg-white shadow-[0_28px_90px_rgb(24_24_27_/_12%)]"
     >
       <div className="flex flex-col justify-between gap-3 border-b border-zinc-950/10 px-4 py-3 sm:flex-row sm:items-center">

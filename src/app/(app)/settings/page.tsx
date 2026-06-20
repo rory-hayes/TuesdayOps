@@ -41,5 +41,9 @@ function readBillingNotice(value: string | undefined): string | undefined {
     return "You are already on that plan.";
   }
 
+  if (value === "agency-plus-contact-requested") {
+    return "Agency+ contact request sent.";
+  }
+
   return undefined;
 }

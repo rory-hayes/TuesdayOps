@@ -7,6 +7,7 @@ import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 vi.mock("@/lib/billing/service", () => ({
   createCheckoutSessionAction: "createCheckoutSessionAction",
   createCustomerPortalSessionAction: "createCustomerPortalSessionAction",
+  requestAgencyPlusContactAction: "requestAgencyPlusContactAction",
 }));
 
 describe("SettingsPage billing", () => {
@@ -19,7 +20,8 @@ describe("SettingsPage billing", () => {
     expect(html).not.toContain('name="plan" value="starter"');
     expect(html).toContain('name="plan" value="growth"');
     expect(html).toContain('name="plan" value="scale"');
-    expect(html).toContain('name="plan" value="agency_plus"');
+    expect(html).not.toContain('name="plan" value="agency_plus"');
+    expect(html).toContain("Contact sales");
   });
 });
 

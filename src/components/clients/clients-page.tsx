@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { ClickableTableRow } from "@/components/ui/clickable-table-row";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { createCheckoutSessionAction } from "@/lib/billing/service";
+import { createCheckoutSessionAction, requestAgencyPlusContactAction } from "@/lib/billing/service";
 import { getPlanLimitUpgradePrompt } from "@/lib/billing/upgrade";
 import { archiveClientAction, createClientAction, updateClientAction } from "@/lib/clients/service";
 import { getOpenIssues } from "@/lib/domain/summaries";
@@ -108,7 +108,13 @@ export function ClientsPage({
       </section>
 
       <PageFeedback notice={notice} error={upgradePrompt ? undefined : error} />
-      <BillingUpgradeDialog prompt={upgradePrompt} checkoutAction={createCheckoutSessionAction} />
+      <BillingUpgradeDialog
+        prompt={upgradePrompt}
+        checkoutAction={createCheckoutSessionAction}
+        agencyPlusContactAction={requestAgencyPlusContactAction}
+        defaultContactName=""
+        defaultContactEmail=""
+      />
 
       <Card>
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
