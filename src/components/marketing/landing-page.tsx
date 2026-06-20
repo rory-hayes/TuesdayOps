@@ -75,6 +75,35 @@ const proofPoints = [
   },
 ];
 
+const agencySignals = [
+  {
+    value: "3-12",
+    label: "retained clients",
+    description: "Where post-launch workflow maintenance starts to become a weekly operating burden.",
+  },
+  {
+    value: "25-150",
+    label: "live workflows",
+    description: "A realistic support load once each client has intake, support, reporting, and internal ops automations.",
+  },
+  {
+    value: "30 days",
+    label: "to prove value",
+    description: "Every retainer month needs evidence of what stayed healthy, what broke, and what was fixed.",
+  },
+];
+
+const agencyFeedback = [
+  {
+    quote: "Clients do not ask for trace waterfalls. They ask what stayed working and what got fixed.",
+    role: "AI agency founder",
+  },
+  {
+    quote: "The uncomfortable part is not launching the workflow. It is proving the maintenance work every month.",
+    role: "Delivery lead",
+  },
+];
+
 const reportItems = [
   "42 workflow checks monitored",
   "3 issues caught before client escalation",
@@ -165,6 +194,42 @@ export function MarketingLandingPage() {
         </div>
 
         <ProductScene />
+      </section>
+
+      <section aria-labelledby="agency-signal-heading" className="border-y border-zinc-950/10 bg-zinc-950 px-5 py-12 text-white sm:px-8">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.76fr_1.24fr] lg:items-start">
+          <div>
+            <h2 id="agency-signal-heading" className="text-2xl/8 font-semibold tracking-normal sm:text-3xl/10">
+              Agency teams are moving from launches to retained operations.
+            </h2>
+            <p className="mt-3 max-w-xl text-sm/6 text-zinc-300">
+              TuesdayOps is built for the point where client AI workflows are no longer experiments; they are production systems someone has to monitor, fix, and explain.
+            </p>
+          </div>
+
+          <div className="grid gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 md:grid-cols-3">
+            {agencySignals.map((signal) => (
+              <article key={signal.label} className="bg-zinc-950 p-5">
+                <p className="text-3xl/9 font-semibold tracking-normal text-white">{signal.value}</p>
+                <h3 className="mt-2 text-sm/6 font-semibold text-zinc-100">{signal.label}</h3>
+                <p className="mt-2 text-sm/6 text-zinc-400">{signal.description}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <div className="mx-auto mt-8 grid max-w-7xl gap-px overflow-hidden rounded-lg border border-white/10 bg-white/10 md:grid-cols-2">
+          {agencyFeedback.map((feedback) => (
+            <figure key={feedback.quote} className="bg-zinc-950 p-5">
+              <blockquote className="text-base/7 font-medium text-zinc-100">
+                <span aria-hidden="true">“</span>
+                {feedback.quote}
+                <span aria-hidden="true">”</span>
+              </blockquote>
+              <figcaption className="mt-4 text-sm/6 text-zinc-400">{feedback.role}</figcaption>
+            </figure>
+          ))}
+        </div>
       </section>
 
       <section id="product" className="border-y border-zinc-950/10 bg-white px-5 py-16 sm:px-8 lg:py-20">
