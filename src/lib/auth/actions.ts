@@ -7,6 +7,7 @@ import { sanitizeUserText } from "@/lib/domain/input-sanitization";
 import { parseOptionalSlug } from "@/lib/domain/slug";
 import {
   formatAgencyError,
+  formatOAuthError,
   formatPasswordResetError,
   formatSignInError,
   formatSignUpError,
@@ -23,6 +24,10 @@ const signUpSchema = z.object({
   email: z.string().trim().email(),
   password: z.string(),
   confirmPassword: z.string(),
+});
+
+const googleOAuthSchema = z.object({
+  source: z.enum(["sign-in", "sign-up"]).default("sign-in"),
 });
 
 const resetRequestSchema = z.object({
@@ -93,10 +98,46 @@ export async function signUpAction(formData: FormData) {
   redirect("/onboarding");
 }
 
+export async function signInWithGoogleAction(formData: FormData) {
+  const parsed = googleOAuthSchema.safeParse(Object.fromEntries(formData));
+  const source = parsed.success ? parsed.data.source : "sign-in";
+  let oauthUrl: string | null | undefined;
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
+      },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    oauthUrl = data.url;
+  } catch (error) {
+    redirect(buildGoogleOAuthErrorRedirect(source, formatOAuthError(error)));
+  }
+
+  if (!oauthUrl) {
+    redirect(buildGoogleOAuthErrorRedirect(source, "Google sign-in could not be started. Try again."));
+  }
+
+  redirect(oauthUrl);
+}
+
 export async function signOutAction() {
   const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/sign-in");
+}
+
+function buildGoogleOAuthErrorRedirect(source: z.infer<typeof googleOAuthSchema>["source"], message: string): string {
+  const path = source === "sign-up" ? "/sign-up" : "/sign-in";
+
+  return `${path}?error=${encodeURIComponent(message)}`;
 }
 
 export async function requestPasswordResetAction(formData: FormData) {
