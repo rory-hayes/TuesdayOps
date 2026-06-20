@@ -67,7 +67,7 @@ export function AddWorkflowDialog({
                   id="add-workflow-description"
                   className="mt-2 max-w-2xl text-sm/6 text-zinc-500"
                 >
-                  Import an existing endpoint or configure one manually, then TuesdayOps creates the first health check.
+                  Import an existing endpoint or configure one manually, then Tuesday creates the first health check.
                 </p>
               </div>
               <button
@@ -101,7 +101,11 @@ export function AddWorkflowDialog({
               />
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto p-6">
+            <div
+              tabIndex={0}
+              aria-label="Add workflow form content. Scroll this panel for all endpoint and check fields."
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 outline-none focus:ring-2 focus:ring-inset focus:ring-zinc-950/10"
+            >
               {mode === "import" ? (
                 <div className="space-y-4">
                   <div>
@@ -216,7 +220,7 @@ function ManualWorkflowForm({
               </select>
               <FieldError name="clientId" />
             </label>
-            <Input label="Workflow name" name="name" placeholder="Lead Intake Webhook" required />
+            <Input label="Workflow name" name="name" placeholder="e.g. Lead Intake Webhook" required />
             <label className="block text-sm font-medium">
               Type
               <select
@@ -262,7 +266,7 @@ function ManualWorkflowForm({
               className="md:col-span-2"
               label="Endpoint URL"
               name="endpointUrl"
-              placeholder="https://example.com/api/health"
+              placeholder="e.g. https://example.com/api/health"
               type="url"
               required
             />
@@ -299,13 +303,13 @@ function ManualWorkflowForm({
               </select>
             </label>
             {authType === "api_key_header" ? (
-              <Input label="Auth header" name="authHeaderName" placeholder="x-api-key" required />
+              <Input label="Auth header" name="authHeaderName" placeholder="e.g. x-api-key" required />
             ) : null}
             {authType === "basic" ? (
-              <Input label="Basic username" name="basicUsername" placeholder="username" required />
+              <Input label="Basic username" name="basicUsername" placeholder="e.g. workflow-user" required />
             ) : null}
             {authType !== "none" ? (
-              <Input label={authSecretLabel} name="authSecret" placeholder="Stored encrypted" type="password" required />
+              <Input label={authSecretLabel} name="authSecret" placeholder="Paste secret once" type="password" required />
             ) : null}
             {showRequestBody ? (
               <label className="block text-sm font-medium md:col-span-2">
@@ -313,7 +317,7 @@ function ManualWorkflowForm({
                 <textarea
                   name="requestBody"
                   aria-label="Request body"
-                  placeholder='{"ping": true}'
+                  placeholder='e.g. {"ping": true}'
                   rows={4}
                   data-field-label="Request body"
                   className="mt-2 w-full rounded-lg border border-zinc-950/10 bg-white px-3 py-2 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
@@ -338,13 +342,13 @@ function ManualWorkflowForm({
               className="md:col-span-2"
               label="Response contains"
               name="responseContains"
-              placeholder="ok"
+              placeholder="e.g. ok"
             />
             <Input
               className="md:col-span-2"
               label="JSON field exists"
               name="jsonFieldPath"
-              placeholder="data.status"
+              placeholder="e.g. data.status"
             />
           </div>
         </section>

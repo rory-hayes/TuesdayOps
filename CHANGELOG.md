@@ -92,3 +92,4 @@ Track meaningful product and engineering changes here.
 - Hid the Overview activation path once the first proof loop is complete so finished setup no longer consumes dashboard space.
 - Reworked first-run activation into a contained modal wizard with skip behavior, real client/workflow/check/report actions, and focused lifecycle coverage.
 - Completed a UX audit remediation pass with explicit auth labels, real-time sign-up validation, password visibility toggles, onboarding modal scroll/report links, accessible chart/status semantics, client/workflow table filtering, Checks Basic/Advanced modes, and editable pre-send report narratives with send confirmation/history.
+- Reworked the Checks page into a QA coverage center with summary metrics, attention items, collapsed setup controls, compact health-check rows, and cleaner synthetic test-pack configuration.

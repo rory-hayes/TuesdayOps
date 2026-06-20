@@ -141,7 +141,11 @@ test("core drilldowns and action feedback stay connected across the MVP loop", a
   }, "generated drilldown report");
   await expect(page).toHaveURL(new RegExp(`/reports/${report.id}`));
   await expect(page.getByText("Report generated.")).toBeVisible();
-  await expect(page.getByText(/1 reportable issues were resolved/)).toBeVisible();
+  await expect(
+    page
+      .getByRole("article", { name: "Client report preview" })
+      .getByText(/1 reportable issues were resolved/),
+  ).toBeVisible();
 
   await page.goto(`/clients/${client.id}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("link", { name: new RegExp(report.period_label) }).click();

@@ -35,10 +35,7 @@ type AppShellProps = {
   clients: Array<{ id: string; name: string }>;
 };
 
-export function AppShell({ children, workspace, clients }: AppShellProps) {
-  const agency = workspace.agency;
-  const userEmail = workspace.user.email;
-
+export function AppShell({ children, clients }: AppShellProps) {
   return (
     <div className="min-h-screen bg-background text-zinc-950 lg:bg-zinc-100">
       <a
@@ -86,16 +83,7 @@ export function AppShell({ children, workspace, clients }: AppShellProps) {
           </nav>
 
           <div className="border-t border-zinc-950/5 p-3">
-            <div className="flex min-w-0 items-center gap-3 rounded-lg px-3 py-2">
-              <div className="grid size-10 shrink-0 place-items-center rounded-lg bg-zinc-900 text-sm font-semibold text-white">
-                {agency.name.slice(0, 1).toUpperCase()}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate text-sm/5 font-medium text-zinc-950">{agency.name}</p>
-                {userEmail ? <p className="truncate text-xs/5 text-zinc-500">{userEmail}</p> : null}
-              </div>
-            </div>
-            <form action={signOutAction} className="mt-1">
+            <form action={signOutAction}>
               <FormSubmitButton
                 variant="ghost"
                 size="sm"

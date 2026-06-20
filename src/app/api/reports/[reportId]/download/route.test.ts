@@ -135,10 +135,35 @@ describe("report PDF download route", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/pdf");
     expect(response.headers.get("content-disposition")).toBe(
-      'attachment; filename="tuesdayops-report-report-1.pdf"',
+      'attachment; filename="tuesday-report-report-1.pdf"',
     );
     expect(response.headers.get("cache-control")).toBe("private, no-store");
     await expect(response.text()).resolves.toBe("%PDF-test");
+  });
+
+  it("derives the storage object path from the authorized tenant and report id", async () => {
+    vi.mocked(getWorkspaceContext).mockResolvedValue({
+      workspace: { agency: { id: "agency-1" } },
+    } as never);
+    vi.mocked(createClient).mockResolvedValue(createReportClient({
+      reportResponse: {
+        data: { id: "report-1", pdf_storage_path: "agency-2/report-2.pdf" },
+        error: null,
+      },
+    }));
+    const download = vi.fn().mockResolvedValue({ data: new Blob(["%PDF-test"]), error: null });
+    vi.mocked(createAdminClient).mockReturnValue({
+      storage: {
+        from: () => ({ download }),
+      },
+    } as never);
+
+    const response = await GET(new Request("https://app.example.com/api/reports/report-1/download"), {
+      params: Promise.resolve({ reportId: "report-1" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(download).toHaveBeenCalledWith("agency-1/report-1.pdf");
   });
 });
 

@@ -46,4 +46,13 @@ describe("buildHealthCheckConfig", () => {
       ],
     });
   });
+
+  it("rejects regex assertions with nested quantifiers before they can block check execution", () => {
+    expect(() => buildHealthCheckConfig({
+      expectedStatus: 200,
+      maxLatencyMs: 5000,
+      timeoutMs: 10000,
+      matchesRegexPattern: "^(a+)+$",
+    })).toThrow("Regex pattern is too complex for workflow checks.");
+  });
 });

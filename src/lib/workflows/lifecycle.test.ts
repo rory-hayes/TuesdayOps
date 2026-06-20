@@ -53,6 +53,7 @@ describe("workflow lifecycle helpers", () => {
       },
       current: {
         auth_type: "bearer",
+        endpoint_url: "https://api.example.com/health",
         encrypted_auth_config: {
           v: 1,
           alg: "aes-256-gcm",
@@ -61,6 +62,7 @@ describe("workflow lifecycle helpers", () => {
           ciphertext: "existing-secret-ciphertext",
         },
       },
+      nextEndpointUrl: "https://api.example.com/v2/health",
       encryptPayload: () => {
         throw new Error("Blank auth secret should not re-encrypt.");
       },
@@ -70,6 +72,29 @@ describe("workflow lifecycle helpers", () => {
       auth_type: "bearer",
     });
     expect(update).not.toHaveProperty("encrypted_auth_config");
+  });
+
+  it("requires a new auth secret before preserving credentials across endpoint host changes", () => {
+    expect(() => buildWorkflowAuthUpdate({
+      input: {
+        authType: "bearer",
+      },
+      current: {
+        auth_type: "bearer",
+        endpoint_url: "https://api.example.com/health",
+        encrypted_auth_config: {
+          v: 1,
+          alg: "aes-256-gcm",
+          iv: "iv",
+          tag: "tag",
+          ciphertext: "existing-secret-ciphertext",
+        },
+      },
+      nextEndpointUrl: "https://capture.example.net/health",
+      encryptPayload: () => {
+        throw new Error("Endpoint host changes without a new secret should not re-encrypt.");
+      },
+    })).toThrow("Enter a new auth secret before moving saved credentials to a different endpoint host.");
   });
 
   it("encrypts newly rotated auth material without returning plaintext secret values", () => {

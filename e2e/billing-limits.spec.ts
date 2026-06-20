@@ -56,7 +56,9 @@ test("billing settings show limits and starter client limit is enforced", async 
   await expect(page.getByText("0 / 3")).toBeVisible();
   await expect(page.getByText("0 / 10")).toBeVisible();
   await expect(page.getByRole("button", { name: "Manage billing" })).toBeDisabled();
-  await page.getByRole("button", { name: "Choose" }).nth(1).click();
+  await expect(page.getByRole("button", { name: "Current plan" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Choose" })).toHaveCount(3);
+  await page.getByRole("button", { name: "Choose" }).first().click();
   const upgradeResult = await waitForCheckoutOrBillingError(page);
   expect(["checkout", "config-error"]).toContain(upgradeResult);
 
@@ -65,12 +67,13 @@ test("billing settings show limits and starter client limit is enforced", async 
   for (let index = 1; index <= 3; index += 1) {
     const clientName = `Billing Client ${runId}-${index}`;
     await createClient(page, clientName, `qa-billing-${runId}-${index}@example.invalid`);
-    await expect(page.getByRole("table").getByRole("link", { name: clientName })).toBeVisible();
+    await expect(page.getByRole("table").getByRole("link", { name: clientName, exact: true })).toBeVisible();
   }
 
   await createClient(page, overflowClient, `qa-billing-overflow-${runId}@example.invalid`);
-  await expect(page.getByText("Upgrade to add more clients.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Click here to upgrade" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan limit reached" })).toBeVisible();
+  await expect(page.getByText("3 / 3 clients")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Upgrade to Growth" })).toBeVisible();
   await expect(page.getByText(overflowClient)).not.toBeVisible();
 
   await page.goto("/workflows", { waitUntil: "domcontentloaded" });

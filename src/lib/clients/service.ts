@@ -9,6 +9,7 @@ import { sanitizeUserText } from "@/lib/domain/input-sanitization";
 import { parseOptionalSlug } from "@/lib/domain/slug";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 const sanitizedText = (schema: z.ZodString) =>
@@ -68,7 +69,7 @@ export async function createClientAction(formData: FormData) {
     redirect(`/clients?error=${encodeURIComponent(parsedSlug.message)}`);
   }
 
-  const { error } = await supabase.from("clients").insert({
+  const { error } = await createAdminClient().from("clients").insert({
     agency_id: workspace.agency.id,
     name: parsed.data.name,
     slug: parsedSlug.slug,

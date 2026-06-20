@@ -213,9 +213,8 @@ function OverviewTab({ runs, issues }: { runs: CheckRun[]; issues: Issue[] }) {
 
   return (
     <section className="grid gap-6">
-      <WorkflowPassRateChart points={buildPassRateTrend(runs)} />
-
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(20rem,0.7fr)_minmax(0,1.3fr)]">
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(19rem,24rem)]">
+        <WorkflowPassRateChart points={buildPassRateTrend(runs)} />
         <Card>
           <CardHeader>
             <h2 className="text-base font-semibold">Latest run</h2>
@@ -245,10 +244,9 @@ function OverviewTab({ runs, issues }: { runs: CheckRun[]; issues: Issue[] }) {
             )}
           </CardContent>
         </Card>
-
-        <RunHistoryCard runs={runs} />
       </div>
 
+      <RunHistoryCard runs={runs} />
       <WorkflowIssuesCard issues={issues} />
     </section>
   );
@@ -275,85 +273,87 @@ function WorkflowPassRateChart({ points }: { points: ChartPoint[] }) {
       <CardContent className="pt-0">
         {points.length ? (
           <div className="grid gap-3">
-            <div className="relative h-40 rounded-lg border border-zinc-950/10 bg-white px-2 py-2">
-              <svg
-                role="img"
-                aria-label="Workflow pass-rate trend on a fixed 0 to 100 percent scale"
-                viewBox={`0 0 ${chart.width} ${chart.height}`}
-                className="h-full w-full"
-                preserveAspectRatio="none"
-              >
-                {[100, 50, 0].map((tick) => {
-                  const y = chart.yForValue(tick);
+            <div className="rounded-lg border border-zinc-950/10 bg-white p-3 sm:p-4">
+              <div className="relative mx-auto aspect-[16/5] w-full max-w-4xl">
+                <svg
+                  role="img"
+                  aria-label="Workflow pass-rate trend on a fixed 0 to 100 percent scale"
+                  viewBox={`0 0 ${chart.width} ${chart.height}`}
+                  className="h-full w-full overflow-visible"
+                  preserveAspectRatio="xMidYMid meet"
+                >
+                  {[100, 50, 0].map((tick) => {
+                    const y = chart.yForValue(tick);
 
-                  return (
-                    <g key={tick}>
-                      <line
-                        x1={chart.padding.left}
-                        x2={chart.width - chart.padding.right}
-                        y1={y}
-                        y2={y}
-                        stroke="rgba(9,9,11,0.08)"
-                        strokeWidth="1"
-                        vectorEffect="non-scaling-stroke"
-                      />
+                    return (
+                      <g key={tick}>
+                        <line
+                          x1={chart.padding.left}
+                          x2={chart.width - chart.padding.right}
+                          y1={y}
+                          y2={y}
+                          stroke="rgba(9,9,11,0.08)"
+                          strokeWidth="1"
+                          vectorEffect="non-scaling-stroke"
+                        />
+                        <text
+                          x={chart.padding.left - 10}
+                          y={y + 3}
+                          textAnchor="end"
+                          className="fill-zinc-400 text-[10px]"
+                        >
+                          {tick}%
+                        </text>
+                      </g>
+                    );
+                  })}
+                  {chart.line ? (
+                    <path
+                      d={chart.line}
+                      fill="none"
+                      stroke="rgb(39,39,42)"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                  ) : null}
+                  {chart.coordinates.map((point, index) => (
+                    <circle
+                      key={`${points[index].label}-${point.x}-${point.y}`}
+                      cx={point.x}
+                      cy={point.y}
+                      r="3.5"
+                      fill="white"
+                      stroke="rgb(39,39,42)"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                    >
+                      <title>{`${points[index].label}: ${points[index].value}%`}</title>
+                    </circle>
+                  ))}
+                  {chart.coordinates.length ? (
+                    <>
                       <text
-                        x={chart.padding.left - 10}
-                        y={y + 3}
+                        x={chart.coordinates[0].x}
+                        y={chart.height - 8}
+                        textAnchor="start"
+                        className="fill-zinc-400 text-[10px]"
+                      >
+                        {points[0].label}
+                      </text>
+                      <text
+                        x={chart.coordinates.at(-1)?.x}
+                        y={chart.height - 8}
                         textAnchor="end"
                         className="fill-zinc-400 text-[10px]"
                       >
-                        {tick}%
+                        {points.at(-1)?.label}
                       </text>
-                    </g>
-                  );
-                })}
-                {chart.line ? (
-                  <path
-                    d={chart.line}
-                    fill="none"
-                    stroke="rgb(39,39,42)"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                ) : null}
-                {chart.coordinates.map((point, index) => (
-                  <circle
-                    key={`${points[index].label}-${point.x}-${point.y}`}
-                    cx={point.x}
-                    cy={point.y}
-                    r="3"
-                    fill="white"
-                    stroke="rgb(39,39,42)"
-                    strokeWidth="2"
-                    vectorEffect="non-scaling-stroke"
-                  >
-                    <title>{`${points[index].label}: ${points[index].value}%`}</title>
-                  </circle>
-                ))}
-                {chart.coordinates.length ? (
-                  <>
-                    <text
-                      x={chart.coordinates[0].x}
-                      y={chart.height - 5}
-                      textAnchor="start"
-                      className="fill-zinc-400 text-[10px]"
-                    >
-                      {points[0].label}
-                    </text>
-                    <text
-                      x={chart.coordinates.at(-1)?.x}
-                      y={chart.height - 5}
-                      textAnchor="end"
-                      className="fill-zinc-400 text-[10px]"
-                    >
-                      {points.at(-1)?.label}
-                    </text>
-                  </>
-                ) : null}
-              </svg>
+                    </>
+                  ) : null}
+                </svg>
+              </div>
             </div>
             <p className="text-xs leading-5 text-muted-foreground">{getWorkflowTrendNote(points)}</p>
           </div>
@@ -448,7 +448,7 @@ function EndpointTab({
 
 function WorkflowSettingsTab({ workflow, primaryCheck }: { workflow: Workflow; primaryCheck?: Check }) {
   return (
-    <section className="max-w-4xl">
+    <section className="w-full">
       <Card>
         <CardHeader>
           <h2 className="text-base font-semibold">Workflow settings</h2>
@@ -457,127 +457,154 @@ function WorkflowSettingsTab({ workflow, primaryCheck }: { workflow: Workflow; p
           </p>
         </CardHeader>
         <CardContent>
-          <form action={updateWorkflowAction} className="grid gap-4">
+          <form action={updateWorkflowAction} className="grid gap-6">
             <input type="hidden" name="id" value={workflow.id} />
             <input type="hidden" name="returnTab" value="settings" />
-            <Input label="Name" name="name" placeholder="Workflow name" defaultValue={workflow.name} required />
-            <Input
-              label="Endpoint URL"
-              name="endpointUrl"
-              placeholder="https://example.com/api/health"
-              type="url"
-              defaultValue={workflow.endpointUrl}
-              required
-            />
-            <div className="grid gap-3 md:grid-cols-2">
-              <label className="block text-sm font-medium">
-                Type
-                <select
-                  name="type"
-                  defaultValue={workflow.type}
-                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                >
-                  <option value="http_endpoint">HTTP endpoint</option>
-                  <option value="webhook">Webhook</option>
-                  <option value="n8n">n8n</option>
-                  <option value="make">Make</option>
-                  <option value="zapier">Zapier</option>
-                  <option value="mcp_server">MCP server</option>
-                  <option value="custom_api">Custom API</option>
-                </select>
-              </label>
-              <label className="block text-sm font-medium">
-                Environment
-                <select
-                  name="environment"
-                  defaultValue={workflow.environment}
-                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                >
-                  <option value="production">Production</option>
-                  <option value="staging">Staging</option>
-                  <option value="development">Development</option>
-                </select>
-              </label>
-              <label className="block text-sm font-medium">
-                Method
-                <select
-                  name="method"
-                  defaultValue={workflow.method}
-                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                  <option value="PUT">PUT</option>
-                  <option value="PATCH">PATCH</option>
-                </select>
-              </label>
-              <Input
-                label="Frequency minutes"
-                name="checkFrequencyMinutes"
-                placeholder="60"
-                type="number"
-                defaultValue={workflow.checkFrequencyMinutes.toString()}
-                required
-              />
-            </div>
-            <div className="grid gap-3 rounded-lg border border-border p-4">
-              <div>
-                <h3 className="text-sm font-semibold">Authentication</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Leave the secret blank to keep the current encrypted credential.
-                </p>
+
+            <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(24rem,0.9fr)]">
+              <div className="grid gap-4">
+                <div className="grid gap-4 rounded-lg border border-border p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Workflow identity</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Name, endpoint, and runtime metadata for this monitored workflow.
+                    </p>
+                  </div>
+                  <Input label="Name" name="name" placeholder="Workflow name" defaultValue={workflow.name} required />
+                  <Input
+                    label="Endpoint URL"
+                    name="endpointUrl"
+                    placeholder="https://example.com/api/health"
+                    type="url"
+                    defaultValue={workflow.endpointUrl}
+                    required
+                  />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="block text-sm font-medium">
+                      Type
+                      <select
+                        name="type"
+                        defaultValue={workflow.type}
+                        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                      >
+                        <option value="http_endpoint">HTTP endpoint</option>
+                        <option value="webhook">Webhook</option>
+                        <option value="n8n">n8n</option>
+                        <option value="make">Make</option>
+                        <option value="zapier">Zapier</option>
+                        <option value="mcp_server">MCP server</option>
+                        <option value="custom_api">Custom API</option>
+                      </select>
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Environment
+                      <select
+                        name="environment"
+                        defaultValue={workflow.environment}
+                        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                      >
+                        <option value="production">Production</option>
+                        <option value="staging">Staging</option>
+                        <option value="development">Development</option>
+                      </select>
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Method
+                      <select
+                        name="method"
+                        defaultValue={workflow.method}
+                        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                      >
+                        <option value="GET">GET</option>
+                        <option value="POST">POST</option>
+                        <option value="PUT">PUT</option>
+                        <option value="PATCH">PATCH</option>
+                      </select>
+                    </label>
+                    <Input
+                      label="Frequency minutes"
+                      name="checkFrequencyMinutes"
+                      placeholder="60"
+                      type="number"
+                      defaultValue={workflow.checkFrequencyMinutes.toString()}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-3 rounded-lg border border-border p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Authentication</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Leave the secret blank to keep the current encrypted credential.
+                    </p>
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="block text-sm font-medium">
+                      Auth type
+                      <select
+                        name="authType"
+                        defaultValue={workflow.authType}
+                        className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                      >
+                        <option value="none">None</option>
+                        <option value="bearer">Bearer token</option>
+                        <option value="api_key_header">API key header</option>
+                        <option value="basic">Basic auth</option>
+                      </select>
+                    </label>
+                    <Input
+                      label="New auth secret"
+                      name="authSecret"
+                      placeholder="Leave blank to keep current"
+                      type="password"
+                    />
+                    <Input
+                      label="API key header name"
+                      name="authHeaderName"
+                      placeholder="x-api-key"
+                    />
+                    <Input
+                      label="Basic username"
+                      name="basicUsername"
+                      placeholder="username"
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="grid gap-3 md:grid-cols-2">
-                <label className="block text-sm font-medium">
-                  Auth type
-                  <select
-                    name="authType"
-                    defaultValue={workflow.authType}
-                    className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-                  >
-                    <option value="none">None</option>
-                    <option value="bearer">Bearer token</option>
-                    <option value="api_key_header">API key header</option>
-                    <option value="basic">Basic auth</option>
-                  </select>
-                </label>
-                <Input
-                  label="New auth secret"
-                  name="authSecret"
-                  placeholder="Leave blank to keep current"
-                  type="password"
-                />
-                <Input
-                  label="API key header name"
-                  name="authHeaderName"
-                  placeholder="x-api-key"
-                />
-                <Input
-                  label="Basic username"
-                  name="basicUsername"
-                  placeholder="username"
-                />
+
+              <div className="grid gap-4">
+                <div className="grid gap-3 rounded-lg border border-border p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Primary health check</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      These settings update the main scheduled health check for this workflow.
+                    </p>
+                  </div>
+                  <HealthCheckFields configJson={primaryCheck?.configJson} />
+                </div>
+
+                <div className="grid gap-3 rounded-lg border border-border p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold">Report inclusion</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Control whether this workflow contributes to monthly maintenance reports.
+                    </p>
+                  </div>
+                  <label className="flex min-h-10 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm font-medium">
+                    <input
+                      name="includedInReports"
+                      type="checkbox"
+                      defaultChecked={workflow.includedInReports}
+                      className="size-4 rounded border-border"
+                    />
+                    Include in reports
+                  </label>
+                </div>
               </div>
             </div>
-            <div className="grid gap-3 rounded-lg border border-border p-4">
-              <div>
-                <h3 className="text-sm font-semibold">Primary health check</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  These settings update the main scheduled health check for this workflow.
-                </p>
-              </div>
-              <HealthCheckFields configJson={primaryCheck?.configJson} />
-            </div>
-            <label className="flex items-center gap-2 text-sm font-medium">
-              <input
-                name="includedInReports"
-                type="checkbox"
-                defaultChecked={workflow.includedInReports}
-                className="size-4 rounded border-border"
-              />
-              Include in reports
-            </label>
-            <div className="flex flex-wrap items-center gap-3">
+
+            <div className="flex flex-wrap items-center justify-end gap-3 border-t border-border pt-4">
               <FormSubmitButton type="submit" className="w-fit" pendingLabel="Saving...">
                 Save workflow
               </FormSubmitButton>
@@ -811,11 +838,11 @@ function formatWorkflowLastCheck(value?: string): string {
 
 function buildWorkflowPassRateChart(points: ChartPoint[]) {
   const width = 640;
-  const height = 160;
+  const height = 200;
   const padding = {
-    top: 16,
-    right: 18,
-    bottom: 26,
+    top: 20,
+    right: 20,
+    bottom: 34,
     left: 42,
   };
   const plotWidth = width - padding.left - padding.right;

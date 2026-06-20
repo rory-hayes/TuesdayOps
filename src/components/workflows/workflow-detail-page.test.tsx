@@ -23,6 +23,8 @@ describe("WorkflowDetailPage maintenance UI", () => {
     );
 
     expect(html).toContain("https://api.example.com/v1/Lead%20Router?signature=a%2Fb&amp;next=%2Fcallback");
+    expect(html).toContain("Workflow identity");
+    expect(html).toContain("Report inclusion");
     expect(html).toContain('name="endpointUrl"');
     expect(html).toContain('value="https://api.example.com/v1/Lead%20Router?signature=a%2Fb&amp;next=%2Fcallback"');
     expect(html).toContain('name="authSecret"');
@@ -101,6 +103,7 @@ describe("WorkflowDetailPage maintenance UI", () => {
     expect(html).toContain("100%");
     expect(html).toContain("50%");
     expect(html).toContain("0%");
+    expect(html).toContain('preserveAspectRatio="xMidYMid meet"');
     expect(html).toContain("3 daily points shown on a fixed 0-100% scale.");
   });
 });

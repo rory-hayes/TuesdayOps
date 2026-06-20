@@ -22,7 +22,7 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
         </p>
       </div>
 
-      <PageFeedback notice={notice} error={error} />
+      <PageFeedback notice={notice} error={error} variant="inline" />
 
       <SignInForm action={signInAction} />
 
@@ -35,7 +35,7 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
       </Link>
 
       <p className="text-sm/6 text-zinc-500">
-        New to TuesdayOps?{" "}
+        New to Tuesday?{" "}
         <Link href="/sign-up" prefetch={false} className="font-semibold text-zinc-950 hover:text-zinc-700">
           Create an account
         </Link>

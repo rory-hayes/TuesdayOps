@@ -7,7 +7,7 @@ import { isBillingPlanKey, type BillingPlanKey } from "@/lib/billing/plans";
 import { getAppUrl, getStripePriceIdForPlan } from "@/lib/env";
 import { getStripeClient } from "@/lib/billing/stripe";
 import { assertPersistentRateLimit } from "@/lib/security/rate-limit";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function createCheckoutSessionAction(formData?: FormData) {
   const workspace = await requireWorkspace();
@@ -15,6 +15,10 @@ export async function createCheckoutSessionAction(formData?: FormData) {
 
   if (!["owner", "admin"].includes(workspace.role)) {
     redirect(`/settings?billing_error=${encodeURIComponent("Only owners and admins can manage billing.")}`);
+  }
+
+  if (plan === workspace.agency.plan) {
+    redirect("/settings?billing=current-plan");
   }
 
   try {
@@ -40,7 +44,7 @@ export async function createCheckoutSessionAction(formData?: FormData) {
     redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error))}`);
   }
 
-  const supabase = await createClient();
+  const admin = createAdminClient();
   let customerId = workspace.agency.billingCustomerId;
   let checkoutUrl: string | null = null;
 
@@ -55,7 +59,7 @@ export async function createCheckoutSessionAction(formData?: FormData) {
       });
       customerId = customer.id;
 
-      const { error } = await supabase
+      const { error } = await admin
         .from("agencies")
         .update({ billing_customer_id: customerId })
         .eq("id", workspace.agency.id);

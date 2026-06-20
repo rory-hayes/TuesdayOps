@@ -21,7 +21,7 @@ export default async function SignUpPage({ searchParams }: AuthPageProps) {
         </p>
       </div>
 
-      <PageFeedback error={error} />
+      <PageFeedback error={error} variant="inline" />
 
       <SignUpForm action={signUpAction} />
 

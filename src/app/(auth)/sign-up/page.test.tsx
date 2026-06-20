@@ -11,7 +11,7 @@ describe("SignUpPage", () => {
   it("asks users to confirm a stronger password with accessible requirements", async () => {
     const html = renderToStaticMarkup(await SignUpPage({ searchParams: Promise.resolve({}) }));
 
-    expect(html).toContain('aria-label="Create TuesdayOps account"');
+    expect(html).toContain('aria-label="Create Tuesday account"');
     expect(html).toContain("noValidate");
     expect(html).toContain("New password");
     expect(html).toContain('name="password"');

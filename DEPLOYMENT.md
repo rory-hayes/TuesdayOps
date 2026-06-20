@@ -1,10 +1,10 @@
-# TuesdayOps Deployment Readiness
+# Tuesday Deployment Readiness
 
 This document is the production handoff checklist for design-partner deployments.
 
 ## Runtime
 
-TuesdayOps requires:
+Tuesday requires:
 
 ```txt
 Node.js >=20.19.0

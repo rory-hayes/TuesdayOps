@@ -1,12 +1,12 @@
-# TuesdayOps
+# Tuesday
 
-TuesdayOps is a white-label AI workflow maintenance platform for agencies.
+Tuesday is a white-label AI workflow maintenance platform for agencies.
 
 It helps AI and automation agencies monitor client AI workflows after launch, run lightweight QA checks, detect failures, manage maintenance issues, and generate monthly client-ready proof-of-work reports.
 
 ## Product promise
 
-> Connect your client AI workflows. TuesdayOps monitors them, flags issues, runs QA checks, and generates monthly reports that prove what was maintained, fixed, and improved.
+> Connect your client AI workflows. Tuesday monitors them, flags issues, runs QA checks, and generates monthly reports that prove what was maintained, fixed, and improved.
 
 ## MVP scope
 
@@ -177,7 +177,7 @@ The repository now contains the foundation, Milestones 1-3, Milestone 4 schedule
 - Next.js App Router app
 - TypeScript and Tailwind CSS
 - public logged-out landing page with authenticated dashboard routing preserved
-- TuesdayOps app shell
+- Tuesday app shell
 - Supabase SSR auth clients and protected app routes
 - agency onboarding through a tenant-safe Supabase RPC
 - Supabase migration for profiles, agencies, memberships, clients, workflows, checks, check runs, and issues

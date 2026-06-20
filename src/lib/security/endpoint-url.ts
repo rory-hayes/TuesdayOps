@@ -7,6 +7,25 @@ export type EndpointValidationResult =
   | { allowed: false; reason: string };
 
 export const unsafeEndpointMessage = "Private or local workflow endpoints are blocked in production.";
+export const unsafeEndpointSecretMessage =
+  "Workflow endpoint URL must not include embedded credentials or secret query parameters.";
+
+const secretQueryParameterNames = new Set([
+  "access_token",
+  "api_key",
+  "apikey",
+  "auth_token",
+  "authorization",
+  "bearer",
+  "client_secret",
+  "key",
+  "password",
+  "secret",
+  "sig",
+  "signature",
+  "token",
+  "x_api_key",
+]);
 
 export function validateWorkflowEndpointUrl(
   value: string,
@@ -23,6 +42,10 @@ export function validateWorkflowEndpointUrl(
 
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     return { allowed: false, reason: "Workflow endpoint must use HTTP or HTTPS." };
+  }
+
+  if (hasEmbeddedEndpointSecret(url)) {
+    return { allowed: false, reason: unsafeEndpointSecretMessage };
   }
 
   if (options.allowPrivateEndpoints) {
@@ -65,6 +88,20 @@ export function isPrivateOrLocalHostname(hostname: string): boolean {
   }
 
   return isPrivateIpv4(normalized) || isPrivateIpv6(normalized);
+}
+
+function hasEmbeddedEndpointSecret(url: URL): boolean {
+  if (url.username || url.password) {
+    return true;
+  }
+
+  return Array.from(url.searchParams.keys()).some((key) =>
+    secretQueryParameterNames.has(normalizeQueryParameterName(key)),
+  );
+}
+
+function normalizeQueryParameterName(value: string): string {
+  return value.trim().toLowerCase().replace(/[-.\s]+/g, "_");
 }
 
 function isPrivateIpv4(value: string): boolean {

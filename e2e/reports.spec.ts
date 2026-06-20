@@ -167,6 +167,10 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
 
   await page.goto(`/reports/${report.id}`, { waitUntil: "domcontentloaded" });
   const sendForm = page.locator("form").filter({ has: page.getByRole("button", { name: "Send" }) });
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toBe("Send this report to the client recipient now?");
+    await dialog.accept();
+  });
   await sendForm.getByRole("button", { name: "Send" }).click();
 
   const sentReport = await poll(async () => {

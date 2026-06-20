@@ -50,8 +50,10 @@ export function AgencyOnboardingForm({ action }: AgencyOnboardingFormProps) {
           aria-describedby="agency-slug-help"
           value={slug}
           onChange={(event) => {
-            setSlugEdited(true);
-            setSlug(event.target.value);
+            const normalizedSlug = createSlug(event.target.value, "").slice(0, 80);
+
+            setSlugEdited(Boolean(normalizedSlug));
+            setSlug(normalizedSlug);
           }}
           placeholder="your-agency"
           title={SLUG_FORMAT_MESSAGE}
@@ -61,6 +63,11 @@ export function AgencyOnboardingForm({ action }: AgencyOnboardingFormProps) {
         <span id="agency-slug-help" className="text-xs/5 font-normal text-zinc-500">
           {SLUG_FORMAT_MESSAGE}
         </span>
+        {slug ? (
+          <span className="text-xs/5 font-normal text-zinc-500">
+            Workspace URL slug: <span className="font-medium text-zinc-700">{slug}</span>
+          </span>
+        ) : null}
         <FieldError name="slug" />
       </label>
       <FormSubmitButton type="submit" className="w-full" pendingLabel="Creating...">

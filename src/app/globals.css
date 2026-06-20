@@ -99,6 +99,16 @@ textarea {
   }
 }
 
+@keyframes bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .landing-rise {
   animation: landing-rise 700ms ease-out both;
 }

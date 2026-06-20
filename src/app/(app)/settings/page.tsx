@@ -37,5 +37,9 @@ function readBillingNotice(value: string | undefined): string | undefined {
     return "Returned from the customer portal.";
   }
 
+  if (value === "current-plan") {
+    return "You are already on that plan.";
+  }
+
   return undefined;
 }

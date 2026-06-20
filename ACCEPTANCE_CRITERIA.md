@@ -1,4 +1,4 @@
-# TuesdayOps Acceptance Criteria
+# Tuesday Acceptance Criteria
 
 ## Global acceptance criteria
 

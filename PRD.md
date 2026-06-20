@@ -1,8 +1,8 @@
-# TuesdayOps PRD
+# Tuesday PRD
 
 ## 1. Summary
 
-TuesdayOps is a SaaS platform for AI and automation agencies that manage live client AI workflows after launch.
+Tuesday is a SaaS platform for AI and automation agencies that manage live client AI workflows after launch.
 
 The product helps agencies:
 
@@ -156,8 +156,8 @@ Do not position as an evals platform.
 
 Position as:
 
-> TuesdayOps is AgencyAnalytics for AI workflow maintenance.
+> Tuesday is AgencyAnalytics for AI workflow maintenance.
 
 Or:
 
-> TuesdayOps helps AI agencies monitor client AI workflows, catch failures, and generate monthly proof-of-work reports.
+> Tuesday helps AI agencies monitor client AI workflows, catch failures, and generate monthly proof-of-work reports.

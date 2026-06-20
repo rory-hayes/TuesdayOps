@@ -20,8 +20,8 @@ describe("assertResolvedWorkflowEndpointIsSafe", () => {
     lookupMock.mockResolvedValue([{ address: "93.184.216.34", family: 4 }] as never);
 
     await expect(
-      assertResolvedWorkflowEndpointIsSafe("https://API.example.com/v1/health?Signature=AbC%2F123"),
-    ).resolves.toBe("https://API.example.com/v1/health?Signature=AbC%2F123");
+      assertResolvedWorkflowEndpointIsSafe("https://API.example.com/v1/health?cursor=AbC%2F123"),
+    ).resolves.toBe("https://API.example.com/v1/health?cursor=AbC%2F123");
     expect(lookupMock).toHaveBeenCalledWith("api.example.com", { all: true, verbatim: true });
   });
 

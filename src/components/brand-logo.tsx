@@ -7,7 +7,7 @@ export function BrandLogo({ className }: { className?: string }) {
       <span className="grid size-7 place-items-center rounded-lg bg-zinc-950 text-white">
         <BoltIcon className="size-4" aria-hidden="true" />
       </span>
-      TuesdayOps
+      Tuesday
     </span>
   );
 }

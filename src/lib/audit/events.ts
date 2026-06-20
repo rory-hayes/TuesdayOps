@@ -18,6 +18,7 @@ export type AuditAction =
   | "issue.snoozed"
   | "issue.reportable_updated"
   | "report.generated"
+  | "report.updated"
   | "report.pdf_generated"
   | "report.send_attempted"
   | "billing.webhook_processed";

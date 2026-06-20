@@ -1,4 +1,4 @@
-# TuesdayOps MVP Tasks
+# Tuesday MVP Tasks
 
 Use this as the working ticket list for Codex.
 
@@ -44,7 +44,7 @@ Acceptance:
 
 Acceptance:
 
-- design looks aligned with TuesdayOps mockups
+- design looks aligned with Tuesday mockups
 
 ## Milestone 1 — Auth and Agency Workspace
 
@@ -631,7 +631,7 @@ Acceptance:
 
 Acceptance:
 
-- first-time visitors see a focused TuesdayOps offer without exposing app routes or adding ignored scope
+- first-time visitors see a focused Tuesday offer without exposing app routes or adding ignored scope
 
 ### T18.7 Documentation alignment
 

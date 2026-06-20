@@ -86,7 +86,7 @@ describe("report PDF helpers", () => {
     const bytes = renderReportPdfBytes(draft);
     const text = bytes.toString("latin1");
 
-    expect(text).toContain("TuesdayOps maintenance report");
+    expect(text).toContain("Tuesday maintenance report");
     expect(text).toContain("Prepared for Client One");
     expect(text).toContain("Report period: June 2026");
     expect(text).toContain("Executive summary");

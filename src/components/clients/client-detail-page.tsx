@@ -4,10 +4,12 @@ import { StatusBadge } from "@/components/status-badge";
 import { MiniBarChart, MiniLineChart } from "@/components/charts/simple-charts";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ClickableTableRow } from "@/components/ui/clickable-table-row";
 import { getOpenIssues } from "@/lib/domain/summaries";
 import type { Client, TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
 import { buildChecksRunSeries, buildPassRateTrend } from "@/lib/dashboard/charts";
+import { getReportCardStatus } from "@/lib/reports/display-status";
 
 export function ClientDetailPage({
   data,
@@ -52,7 +54,13 @@ export function ClientDetailPage({
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <MiniLineChart label="Client pass-rate trend" points={buildPassRateTrend(clientRuns)} suffix="%" />
+        <MiniLineChart
+          label="Client pass-rate trend"
+          points={buildPassRateTrend(clientRuns)}
+          suffix="%"
+          yMax={100}
+          emptyDescription="Run client workflow checks to build pass-rate history."
+        />
         <MiniBarChart label="Client checks run" points={buildChecksRunSeries(clientRuns)} />
       </section>
 
@@ -76,7 +84,12 @@ export function ClientDetailPage({
               <tbody>
                 {workflows.length ? (
                   workflows.map((workflow) => (
-                    <tr key={workflow.id} className="group border-b border-zinc-950/5 transition-colors hover:bg-zinc-50 last:border-0">
+                    <ClickableTableRow
+                      key={workflow.id}
+                      href={`/workflows/${workflow.id}`}
+                      label={`Open workflow ${workflow.name}`}
+                      className="border-b border-zinc-950/5 last:border-0"
+                    >
                       <td className="px-5 py-4">
                         <Link href={`/workflows/${workflow.id}`} className="font-medium text-zinc-950 group-hover:text-primary group-hover:underline">
                           {workflow.name}
@@ -93,7 +106,7 @@ export function ClientDetailPage({
                       </td>
                       <td className="px-5 py-4">{formatPercentage(workflow.passRate)}</td>
                       <td className="px-5 py-4 text-zinc-500">{formatWorkflowLastCheck(workflow.lastCheckAt)}</td>
-                    </tr>
+                    </ClickableTableRow>
                   ))
                 ) : (
                   <tr>
@@ -107,48 +120,33 @@ export function ClientDetailPage({
           </CardContent>
         </Card>
 
-        <div className="grid gap-8">
-          <Card>
-            <CardHeader>
-              <h2 className="text-base/7 font-semibold text-zinc-950">Report status</h2>
-            </CardHeader>
-            <CardContent>
-              {client.reportStatus === "not_started" ? (
-                <Badge variant="muted">not started</Badge>
-              ) : (
-                <StatusBadge status={client.reportStatus === "ready" ? "ready_to_send" : client.reportStatus} />
-              )}
-              <p className="mt-4 text-sm/6 text-zinc-500">
-                Reports are generated from stored workflow checks, issues, and synthetic test runs.
-              </p>
-              <div className="mt-4 rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
-                <p>
-                  Automation: {client.reportAutomationEnabled ? "draft monthly reports" : "manual drafts"}
-                </p>
-                <p>Next due: {client.nextReportDueOn ?? "not scheduled"}</p>
-                <p>Last generated: {client.lastReportGeneratedAt ? formatRelativeTime(client.lastReportGeneratedAt) : "never"}</p>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div>
           <Card>
             <CardHeader>
               <h2 className="text-base/7 font-semibold text-zinc-950">Recent reports</h2>
+              <p className="mt-1 text-sm/6 text-zinc-500">Generated reports for this client.</p>
             </CardHeader>
             <CardContent className="grid gap-3">
               {reports.length ? (
-                reports.slice(0, 3).map((report) => (
-                  <Link
-                    key={report.id}
-                    href={`/reports/${report.id}`}
-                    className="block rounded-lg border border-zinc-950/10 p-3 transition-colors hover:border-primary/40 hover:bg-zinc-50"
-                  >
-                    <p className="text-sm/6 font-medium text-zinc-950">{report.periodLabel}</p>
-                    <p className="mt-1 text-xs/5 text-zinc-500">
-                      {report.checksRun} checks, {formatPercentage(report.passRate)} pass rate
-                    </p>
-                  </Link>
-                ))
+                reports.slice(0, 3).map((report) => {
+                  const reportStatus = getReportCardStatus(report.status);
+
+                  return (
+                    <Link
+                      key={report.id}
+                      href={`/reports/${report.id}`}
+                      className="block rounded-lg border border-zinc-950/10 p-3 transition-colors hover:border-primary/40 hover:bg-zinc-50"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm/6 font-medium text-zinc-950">{report.periodLabel}</p>
+                        <Badge variant={reportStatus.variant}>{reportStatus.label}</Badge>
+                      </div>
+                      <p className="mt-2 text-xs/5 text-zinc-500">
+                        {report.checksRun} checks, {formatPercentage(report.passRate)} pass rate
+                      </p>
+                    </Link>
+                  );
+                })
               ) : (
                 <p className="text-sm/6 text-zinc-500">No reports generated yet.</p>
               )}

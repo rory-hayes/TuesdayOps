@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -16,6 +16,15 @@ function readAllMigrations(): string {
     .concat("\n", readFileSync(join(migrationsDir, "20260616193000_design_partner_readiness_lifecycle.sql"), "utf8"))
     .concat("\n", readFileSync(join(migrationsDir, "20260617195500_core_loop_production_blockers.sql"), "utf8"))
     .concat("\n", readFileSync(join(migrationsDir, "20260618120000_tenant_issue_check_run_boundary.sql"), "utf8"))
+    .replace(/\s+/g, " ");
+}
+
+function readEveryMigration(): string {
+  return readdirSync(migrationsDir)
+    .filter((name) => name.endsWith(".sql"))
+    .sort()
+    .map((name) => readFileSync(join(migrationsDir, name), "utf8"))
+    .join("\n")
     .replace(/\s+/g, " ");
 }
 
@@ -92,5 +101,17 @@ describe("tenant isolation migration contract", () => {
 
     expect(reportsSql).toContain("insert into storage.buckets (id, name, public) values ('reports', 'reports', false)");
     expect(reportsSql).toContain("pdf_storage_path text");
+  });
+
+  it("keeps privileged billing and workflow credential fields out of browser-token updates", () => {
+    const sql = readEveryMigration();
+
+    expect(sql).toContain("constraint reports_pdf_storage_path_canonical_check");
+    expect(sql).toContain("revoke update on public.agencies from authenticated");
+    expect(sql).toContain("grant update (name, slug, logo_url, primary_color) on public.agencies to authenticated");
+    expect(sql).toContain("revoke insert on public.clients from authenticated");
+    expect(sql).toContain("revoke insert on public.workflows from authenticated");
+    expect(sql).toContain("revoke update on public.workflows from authenticated");
+    expect(sql).toContain("grant update (name, type, environment, method, check_frequency_minutes, status, pass_rate, latency_ms, monthly_cost, last_check_at, included_in_reports, archived_at) on public.workflows to authenticated");
   });
 });

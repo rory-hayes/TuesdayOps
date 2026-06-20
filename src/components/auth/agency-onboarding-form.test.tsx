@@ -32,4 +32,21 @@ describe("AgencyOnboardingForm", () => {
     expect(screen.queryByText("Agency name is required.")).toBeNull();
     expect(screen.getByLabelText("Agency name").getAttribute("aria-invalid")).toBeNull();
   });
+
+  it("normalizes manually edited slugs as URL-safe text", () => {
+    render(<AgencyOnboardingForm action={vi.fn()} />);
+
+    fireEvent.change(screen.getByLabelText("Agency name"), {
+      target: { value: "QA Agency" },
+    });
+    expect((screen.getByLabelText("Slug") as HTMLInputElement).value).toBe("qa-agency");
+
+    fireEvent.change(screen.getByLabelText("Slug"), {
+      target: { value: "Custom Slug!!" },
+    });
+
+    expect((screen.getByLabelText("Slug") as HTMLInputElement).value).toBe("custom-slug");
+    expect(screen.getByText("Workspace URL slug:")).toBeTruthy();
+    expect(screen.getByText("custom-slug")).toBeTruthy();
+  });
 });

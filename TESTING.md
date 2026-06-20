@@ -1,8 +1,8 @@
-# TuesdayOps Testing Strategy
+# Tuesday Testing Strategy
 
 ## Testing philosophy
 
-TuesdayOps is a controls and proof product. Tests should prioritize correctness, tenant isolation, deterministic checks, and report accuracy.
+Tuesday is a controls and proof product. Tests should prioritize correctness, tenant isolation, deterministic checks, and report accuracy.
 
 ## Test types
 

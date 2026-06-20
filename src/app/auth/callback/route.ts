@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 }
 
 function safeNextPath(value: string | null): string {
-  if (value?.startsWith("/") && !value.startsWith("//")) {
+  if (value?.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) {
     return value;
   }
 

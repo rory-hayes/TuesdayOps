@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { evaluateAssertions } from "./assertions";
+import { evaluateAssertions, isSafeRegexPattern } from "./assertions";
 
 describe("evaluateAssertions", () => {
   const response = {
@@ -123,6 +123,52 @@ describe("evaluateAssertions", () => {
     expect(results.every((result) => !result.passed)).toBe(true);
   });
 
+  it("handles null JSON roots and empty arrays without treating scalar values as empty", () => {
+    expect(
+      evaluateAssertions(
+        [{ type: "field_exists", path: "lead.email" }],
+        {
+          statusCode: 200,
+          latencyMs: 10,
+          bodyText: "null",
+          bodyJson: null,
+        },
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        passed: false,
+        message: "Expected field lead.email to exist.",
+      }),
+    ]);
+
+    const results = evaluateAssertions(
+      [
+        { type: "field_not_empty", path: "emptyItems" },
+        { type: "field_not_empty", path: "count" },
+        { type: "field_not_empty", path: "disabled" },
+        { type: "field_not_empty", path: "details" },
+      ],
+      {
+        statusCode: 200,
+        latencyMs: 10,
+        bodyText: "{}",
+        bodyJson: {
+          emptyItems: [],
+          count: 0,
+          disabled: false,
+          details: { id: "detail-1" },
+        },
+      },
+    );
+
+    expect(results).toEqual([
+      expect.objectContaining({ passed: false }),
+      expect.objectContaining({ passed: true }),
+      expect.objectContaining({ passed: true }),
+      expect.objectContaining({ passed: true }),
+    ]);
+  });
+
   it("does not throw when path-scoped not_contains reads a missing value", () => {
     expect(
       evaluateAssertions(
@@ -165,6 +211,36 @@ describe("evaluateAssertions", () => {
         message: 'Regex pattern "[" was invalid.',
       }),
     ]);
+  });
+
+  it("fails unsafe regex assertions without evaluating them against the response body", () => {
+    expect(
+      evaluateAssertions(
+        [
+          { type: "matches_regex", pattern: "^(a+)+$" },
+        ],
+        {
+          statusCode: 200,
+          latencyMs: 10,
+          bodyText: "aaaa!",
+        },
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        passed: false,
+        message: 'Regex pattern "^(a+)+$" is too complex for workflow checks.',
+      }),
+    ]);
+  });
+
+  it("classifies regex patterns that could backtrack heavily", () => {
+    expect(isSafeRegexPattern("^(foo)\\1$")).toBe(false);
+    expect(isSafeRegexPattern("(foo|bar)+")).toBe(false);
+    expect(isSafeRegexPattern("(a*)+")).toBe(false);
+    expect(isSafeRegexPattern("(?:foo){2}")).toBe(true);
+    expect(isSafeRegexPattern("([a+])+$")).toBe(true);
+    expect(isSafeRegexPattern("(a\\+)+")).toBe(true);
+    expect(isSafeRegexPattern("(foo(bar|baz))+")).toBe(true);
   });
 
   it("returns a safe unsupported assertion result for unknown assertion records", () => {

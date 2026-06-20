@@ -9,8 +9,15 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TuesdayOps",
+  title: "Tuesday",
   description: "Post-launch monitoring, QA, and proof reports for AI agencies.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "any" },
+    ],
+    shortcut: "/icon.svg",
+  },
 };
 
 export default function RootLayout({

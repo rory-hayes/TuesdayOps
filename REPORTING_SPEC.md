@@ -1,6 +1,6 @@
-# TuesdayOps Reporting Spec
+# Tuesday Reporting Spec
 
-Reports are the core value of TuesdayOps. They turn invisible maintenance into visible client value.
+Reports are the core value of Tuesday. They turn invisible maintenance into visible client value.
 
 ## Report purpose
 
@@ -51,7 +51,7 @@ Plain-English summary.
 Example:
 
 ```txt
-This month, we monitored 8 AI workflows for Acme Marketing. Overall workflow health remained strong at 94.2%. TuesdayOps detected 6 issues, all of which were resolved before major client impact. We also validated 4 model/prompt changes and recommend adding retry logic to the Lead Generation AI workflow next month.
+This month, we monitored 8 AI workflows for Acme Marketing. Overall workflow health remained strong at 94.2%. Tuesday detected 6 issues, all of which were resolved before major client impact. We also validated 4 model/prompt changes and recommend adding retry logic to the Lead Generation AI workflow next month.
 ```
 
 ### 3. Workflow health overview

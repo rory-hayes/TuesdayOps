@@ -18,16 +18,19 @@ export type WorkflowAuthUpdateInput = {
 
 export type CurrentWorkflowAuthState = {
   auth_type: Workflow["authType"];
+  endpoint_url?: string;
   encrypted_auth_config: EncryptedJsonPayload | null;
 };
 
 export function buildWorkflowAuthUpdate({
   input,
   current,
+  nextEndpointUrl,
   encryptPayload = encryptJsonPayload,
 }: {
   input: WorkflowAuthUpdateInput;
   current: CurrentWorkflowAuthState;
+  nextEndpointUrl?: string;
   encryptPayload?: (payload: WorkflowAuthConfig) => EncryptedJsonPayload;
 }): {
   auth_type: Workflow["authType"];
@@ -42,6 +45,10 @@ export function buildWorkflowAuthUpdate({
 
   if (!input.authSecret) {
     if (current.auth_type === input.authType && current.encrypted_auth_config) {
+      if (hasEndpointOriginChanged(current.endpoint_url, nextEndpointUrl)) {
+        throw new Error("Enter a new auth secret before moving saved credentials to a different endpoint host.");
+      }
+
       return {
         auth_type: input.authType,
       };
@@ -118,6 +125,18 @@ export function buildWorkflowSettingsUpdate({
     check_frequency_minutes: input.checkFrequencyMinutes,
     included_in_reports: input.includedInReports,
   };
+}
+
+function hasEndpointOriginChanged(currentEndpointUrl?: string, nextEndpointUrl?: string): boolean {
+  if (!currentEndpointUrl || !nextEndpointUrl) {
+    return false;
+  }
+
+  try {
+    return new URL(currentEndpointUrl).origin !== new URL(nextEndpointUrl).origin;
+  } catch {
+    return true;
+  }
 }
 
 export function buildPrimaryHealthCheckMutation({

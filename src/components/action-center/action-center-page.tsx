@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ClickableTableRow } from "@/components/ui/clickable-table-row";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { getOpenIssues, getPortfolioSummary } from "@/lib/domain/summaries";
 import type { Check, CheckRun, Client, Issue, TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
@@ -185,17 +186,21 @@ function IssuesPanel({ issues, data }: { issues: Issue[]; data: TuesdayOpsSeedDa
   }
 
   return (
-    <Panel title="Maintenance inbox" description="Failed and degraded checks that need assignment, resolution, snooze, or report decisions.">
+    <Panel
+      title="Maintenance inbox"
+      description="Failed and degraded checks that need assignment, resolution, snooze, or report decisions."
+      contentClassName="px-6 pb-6 pt-3"
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[960px] text-left text-sm/6">
           <thead className="text-zinc-500">
             <tr className="border-b border-zinc-950/10">
-              <th className="py-3 pr-6 font-medium">Issue</th>
-              <th className="px-6 py-3 font-medium">Client / workflow</th>
-              <th className="px-6 py-3 font-medium">Severity</th>
-              <th className="px-6 py-3 font-medium">Owner</th>
-              <th className="px-6 py-3 font-medium">Detected</th>
-              <th className="py-3 pl-6 font-medium">Status</th>
+              <th className="py-2.5 pr-6 font-medium">Issue</th>
+              <th className="px-6 py-2.5 font-medium">Client / workflow</th>
+              <th className="px-6 py-2.5 font-medium">Severity</th>
+              <th className="px-6 py-2.5 font-medium">Owner</th>
+              <th className="px-6 py-2.5 font-medium">Detected</th>
+              <th className="py-2.5 pl-6 font-medium">Status</th>
             </tr>
           </thead>
           <tbody>
@@ -204,7 +209,12 @@ function IssuesPanel({ issues, data }: { issues: Issue[]; data: TuesdayOpsSeedDa
               const workflow = getWorkflow(data, issue.workflowId);
 
               return (
-                <tr key={issue.id} className="border-b border-zinc-950/5 last:border-0">
+                <ClickableTableRow
+                  key={issue.id}
+                  href={`/issues/${issue.id}`}
+                  label={`Open issue ${issue.title}`}
+                  className="border-b border-zinc-950/5 last:border-0"
+                >
                   <td className="py-3 pr-6">
                     <Link href={`/issues/${issue.id}`} className="font-semibold text-zinc-950 hover:text-primary">
                       {issue.title}
@@ -223,7 +233,7 @@ function IssuesPanel({ issues, data }: { issues: Issue[]; data: TuesdayOpsSeedDa
                   <td className="py-3 pl-6">
                     <StatusBadge status={issue.status} />
                   </td>
-                </tr>
+                </ClickableTableRow>
               );
             })}
           </tbody>
@@ -247,17 +257,21 @@ function RunsPanel({ runs, data }: { runs: CheckRun[]; data: TuesdayOpsSeedData 
   }
 
   return (
-    <Panel title="Recent check runs" description="The latest stored endpoint results across monitored workflows.">
+    <Panel
+      title="Recent check runs"
+      description="The latest stored endpoint results across monitored workflows."
+      contentClassName="px-6 pb-6 pt-3"
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-sm/6">
           <thead className="text-zinc-500">
             <tr className="border-b border-zinc-950/10">
-              <th className="py-3 pr-6 font-medium">Workflow</th>
-              <th className="px-6 py-3 font-medium">Client</th>
-              <th className="px-6 py-3 font-medium">Result</th>
-              <th className="px-6 py-3 font-medium">Status code</th>
-              <th className="px-6 py-3 font-medium">Latency</th>
-              <th className="py-3 pl-6 font-medium">Completed</th>
+              <th className="py-2.5 pr-6 font-medium">Workflow</th>
+              <th className="px-6 py-2.5 font-medium">Client</th>
+              <th className="px-6 py-2.5 font-medium">Result</th>
+              <th className="px-6 py-2.5 font-medium">Status code</th>
+              <th className="px-6 py-2.5 font-medium">Latency</th>
+              <th className="py-2.5 pl-6 font-medium">Completed</th>
             </tr>
           </thead>
           <tbody>
@@ -266,7 +280,12 @@ function RunsPanel({ runs, data }: { runs: CheckRun[]; data: TuesdayOpsSeedData 
               const workflow = getWorkflow(data, run.workflowId);
 
               return (
-                <tr key={run.id} className="border-b border-zinc-950/5 last:border-0">
+                <ClickableTableRow
+                  key={run.id}
+                  href={`/workflows/${run.workflowId}`}
+                  label={`Open workflow ${workflow?.name ?? "Unknown workflow"}`}
+                  className="border-b border-zinc-950/5 last:border-0"
+                >
                   <td className="py-3 pr-6">
                     <Link href={`/workflows/${run.workflowId}`} className="font-semibold text-zinc-950 hover:text-primary">
                       {workflow?.name ?? "Unknown workflow"}
@@ -280,7 +299,7 @@ function RunsPanel({ runs, data }: { runs: CheckRun[]; data: TuesdayOpsSeedData 
                   <td className="px-6 py-3 text-zinc-500">{run.statusCode ?? "-"}</td>
                   <td className="px-6 py-3 text-zinc-500">{run.latencyMs} ms</td>
                   <td className="py-3 pl-6 text-zinc-500">{formatRelativeTime(run.completedAt)}</td>
-                </tr>
+                </ClickableTableRow>
               );
             })}
           </tbody>
@@ -304,16 +323,20 @@ function ChecksPanel({ checks, data }: { checks: Check[]; data: TuesdayOpsSeedDa
   }
 
   return (
-    <Panel title="Scheduled checks" description="Enabled checks due in the current operating cycle.">
+    <Panel
+      title="Scheduled checks"
+      description="Enabled checks due in the current operating cycle."
+      contentClassName="px-6 pb-6 pt-3"
+    >
       <div className="overflow-x-auto">
         <table className="w-full min-w-[900px] text-left text-sm/6">
           <thead className="text-zinc-500">
             <tr className="border-b border-zinc-950/10">
-              <th className="py-3 pr-6 font-medium">Check</th>
-              <th className="px-6 py-3 font-medium">Workflow</th>
-              <th className="px-6 py-3 font-medium">Client</th>
-              <th className="px-6 py-3 font-medium">Schedule</th>
-              <th className="py-3 pl-6 font-medium">Latest</th>
+              <th className="py-2.5 pr-6 font-medium">Check</th>
+              <th className="px-6 py-2.5 font-medium">Workflow</th>
+              <th className="px-6 py-2.5 font-medium">Client</th>
+              <th className="px-6 py-2.5 font-medium">Schedule</th>
+              <th className="py-2.5 pl-6 font-medium">Latest</th>
             </tr>
           </thead>
           <tbody>
@@ -322,7 +345,12 @@ function ChecksPanel({ checks, data }: { checks: Check[]; data: TuesdayOpsSeedDa
               const client = workflow ? getClient(data, workflow.clientId) : undefined;
 
               return (
-                <tr key={check.id} className="border-b border-zinc-950/5 last:border-0">
+                <ClickableTableRow
+                  key={check.id}
+                  href="/checks"
+                  label={`Open checks for ${check.name}`}
+                  className="border-b border-zinc-950/5 last:border-0"
+                >
                   <td className="py-3 pr-6">
                     <Link href="/checks" className="font-semibold text-zinc-950 hover:text-primary">
                       {check.name}
@@ -340,7 +368,7 @@ function ChecksPanel({ checks, data }: { checks: Check[]; data: TuesdayOpsSeedDa
                   <td className="py-3 pl-6">
                     <StatusBadge status={check.latestStatus} />
                   </td>
-                </tr>
+                </ClickableTableRow>
               );
             })}
           </tbody>
@@ -410,7 +438,12 @@ function ProofPanel({ clients, data }: { clients: Client[]; data: TuesdayOpsSeed
             <tbody>
               {clients.length ? (
                 clients.map((client) => (
-                  <tr key={client.id} className="border-t border-zinc-950/5">
+                  <ClickableTableRow
+                    key={client.id}
+                    href={`/clients/${client.id}`}
+                    label={`Open client ${client.name}`}
+                    className="border-t border-zinc-950/5"
+                  >
                     <td className="px-4 py-3">
                       <Link href={`/clients/${client.id}`} className="font-semibold text-zinc-950 hover:text-primary">
                         {client.name}
@@ -423,7 +456,7 @@ function ProofPanel({ clients, data }: { clients: Client[]; data: TuesdayOpsSeed
                         {client.reportStatus.replaceAll("_", " ")}
                       </Badge>
                     </td>
-                  </tr>
+                  </ClickableTableRow>
                 ))
               ) : (
                 <tr>
@@ -467,11 +500,13 @@ function Panel({
   title,
   description,
   action,
+  contentClassName,
   children,
 }: {
   title: string;
   description: string;
   action?: ReactNode;
+  contentClassName?: string;
   children: ReactNode;
 }) {
   return (
@@ -483,7 +518,7 @@ function Panel({
         </div>
         {action}
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className={contentClassName}>{children}</CardContent>
     </Card>
   );
 }

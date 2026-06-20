@@ -38,10 +38,14 @@ export const notContainsAssertionSchema = z.object({
   value: z.string().trim().min(1),
 });
 
+export const unsafeRegexPatternMessage = "Regex pattern is too complex for workflow checks.";
+
 export const matchesRegexAssertionSchema = z.object({
   type: z.literal("matches_regex"),
   path: z.string().trim().min(1).optional(),
-  pattern: z.string().trim().min(1).max(500),
+  pattern: z.string().trim().min(1).max(500).refine(isSafeRegexPattern, {
+    message: unsafeRegexPatternMessage,
+  }),
 });
 
 export const validJsonAssertionSchema = z.object({
@@ -164,6 +168,14 @@ export function evaluateAssertions(
         };
       }
       case "matches_regex": {
+        if (!isSafeRegexPattern(assertion.pattern)) {
+          return {
+            type: assertion.type,
+            passed: false,
+            message: `Regex pattern ${JSON.stringify(assertion.pattern)} is too complex for workflow checks.`,
+          };
+        }
+
         const regex = buildRegex(assertion.pattern);
 
         if (!regex) {
@@ -277,4 +289,166 @@ function buildRegex(pattern: string): RegExp | null {
   } catch {
     return null;
   }
+}
+
+export function isSafeRegexPattern(pattern: string): boolean {
+  return !hasBackreference(pattern) && !hasNestedQuantifiedGroup(pattern);
+}
+
+function hasBackreference(pattern: string): boolean {
+  let inCharacterClass = false;
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+
+    if (char === "\\") {
+      const next = pattern[index + 1];
+      if (next && /[1-9]/.test(next)) {
+        return true;
+      }
+      index += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      inCharacterClass = true;
+      continue;
+    }
+
+    if (char === "]" && inCharacterClass) {
+      inCharacterClass = false;
+    }
+  }
+
+  return false;
+}
+
+function hasNestedQuantifiedGroup(pattern: string): boolean {
+  const groupStarts: number[] = [];
+  let inCharacterClass = false;
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      inCharacterClass = true;
+      continue;
+    }
+
+    if (char === "]" && inCharacterClass) {
+      inCharacterClass = false;
+      continue;
+    }
+
+    if (inCharacterClass) {
+      continue;
+    }
+
+    if (char === "(") {
+      groupStarts.push(index + 1);
+      continue;
+    }
+
+    if (char !== ")" || !groupStarts.length) {
+      continue;
+    }
+
+    const groupStart = groupStarts.pop();
+    if (!isRegexQuantifierStart(pattern[index + 1])) {
+      continue;
+    }
+
+    const groupContent = pattern.slice(groupStart, index);
+    if (containsRegexQuantifier(groupContent) || containsTopLevelAlternation(groupContent)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function containsRegexQuantifier(pattern: string): boolean {
+  let inCharacterClass = false;
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      inCharacterClass = true;
+      continue;
+    }
+
+    if (char === "]" && inCharacterClass) {
+      inCharacterClass = false;
+      continue;
+    }
+
+    if (inCharacterClass || (index === 0 && char === "?")) {
+      continue;
+    }
+
+    if (isRegexQuantifierStart(char)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function containsTopLevelAlternation(pattern: string): boolean {
+  let depth = 0;
+  let inCharacterClass = false;
+
+  for (let index = 0; index < pattern.length; index += 1) {
+    const char = pattern[index];
+
+    if (char === "\\") {
+      index += 1;
+      continue;
+    }
+
+    if (char === "[") {
+      inCharacterClass = true;
+      continue;
+    }
+
+    if (char === "]" && inCharacterClass) {
+      inCharacterClass = false;
+      continue;
+    }
+
+    if (inCharacterClass) {
+      continue;
+    }
+
+    if (char === "(") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === ")" && depth > 0) {
+      depth -= 1;
+      continue;
+    }
+
+    if (char === "|" && depth === 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function isRegexQuantifierStart(value?: string): boolean {
+  return value === "*" || value === "+" || value === "?" || value === "{";
 }

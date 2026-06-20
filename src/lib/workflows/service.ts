@@ -246,6 +246,7 @@ export async function updateWorkflowAction(formData: FormData) {
     authUpdate = buildWorkflowAuthUpdate({
       input: parsed.data,
       current: currentWorkflow,
+      nextEndpointUrl: endpointUrl,
     });
   } catch (error) {
     redirect(buildWorkflowRedirect(parsed.data.id, {
@@ -267,7 +268,7 @@ export async function updateWorkflowAction(formData: FormData) {
     requireValidJson: parsed.data.requireValidJson === "on",
   });
 
-  const updateResult = await supabase
+  const updateResult = await createAdminClient()
     .from("workflows")
     .update(buildWorkflowSettingsUpdate({
       input: {
@@ -429,7 +430,7 @@ async function createWorkflowWithHealthCheck({
     redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow auth config could not be encrypted."))}`);
   }
 
-  const { data: workflow, error: workflowError } = await supabase
+  const { data: workflow, error: workflowError } = await createAdminClient()
     .from("workflows")
     .insert({
       agency_id: workspace.agency.id,
@@ -493,7 +494,7 @@ async function loadWorkflowAuthState({
 }) {
   const result = await supabase
     .from("workflows")
-    .select("id, auth_type, encrypted_auth_config")
+    .select("id, endpoint_url, auth_type, encrypted_auth_config")
     .eq("agency_id", agencyId)
     .eq("id", workflowId)
     .maybeSingle();
@@ -502,6 +503,7 @@ async function loadWorkflowAuthState({
 
   return result.data as {
     id: string;
+    endpoint_url: string;
     auth_type: Workflow["authType"];
     encrypted_auth_config: ReturnType<typeof encryptJsonPayload> | null;
   };

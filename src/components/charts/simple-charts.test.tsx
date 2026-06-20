@@ -20,8 +20,10 @@ describe("MiniLineChart", () => {
     );
 
     expect(screen.getByText("Latest 86%")).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Pass-rate trend chart\./ })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Jun 16: 92%" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Jun 17: 86%" })).toBeTruthy();
+    expect(screen.getByRole("img", { name: /Pass-rate trend chart\./ }).getAttribute("preserveAspectRatio")).toBe("xMidYMid meet");
     expect(container.querySelector('path[stroke="rgb(39,39,42)"]')).toBeTruthy();
   });
 

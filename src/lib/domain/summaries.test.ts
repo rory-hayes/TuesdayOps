@@ -7,7 +7,7 @@ import {
   getWorkflowHealthRows,
 } from "./summaries";
 
-describe("TuesdayOps domain summaries", () => {
+describe("Tuesday domain summaries", () => {
   it("counts active clients, monitored workflows, open issues, and check pass rate", () => {
     const summary = getPortfolioSummary(seedData);
 

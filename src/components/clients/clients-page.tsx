@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { BillingUpgradeDialog } from "@/components/billing/billing-upgrade-dialog";
 import { EditClientDialog } from "@/components/clients/edit-client-dialog";
 import { NewClientDialog } from "@/components/clients/new-client-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { ClickableTableRow } from "@/components/ui/clickable-table-row";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { createCheckoutSessionAction } from "@/lib/billing/service";
+import { getPlanLimitUpgradePrompt } from "@/lib/billing/upgrade";
 import { archiveClientAction, createClientAction, updateClientAction } from "@/lib/clients/service";
 import { getOpenIssues } from "@/lib/domain/summaries";
 import type { Client, TuesdayOpsSeedData } from "@/lib/domain/types";
@@ -84,6 +86,13 @@ export function ClientsPage({
   const averageHealth = activeClients.length
     ? Math.round(activeClients.reduce((total, client) => total + client.healthScore, 0) / activeClients.length)
     : 0;
+  const upgradePrompt = getPlanLimitUpgradePrompt({
+    error,
+    plan: data.agency.plan,
+    billingStatus: data.agency.billingStatus,
+    activeClients: activeClients.length,
+    workflows: data.workflows.length,
+  });
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -99,14 +108,8 @@ export function ClientsPage({
         <PortfolioTile label="Open issues" value={openIssues.length.toString()} detail="Reportable maintenance issues" />
       </section>
 
-      <PageFeedback notice={notice} error={error} />
-      {error?.toLowerCase().includes("upgrade") ? (
-        <form action={createCheckoutSessionAction} className="-mt-3">
-          <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Opening billing...">
-            Click here to upgrade
-          </FormSubmitButton>
-        </form>
-      ) : null}
+      <PageFeedback notice={notice} error={upgradePrompt ? undefined : error} />
+      <BillingUpgradeDialog prompt={upgradePrompt} checkoutAction={createCheckoutSessionAction} />
 
       <Card>
         <CardHeader className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -176,7 +179,12 @@ export function ClientsPage({
                 const clientIssueCount = issueCountsByClient.get(client.id) ?? 0;
 
                 return (
-                  <tr key={client.id} className="border-b border-border last:border-0">
+                  <ClickableTableRow
+                    key={client.id}
+                    href={`/clients/${client.id}`}
+                    label={`Open client ${client.name}`}
+                    className="border-b border-border last:border-0"
+                  >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         <div className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-sm font-semibold text-primary">
@@ -194,13 +202,23 @@ export function ClientsPage({
                     <td className="px-5 py-4">{client.healthScore}%</td>
                     <td className="px-5 py-4">{clientIssueCount}</td>
                     <td className="px-5 py-4">
-                      {client.reportStatus === "ready" ? (
-                        <StatusBadge status="ready_to_send" />
-                      ) : client.reportStatus === "not_started" ? (
-                        <Badge variant="muted">not started</Badge>
-                      ) : (
-                        <StatusBadge status={client.reportStatus} />
-                      )}
+                      <div className="grid gap-1">
+                        <span>
+                          {client.reportStatus === "ready" ? (
+                            <StatusBadge status="ready_to_send" />
+                          ) : client.reportStatus === "not_started" ? (
+                            <Badge variant="muted">not started</Badge>
+                          ) : (
+                            <StatusBadge status={client.reportStatus} />
+                          )}
+                        </span>
+                        <span className="text-xs leading-5 text-muted-foreground">
+                          Last: {formatReportDate(client.lastReportGeneratedAt)}
+                        </span>
+                        <span className="text-xs leading-5 text-muted-foreground">
+                          Next due: {formatReportDate(client.nextReportDueOn)}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-5 py-4 text-muted-foreground">{client.owner}</td>
                     <td className="px-5 py-4 text-muted-foreground">
@@ -213,7 +231,7 @@ export function ClientsPage({
                         archiveAction={archiveClientAction}
                       />
                     </td>
-                  </tr>
+                  </ClickableTableRow>
                 );
               }) : (
                 <tr>
@@ -292,4 +310,16 @@ function PortfolioTile({ label, value, detail }: { label: string; value: string;
       </CardContent>
     </Card>
   );
+}
+
+function formatReportDate(value?: string): string {
+  if (!value) {
+    return "Not generated";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
 }

@@ -30,7 +30,7 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
         </p>
       </div>
 
-      <PageFeedback error={error} />
+      <PageFeedback error={error} variant="inline" />
 
       <AgencyOnboardingForm action={createAgencyAction} />
     </AuthLayout>

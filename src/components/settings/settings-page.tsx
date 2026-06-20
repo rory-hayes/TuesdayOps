@@ -3,6 +3,7 @@ import { createCheckoutSessionAction, createCustomerPortalSessionAction } from "
 import { formatLimit, getPlanLimits } from "@/lib/billing/limits";
 import { getBillingPlanName, PUBLIC_BILLING_PLANS } from "@/lib/billing/plans";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
@@ -77,30 +78,41 @@ export function SettingsPage({
               <UsageTile label="Workflows" value={workflows} limit={limits.workflows} />
             </div>
             <div className="grid gap-3">
-              {PUBLIC_BILLING_PLANS.map((plan) => (
-                <div key={plan.key} className="rounded-lg border border-border p-3">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="text-sm font-semibold">{plan.name}</p>
-                        {plan.featured ? <Badge variant="muted">main plan</Badge> : null}
-                        {workspace.agency.plan === plan.key ? <Badge variant="success">current</Badge> : null}
+              {PUBLIC_BILLING_PLANS.map((plan) => {
+                const isCurrentPlan = workspace.agency.plan === plan.key;
+
+                return (
+                  <div key={plan.key} className="rounded-lg border border-border p-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-sm font-semibold">{plan.name}</p>
+                          {plan.featured ? <Badge variant="muted">main plan</Badge> : null}
+                          {isCurrentPlan ? <Badge variant="success">current</Badge> : null}
+                        </div>
+                        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                          {plan.priceLabel}
+                          {plan.cadence} - {plan.limitLabel}
+                        </p>
                       </div>
-                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                        {plan.priceLabel}
-                        {plan.cadence} - {plan.limitLabel}
-                      </p>
+                      {isCurrentPlan ? (
+                        <Button type="button" size="sm" variant="secondary" disabled>
+                          <CreditCard size={15} aria-hidden="true" />
+                          Current plan
+                        </Button>
+                      ) : (
+                        <form action={createCheckoutSessionAction}>
+                          <input type="hidden" name="plan" value={plan.key} />
+                          <FormSubmitButton type="submit" size="sm" pendingLabel="Opening...">
+                            <CreditCard size={15} aria-hidden="true" />
+                            Choose
+                          </FormSubmitButton>
+                        </form>
+                      )}
                     </div>
-                    <form action={createCheckoutSessionAction}>
-                      <input type="hidden" name="plan" value={plan.key} />
-                      <FormSubmitButton type="submit" size="sm" pendingLabel="Opening...">
-                        <CreditCard size={15} aria-hidden="true" />
-                        Choose
-                      </FormSubmitButton>
-                    </form>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             <div className="flex flex-wrap gap-2">
               <form action={createCustomerPortalSessionAction}>

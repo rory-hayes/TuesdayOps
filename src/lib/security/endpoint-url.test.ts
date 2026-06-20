@@ -12,10 +12,26 @@ describe("validateWorkflowEndpointUrl", () => {
   });
 
   it("preserves the submitted endpoint URL string after validation", () => {
-    expect(validateWorkflowEndpointUrl("https://API.example.com/v1/health?Signature=AbC%2F123")).toEqual({
+    expect(validateWorkflowEndpointUrl("https://API.example.com/v1/health?cursor=AbC%2F123")).toEqual({
       allowed: true,
-      url: "https://API.example.com/v1/health?Signature=AbC%2F123",
+      url: "https://API.example.com/v1/health?cursor=AbC%2F123",
     });
+  });
+
+  it("rejects endpoint URLs that would store credentials in plaintext", () => {
+    const blocked = [
+      "https://api-user:api-password@api.example.com/health",
+      "https://api.example.com/health?api_key=secret-value",
+      "https://api.example.com/health?access_token=secret-value",
+      "https://api.example.com/health?signature=secret-value",
+    ];
+
+    for (const endpoint of blocked) {
+      expect(validateWorkflowEndpointUrl(endpoint), endpoint).toEqual({
+        allowed: false,
+        reason: "Workflow endpoint URL must not include embedded credentials or secret query parameters.",
+      });
+    }
   });
 
   it("blocks localhost and loopback endpoints by default", () => {

@@ -83,3 +83,66 @@ Date: 2026-06-17
 - `npm run build` - passed.
 - `npm run e2e` - initially exposed selector/pending-state issues after the new Run Check CTA; fixed and reran.
 - `npm run e2e` - final pass: 8 passed.
+
+---
+
+## June 19 2026 UX/QA Follow-up
+
+Source reviewed: `TuesdayOps UX/UI & QA Audit (June 19 2026)` attachment, plus current auth, onboarding, overview, clients, workflows, checks, reports, and E2E surfaces.
+
+### UX Issues Addressed
+
+- Auth forms no longer rely on placeholder-only guidance. Sign up, sign in, and reset password now use labelled fields, inline URL-driven feedback, password requirement copy, and show/hide password controls.
+- Password mismatch and weak password errors are exposed inline with accessible alerts before server submission.
+- Agency slug editing now normalizes user input instead of preserving invalid spaces/special characters, and shows the resulting workspace slug.
+- Activation and workflow setup modals now have keyboard-focusable scroll regions, clearer scroll labels, and example-style placeholders instead of fake-looking defaults.
+- Dashboard metric descriptions were made plain-English, with accessible help tooltips for each KPI.
+- Chart empty states now explain what action will populate them, and chart regions expose richer accessible labels.
+- Client rows now show latest report timing and next due date.
+- Workflow registry now supports search plus client, environment, and health filters.
+- Checks page now separates the basic health-check setup from advanced request body and assertion fields, keeping health checks distinct from synthetic test packs.
+- Report preview is labelled as a client-facing article so users and tests can distinguish it from editable narrative fields.
+- Report send E2E now accepts the real confirmation dialog before asserting send/fail status.
+
+### Components Changed/Created
+
+- Created `src/components/auth/auth-form-fields.tsx`.
+- Created `src/components/auth/sign-up-form.tsx`.
+- Created `src/components/auth/sign-in-form.tsx`.
+- Created `src/components/auth/reset-password-form.tsx`.
+- Updated auth pages under `src/app/(auth)`.
+- Updated `src/components/ui/page-feedback.tsx`.
+- Updated `src/components/auth/agency-onboarding-form.tsx`.
+- Updated `src/components/dashboard/onboarding-checklist.tsx`.
+- Updated `src/components/dashboard/overview-dashboard.tsx`.
+- Updated `src/components/charts/simple-charts.tsx`.
+- Updated `src/components/clients/clients-page.tsx`.
+- Updated `src/components/workflows/add-workflow-dialog.tsx`.
+- Updated `src/components/workflows/workflows-page.tsx`.
+- Updated `src/app/(app)/workflows/page.tsx`.
+- Updated `src/components/checks/checks-page.tsx`.
+- Updated `src/components/reports/report-detail-page.tsx`.
+- Updated `e2e/drilldowns-feedback.spec.ts` and `e2e/reports.spec.ts`.
+
+### Tests Added and Repaired
+
+- Added `src/components/auth/sign-up-form.test.tsx` for password policy, mismatch validation, and reveal/hide behavior.
+- Extended `src/components/auth/agency-onboarding-form.test.tsx` for slug normalization.
+- Repaired chart/report/check assertion tests that were blocking the full verification gate in the current worktree.
+- Repaired E2E selectors/dialog handling for report preview and report sending.
+
+### Verification Results
+
+- Local shell Node was `v20.18.0`, below the repo engine requirement `>=20.19.0`; jsdom/Vitest failed before running tests under that runtime. Final verification used the bundled Codex Node runtime `v24.14.0`.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run lint` - passed.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run typecheck` - passed.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test` - passed: 70 files, 392 tests.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test:coverage` - passed: statements 98.81%, branches 95.75%, functions 100%, lines 98.78%.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run build` - passed.
+- `PATH="/Users/rory/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run e2e` - passed: 8 passed.
+
+### Remaining UX Gaps
+
+- The attached audit recommends richer real-time validation across every onboarding field. Current changes add visible, specific validation for the highest-friction auth and slug cases, while the remaining forms still rely mostly on native/server validation.
+- Client table search/filtering may need another scaling pass if agencies carry many clients; this pass focused workflow filtering because endpoint health triage is the core operational loop.
+- The report narrative review fields are editable-looking but do not yet persist custom narrative edits; persisting custom report copy is useful, but it should be handled as a separate report-editing ticket to avoid broadening scope.

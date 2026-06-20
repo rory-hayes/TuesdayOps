@@ -46,7 +46,10 @@ export async function GET(_request: Request, { params }: ReportDownloadRouteProp
   const admin = createAdminClient();
   const { data: file, error: downloadError } = await admin.storage
     .from("reports")
-    .download(report.pdf_storage_path as string);
+    .download(buildReportStoragePath({
+      agencyId: workspace.agency.id,
+      reportId: report.id as string,
+    }));
 
   if (downloadError || !file) {
     return NextResponse.json({ error: "Report PDF could not be downloaded." }, { status: 404 });
@@ -55,8 +58,18 @@ export async function GET(_request: Request, { params }: ReportDownloadRouteProp
   return new NextResponse(file, {
     headers: {
       "content-type": "application/pdf",
-      "content-disposition": `attachment; filename="tuesdayops-report-${reportId}.pdf"`,
+      "content-disposition": `attachment; filename="tuesday-report-${reportId}.pdf"`,
       "cache-control": "private, no-store",
     },
   });
+}
+
+function buildReportStoragePath({
+  agencyId,
+  reportId,
+}: {
+  agencyId: string;
+  reportId: string;
+}) {
+  return `${agencyId}/${reportId}.pdf`;
 }

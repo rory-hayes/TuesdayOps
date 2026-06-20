@@ -1,6 +1,6 @@
-# TuesdayOps Security Requirements
+# Tuesday Security Requirements
 
-TuesdayOps handles agency and client operational data. The MVP must be secure by default.
+Tuesday handles agency and client operational data. The MVP must be secure by default.
 
 ## Core principles
 
@@ -139,7 +139,7 @@ Client: Acme Marketing
 Workflow: Lead Generation AI
 Issue: Output format validation failed
 Detected: 10:30 AM
-Action: View in TuesdayOps
+Action: View in Tuesday
 ```
 
 ## Browser security headers

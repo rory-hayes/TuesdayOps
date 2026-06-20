@@ -1,4 +1,4 @@
-# TuesdayOps API Spec — MVP
+# Tuesday API Spec — MVP
 
 This document outlines the internal API shape. Most authenticated mutations are implemented with Next.js server actions rather than public JSON API routes. Public API routes are called out explicitly.
 
@@ -99,7 +99,13 @@ The Workflows page also supports quick import through the server action equivale
 
 The import path creates a normal workflow plus the first health check. Billing limits, tenant scoping, endpoint safety validation, and encrypted auth handling still apply.
 
+Client and workflow creation writes are server-action controlled. Browser-token direct inserts are revoked for `clients` and `workflows` so plan-limit checks cannot be bypassed through direct Supabase table access.
+
 Workflow endpoints are normalized and blocked in production when they target localhost, loopback, private networks, link-local ranges, metadata IPs, or `.local` hostnames. Local/private test environments can set `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true`.
+
+Workflow endpoint URLs must not contain userinfo credentials or secret-shaped query parameters such as `api_key`, `access_token`, `token`, `signature`, or `client_secret`. Store auth material through the workflow authentication settings so it is encrypted at rest.
+
+When editing a workflow with saved credentials, changing the endpoint origin requires entering a fresh auth secret. Editing the path, cadence, assertions, or metadata on the same endpoint origin can still preserve the existing encrypted credential.
 
 Workflow check execution does not follow endpoint redirects. If an endpoint returns `3xx`, the run fails with a report-safe redirect-blocked error so checks cannot be redirected into private networks after initial URL validation.
 
@@ -152,6 +158,8 @@ Supported assertion types:
 - `not_contains`
 - `matches_regex`
 - `valid_json`
+
+Regex assertions reject patterns with nested quantified groups, backreferences, or repeated ambiguous alternation before storage/execution. Stored unsafe regex assertions fail safely without evaluating against the response body.
 
 ## Check runs
 
@@ -414,7 +422,7 @@ GET /api/reports/:id/download
 
 The PDF action and download route require report readiness to be `ready` or `review`. Blocked reports return a safe readiness error and cannot be exported.
 
-The download route requires an authenticated agency member and streams the private PDF with `content-type: application/pdf`. If the report has become blocked since PDF generation, the route returns `409` with the first report-readiness blocker.
+The download route requires an authenticated agency member and streams the private PDF with `content-type: application/pdf`. It derives the private storage key as `agency_id/report_id.pdf` after the tenant-scoped report lookup, rather than trusting a client-mutable path field. If the report has become blocked since PDF generation, the route returns `409` with the first report-readiness blocker.
 
 ### `POST /api/reports/:id/send`
 
@@ -486,7 +494,7 @@ The Overview activation checklist is derived from real tenant data only:
 
 There is no production server action for seeding demo records.
 
-Logged-out users visiting `/` see the public TuesdayOps landing page. Authenticated users visiting `/` still see the tenant overview dashboard, and authenticated users without an agency are redirected to onboarding.
+Logged-out users visiting `/` see the public Tuesday landing page. Authenticated users visiting `/` still see the tenant overview dashboard, and authenticated users without an agency are redirected to onboarding.
 
 ## Billing
 
@@ -501,7 +509,7 @@ The action:
 - applies a DB-backed per-user checkout-start rate limit before contacting Stripe
 - accepts a server-validated `plan` value of `starter`, `growth`, `scale`, or `agency_plus`
 - creates a Stripe customer if the agency does not have one
-- stores `agencies.billing_customer_id`
+- stores `agencies.billing_customer_id` through server-side service-role code
 - creates a Checkout Session with `mode = subscription`
 - maps the selected plan to `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_GROWTH`, `STRIPE_PRICE_ID_SCALE`, or `STRIPE_PRICE_ID_AGENCY_PLUS`
 - redirects to Stripe's hosted Checkout URL

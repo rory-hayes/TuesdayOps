@@ -29,7 +29,7 @@ export function RunLogKeyPanel({
         <div>
           <h2 className="text-base font-semibold">Run logging API</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Let this workflow post run metadata back to TuesdayOps.
+            Let this workflow post run metadata back to Tuesday.
           </p>
         </div>
         <KeyRound size={18} className="text-primary" aria-hidden="true" />

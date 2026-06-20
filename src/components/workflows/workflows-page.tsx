@@ -1,75 +1,66 @@
-"use client";
-
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { Play, Search } from "lucide-react";
+import { Activity, Play, Search } from "lucide-react";
+import { BillingUpgradeDialog } from "@/components/billing/billing-upgrade-dialog";
 import { StatusBadge } from "@/components/status-badge";
 import { AddWorkflowDialog } from "@/components/workflows/add-workflow-dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { ClickableTableRow } from "@/components/ui/clickable-table-row";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { createCheckoutSessionAction } from "@/lib/billing/service";
+import { getPlanLimitUpgradePrompt } from "@/lib/billing/upgrade";
 import { runCheckAction } from "@/lib/checks/service";
 import { createWorkflowAction, createWorkflowFromImportAction } from "@/lib/workflows/service";
-import type { TuesdayOpsSeedData, Workflow } from "@/lib/domain/types";
+import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 import { formatPercentage, formatRelativeTime } from "@/lib/formatting";
-
-type WorkflowStatusFilter = "all" | "attention" | Workflow["status"];
-type WorkflowSort = "name-asc" | "pass-rate-asc" | "pass-rate-desc" | "latency-desc" | "last-check-desc";
 
 export function WorkflowsPage({
   data,
   notice,
   error,
+  query,
+  clientId,
+  environment,
+  status,
 }: {
   data: TuesdayOpsSeedData;
   notice?: string;
   error?: string;
+  query?: string;
+  clientId?: string;
+  environment?: string;
+  status?: string;
 }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<WorkflowStatusFilter>("all");
-  const [sortMode, setSortMode] = useState<WorkflowSort>("name-asc");
   const activeClients = data.clients
     .filter((client) => !client.archived)
     .map((client) => ({ id: client.id, name: client.name }));
-  const clientsById = useMemo(
-    () => new Map(data.clients.map((client) => [client.id, client.name])),
-    [data.clients],
-  );
-  const visibleWorkflows = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    const rows = data.workflows.filter((workflow) => {
-      const clientName = clientsById.get(workflow.clientId) ?? "";
+  const normalizedQuery = query?.trim().toLowerCase() ?? "";
+  const visibleWorkflows = data.workflows.filter((workflow) => {
+    const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
+    const matchesSearch = normalizedQuery
+      ? [
+          workflow.name,
+          workflow.endpointUrl,
+          workflow.type,
+          workflow.environment,
+          client?.name ?? "",
+        ].join(" ").toLowerCase().includes(normalizedQuery)
+      : true;
+    const matchesClient = clientId ? workflow.clientId === clientId : true;
+    const matchesEnvironment = environment ? workflow.environment === environment : true;
+    const matchesStatus = status ? workflow.status === status : true;
 
-      if (statusFilter === "attention" && workflow.status !== "failed" && workflow.status !== "degraded") {
-        return false;
-      }
-
-      if (statusFilter !== "all" && statusFilter !== "attention" && workflow.status !== statusFilter) {
-        return false;
-      }
-
-      if (!normalizedSearch) {
-        return true;
-      }
-
-      return [
-        workflow.name,
-        clientName,
-        workflow.endpointUrl,
-        workflow.type.replaceAll("_", " "),
-        workflow.environment,
-        workflow.method,
-        workflow.status,
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(normalizedSearch);
-    });
-
-    return [...rows].sort((a, b) => compareWorkflows(a, b, sortMode));
-  }, [clientsById, data.workflows, searchTerm, sortMode, statusFilter]);
+    return matchesSearch && matchesClient && matchesEnvironment && matchesStatus;
+  });
+  const upgradePrompt = getPlanLimitUpgradePrompt({
+    error,
+    plan: data.agency.plan,
+    billingStatus: data.agency.billingStatus,
+    activeClients: activeClients.length,
+    workflows: data.workflows.length,
+  });
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
@@ -90,65 +81,82 @@ export function WorkflowsPage({
         />
       </section>
 
-      <PageFeedback notice={notice} error={error} />
-      {error?.toLowerCase().includes("upgrade") ? (
-        <form action={createCheckoutSessionAction} className="-mt-3">
-          <FormSubmitButton type="submit" size="sm" variant="secondary" pendingLabel="Opening billing...">
-            Click here to upgrade
-          </FormSubmitButton>
-        </form>
-      ) : null}
+      <PageFeedback notice={notice} error={upgradePrompt ? undefined : error} />
+      <BillingUpgradeDialog prompt={upgradePrompt} checkoutAction={createCheckoutSessionAction} />
 
       <Card>
-        <CardHeader className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <CardHeader className="flex flex-col gap-4">
           <div>
-            <h2 className="text-base font-semibold">Workflow registry</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Production checks and report inclusion.</p>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-base font-semibold">Workflow registry</h2>
+              <Activity size={18} className="text-primary" aria-hidden="true" />
+            </div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Production checks and report inclusion. Showing {visibleWorkflows.length} of {data.workflows.length}.
+            </p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(14rem,1fr)_11rem_12rem]">
+          <form className="grid gap-2 md:grid-cols-[minmax(14rem,1fr)_12rem_10rem_10rem_auto]">
             <label className="relative block">
               <span className="sr-only">Search workflows</span>
               <Search size={15} className="pointer-events-none absolute left-3 top-2.5 text-muted-foreground" aria-hidden="true" />
               <input
+                name="q"
                 aria-label="Search workflows"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search workflows"
+                defaultValue={query}
+                placeholder="Search workflows or endpoints"
                 className="h-9 w-full rounded-md border border-border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
               />
             </label>
-            <label className="block">
-              <span className="sr-only">Workflow status</span>
+            <label>
+              <span className="sr-only">Filter by client</span>
               <select
-                aria-label="Workflow status"
-                value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as WorkflowStatusFilter)}
+                name="clientId"
+                aria-label="Filter by client"
+                defaultValue={clientId ?? ""}
                 className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               >
-                <option value="all">All statuses</option>
-                <option value="attention">Needs attention</option>
+                <option value="">All clients</option>
+                {activeClients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">Filter by environment</span>
+              <select
+                name="environment"
+                aria-label="Filter by environment"
+                defaultValue={environment ?? ""}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              >
+                <option value="">All envs</option>
+                <option value="production">Production</option>
+                <option value="staging">Staging</option>
+                <option value="development">Development</option>
+              </select>
+            </label>
+            <label>
+              <span className="sr-only">Filter by status</span>
+              <select
+                name="status"
+                aria-label="Filter by status"
+                defaultValue={status ?? ""}
+                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              >
+                <option value="">All health</option>
                 <option value="healthy">Healthy</option>
                 <option value="degraded">Degraded</option>
                 <option value="failed">Failed</option>
                 <option value="unknown">Unknown</option>
               </select>
             </label>
-            <label className="block">
-              <span className="sr-only">Sort workflows</span>
-              <select
-                aria-label="Sort workflows"
-                value={sortMode}
-                onChange={(event) => setSortMode(event.target.value as WorkflowSort)}
-                className="h-9 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-              >
-                <option value="name-asc">Name A-Z</option>
-                <option value="pass-rate-asc">Pass rate low-high</option>
-                <option value="pass-rate-desc">Pass rate high-low</option>
-                <option value="latency-desc">Latency high-low</option>
-                <option value="last-check-desc">Last check</option>
-              </select>
-            </label>
-          </div>
+            <Button variant="secondary" size="sm" type="submit">
+              <Search size={15} aria-hidden="true" />
+              Filter
+            </Button>
+          </form>
         </CardHeader>
         <CardContent className={data.workflows.length ? "overflow-x-auto p-0" : ""}>
           {data.workflows.length ? (
@@ -170,11 +178,16 @@ export function WorkflowsPage({
               </thead>
               <tbody>
                 {visibleWorkflows.length ? visibleWorkflows.map((workflow) => {
-                  const clientName = clientsById.get(workflow.clientId);
+                  const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
                   const primaryCheck = data.checks.find((check) => check.workflowId === workflow.id && check.enabled);
 
                   return (
-                    <tr key={workflow.id} className="border-b border-border last:border-0">
+                    <ClickableTableRow
+                      key={workflow.id}
+                      href={`/workflows/${workflow.id}`}
+                      label={`Open workflow ${workflow.name}`}
+                      className="border-b border-border last:border-0"
+                    >
                       <td className="max-w-[34rem] px-5 py-4">
                         <Link href={`/workflows/${workflow.id}`} className="font-medium text-primary">
                           {workflow.name}
@@ -186,7 +199,7 @@ export function WorkflowsPage({
                           </p>
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-muted-foreground">{clientName}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{client?.name}</td>
                       <td className="px-5 py-4">
                         <Badge variant="muted">{workflow.type.replaceAll("_", " ")}</Badge>
                       </td>
@@ -226,12 +239,12 @@ export function WorkflowsPage({
                           </Link>
                         </div>
                       </td>
-                    </tr>
+                    </ClickableTableRow>
                   );
                 }) : (
                   <tr>
                     <td className="px-5 py-8 text-sm text-muted-foreground" colSpan={11}>
-                      No workflows match the current search or filters.
+                      No workflows match these filters.
                     </td>
                   </tr>
                 )}
@@ -239,39 +252,13 @@ export function WorkflowsPage({
             </table>
           ) : (
             <p className="text-sm leading-6 text-muted-foreground">
-              No workflows yet - add one to get started.
+              Use Add workflow to import or manually register your first monitored endpoint.
             </p>
           )}
         </CardContent>
       </Card>
     </div>
   );
-}
-
-function compareWorkflows(a: Workflow, b: Workflow, sortMode: WorkflowSort): number {
-  const nameComparison = a.name.localeCompare(b.name);
-
-  if (sortMode === "pass-rate-asc") {
-    return a.passRate - b.passRate || nameComparison;
-  }
-
-  if (sortMode === "pass-rate-desc") {
-    return b.passRate - a.passRate || nameComparison;
-  }
-
-  if (sortMode === "latency-desc") {
-    return b.latencyMs - a.latencyMs || nameComparison;
-  }
-
-  if (sortMode === "last-check-desc") {
-    return getWorkflowLastCheckTime(b) - getWorkflowLastCheckTime(a) || nameComparison;
-  }
-
-  return nameComparison;
-}
-
-function getWorkflowLastCheckTime(workflow: Workflow): number {
-  return workflow.lastCheckAt ? new Date(workflow.lastCheckAt).getTime() : 0;
 }
 
 function formatWorkflowLastCheck(value?: string): string {

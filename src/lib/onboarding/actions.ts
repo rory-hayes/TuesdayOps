@@ -167,7 +167,7 @@ export async function createActivationClientAction(
       return errorState(parsedSlug.message);
     }
 
-    const { data: client, error } = await supabase
+    const { data: client, error } = await createAdminClient()
       .from("clients")
       .insert({
         agency_id: workspace.agency.id,
@@ -255,7 +255,7 @@ export async function createActivationWorkflowAction(
       authHeaderName: parsed.data.authHeaderName,
       basicUsername: parsed.data.basicUsername,
     });
-    const { data: workflow, error: workflowError } = await supabase
+    const { data: workflow, error: workflowError } = await createAdminClient()
       .from("workflows")
       .insert({
         agency_id: workspace.agency.id,

@@ -1,10 +1,10 @@
-# TuesdayOps Data Model
+# Tuesday Data Model
 
 This document defines the MVP data model.
 
 ## agencies
 
-Represents an AI agency using TuesdayOps.
+Represents an AI agency using Tuesday.
 
 ```txt
 id uuid primary key
@@ -23,6 +23,8 @@ sample_data_seeded_at timestamptz -- legacy field retained for existing migrated
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
+
+Billing state columns are service-controlled. Browser-token updates are limited to non-billing agency profile fields such as `name`, `slug`, `logo_url`, and `primary_color`; Stripe Checkout/webhook flows update billing identifiers and subscription state through server-side service-role code.
 
 ## users / profiles
 
@@ -100,6 +102,8 @@ updated_at timestamptz default now()
 ```
 
 `archived_at` removes workflows from active app views without deleting historical check runs, issues, or reports.
+
+Client and workflow creation is server-action controlled so plan limits run before inserts. Workflow endpoint and auth credential fields are privileged mutation fields. Server actions validate endpoint safety, reject URLs with embedded credentials or secret query parameters, encrypt auth material, and require a fresh auth secret before preserving saved credentials across an endpoint origin change.
 
 ## workflow_api_keys
 
@@ -320,6 +324,8 @@ created_at timestamptz default now()
 ```
 
 Milestone 6 creates a private Supabase Storage bucket named `reports`. Generated PDF files are stored under `agency_id/report_id.pdf` and downloaded through an authenticated app route rather than a public bucket URL.
+
+`reports.pdf_storage_path` is constrained to the canonical `agency_id/report_id.pdf` format when present. The download route derives the storage object path from the authenticated tenant and report id instead of trusting the stored path value.
 
 ## audit_events
 
