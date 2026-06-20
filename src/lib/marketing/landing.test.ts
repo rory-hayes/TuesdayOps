@@ -15,12 +15,17 @@ describe("getLandingContent", () => {
     ].join(" ");
 
     expect(content.hero.title).toBe("Tuesday");
-    expect(text).toContain("Agency");
-    expect(text).toContain("Client");
-    expect(text).toContain("Workflow");
-    expect(text).toContain("Check Run");
-    expect(text).toContain("Issue");
-    expect(text).toContain("Monthly Report");
+    expect(content.sections[0].title).toBe("How it works");
+    expect(content.sections[0].items.map((item) => item.label)).toEqual([
+      "Connect workflow endpoint",
+      "Run health checks",
+      "Create issues",
+      "Resolve maintenance work",
+      "Send proof report",
+    ]);
+    expect(text).toContain("client workflow");
+    expect(text).toContain("failed checks");
+    expect(text).toContain("next-month recommendations");
     expect(text).not.toContain("TuesdayOps");
   });
 

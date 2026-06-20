@@ -119,9 +119,9 @@ export function MarketingLandingPage() {
           </Link>
           <nav aria-label="Public navigation" className="hidden items-center gap-7 md:flex">
             <HeaderAnchor href="#product">Product</HeaderAnchor>
+            <HeaderAnchor href="#reports">Reports</HeaderAnchor>
             <HeaderAnchor href="#loop">How it works</HeaderAnchor>
             <HeaderAnchor href="#pricing">Pricing</HeaderAnchor>
-            <HeaderAnchor href="#reports">Reports</HeaderAnchor>
           </nav>
           <div className="flex items-center gap-2">
             <Link
@@ -176,7 +176,7 @@ export function MarketingLandingPage() {
           </div>
 
           <div className="mt-8 grid max-w-2xl gap-4 border-t border-zinc-950/10 pt-5 sm:grid-cols-3">
-            <ProofMetric value="Built for" label="AI agencies, not generic observability" />
+            <ProofMetric value="Built for" label="agencies, not internal AI engineering teams" />
             <ProofMetric value="Client-ready" label="reports from operational evidence" />
             <ProofMetric value="Tenant-safe" label="workspaces and workflow credentials" />
           </div>
@@ -208,11 +208,42 @@ export function MarketingLandingPage() {
         </div>
       </section>
 
+      <section id="reports" className="bg-zinc-950 px-5 py-16 text-white sm:px-8 lg:py-20">
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+          <div className="max-w-xl">
+            <h2 className="text-3xl/10 font-semibold tracking-normal sm:text-4xl/11">
+              Send reports your clients actually understand
+            </h2>
+            <p className="mt-4 text-base/7 text-zinc-300">
+              Show workflows monitored, issues caught, fixes completed, and recommendations for next month.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/sign-up"
+                prefetch={false}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm/6 font-semibold !text-zinc-950 transition hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-white/50"
+              >
+                Create account
+                <ArrowRightIcon className="size-4" aria-hidden="true" />
+              </Link>
+              <Link
+                href="#loop"
+                className="inline-flex h-11 items-center justify-center rounded-md border border-white/15 px-4 text-sm/6 font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
+              >
+                See workflow
+              </Link>
+            </div>
+          </div>
+
+          <ReportPreview />
+        </div>
+      </section>
+
       <section id="product" className="border-y border-zinc-950/10 bg-white px-5 py-16 sm:px-8 lg:py-20">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.78fr_1.22fr] lg:items-start">
           <div className="max-w-xl">
             <h2 className="text-3xl/10 font-semibold tracking-normal text-zinc-950 sm:text-4xl/11">
-              Post-launch monitoring that ends in client proof.
+              Built for agencies that maintain client AI workflows — not internal AI engineering teams.
             </h2>
             <p className="mt-4 text-base/7 text-zinc-600">
               Tuesday gives agencies one calm operating record for workflow health, maintenance issues, and the monthly updates clients actually understand.
@@ -242,11 +273,11 @@ export function MarketingLandingPage() {
               <p className="mt-4 max-w-xl text-base/7 text-zinc-600">{content.sections[0].description}</p>
             </div>
             <p className="max-w-2xl text-sm/6 text-zinc-500 lg:justify-self-end">
-              Every screen supports the same operational path: add the client, register the workflow, run checks, resolve issues, and generate proof from stored source data.
+              Every screen supports the same operational path: connect workflow endpoints, run checks, create issues, resolve maintenance work, and send proof reports from stored source data.
             </p>
           </div>
 
-          <ol className="mt-12 grid gap-0 overflow-hidden rounded-lg border border-zinc-950/10 bg-white md:grid-cols-3 xl:grid-cols-6">
+          <ol className="mt-12 grid gap-0 overflow-hidden rounded-lg border border-zinc-950/10 bg-white md:grid-cols-3 xl:grid-cols-5">
             {content.sections[0].items.map((item, index) => {
               const Icon = loopIcons[index] ?? CheckCircleIcon;
 
@@ -334,38 +365,6 @@ export function MarketingLandingPage() {
               </article>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section id="reports" className="bg-zinc-950 px-5 py-16 text-white sm:px-8 lg:py-20">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
-          <div className="max-w-xl">
-            <h2 className="text-3xl/10 font-semibold tracking-normal sm:text-4xl/11">
-              Monthly reports without a last-minute evidence hunt.
-            </h2>
-            <p className="mt-4 text-base/7 text-zinc-300">
-              Reports pull from the operational record your team already created: checks, issues, resolutions, test runs, and workflow change notes.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/sign-up"
-                prefetch={false}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-white px-4 text-sm/6 font-semibold !text-zinc-950 transition hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-white/50"
-              >
-                Create account
-                <ArrowRightIcon className="size-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href="/sign-in"
-                prefetch={false}
-                className="inline-flex h-11 items-center justify-center rounded-md border border-white/15 px-4 text-sm/6 font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/30"
-              >
-                Sign in
-              </Link>
-            </div>
-          </div>
-
-          <ReportPreview />
         </div>
       </section>
 

@@ -57,33 +57,29 @@ export function getLandingContent(): LandingContent {
     },
     sections: [
       {
-        title: "Built around the MVP loop",
+        title: "How it works",
         description:
-          "Tuesday stays focused on the operational path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
+          "Tuesday turns routine workflow maintenance into a simple operating path your team can repeat for every retained client.",
         items: [
           {
-            label: "Agency",
-            description: "Run one tenant-safe workspace for client workflow maintenance.",
+            label: "Connect workflow endpoint",
+            description: "Register the client workflow, endpoint, auth context, and owner in one workspace.",
           },
           {
-            label: "Client",
-            description: "Keep each retained client connected to workflows, issues, and reports.",
+            label: "Run health checks",
+            description: "Schedule checks and accept run logs so failures, latency, and regressions stay visible.",
           },
           {
-            label: "Workflow",
-            description: "Register the endpoint, run-log, model, and QA context that matters.",
+            label: "Create issues",
+            description: "Convert failed checks into deduped issues with severity, owner, and client context.",
           },
           {
-            label: "Check Run",
-            description: "Store scheduled, manual, or external results with status and latency.",
+            label: "Resolve maintenance work",
+            description: "Track fixes, notes, and resolution summaries without losing the operational evidence.",
           },
           {
-            label: "Issue",
-            description: "Convert failures into deduped, resolvable operational work.",
-          },
-          {
-            label: "Monthly Report",
-            description: "Summarize health, incidents, resolutions, and proof for stakeholders.",
+            label: "Send proof report",
+            description: "Package monitored workflows, caught issues, completed fixes, and next-month recommendations.",
           },
         ],
       },
