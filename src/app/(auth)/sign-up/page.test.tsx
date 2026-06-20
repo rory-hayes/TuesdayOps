@@ -15,7 +15,7 @@ describe("SignUpPage", () => {
     expect(html).toContain('name="source"');
     expect(html).toContain('value="sign-up"');
     expect(html).toContain("or continue with email");
-    expect(html).toContain('aria-label="Create Tuesday account"');
+    expect(html).toContain('aria-label="Create Maintain Flow account"');
     expect(html).toContain("noValidate");
     expect(html).toContain("New password");
     expect(html).toContain('name="password"');
@@ -35,7 +35,7 @@ describe("SignUpPage", () => {
     fireEvent.change(email, { target: { value: "not-an-email" } });
     fireEvent.change(password, { target: { value: "short" } });
     fireEvent.change(confirmPassword, { target: { value: "different" } });
-    fireEvent.submit(screen.getByRole("form", { name: "Create Tuesday account" }));
+    fireEvent.submit(screen.getByRole("form", { name: "Create Maintain Flow account" }));
 
     expect(screen.getByText("Enter a valid email address.")).toBeTruthy();
     expect(

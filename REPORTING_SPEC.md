@@ -153,7 +153,10 @@ Agency can configure:
 - logo
 - footer text
 - report sender name
-- report sender email later
+- verified report sender email
+- reply-to email
+
+Report sender email must belong to a Resend-verified domain. Public mailbox addresses such as Gmail or Outlook are accepted only as Reply-To addresses, not From addresses.
 
 ## Report-safe data rules
 

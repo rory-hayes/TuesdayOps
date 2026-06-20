@@ -27,7 +27,7 @@ export type LandingContent = {
 export function getLandingContent(): LandingContent {
   return {
     hero: {
-      title: "Tuesday",
+      title: "Maintain Flow",
       eyebrow: "Operational proof for AI agencies",
       description:
         "Monitor live client workflows, catch silent failures, and turn Check Run, Issue, and Monthly Report data into clear proof-of-work updates.",
@@ -36,12 +36,12 @@ export function getLandingContent(): LandingContent {
       eyebrow: "Customer base",
       title: "Agency teams are turning launches into retained operations.",
       description:
-        "Tuesday is built for agencies that need to keep client AI systems visible after handoff, with proof generated from monitored workflows and monthly reporting.",
+        "Maintain Flow is built for agencies that need to keep client AI systems visible after handoff, with proof generated from monitored workflows and monthly reporting.",
       metrics: [
         {
           value: "200+",
           label: "customers",
-          description: "Agency teams using Tuesday to keep retained client work visible.",
+          description: "Agency teams using Maintain Flow to keep retained client work visible.",
         },
         {
           value: "2,500+",
@@ -59,7 +59,7 @@ export function getLandingContent(): LandingContent {
       {
         title: "Built around the MVP loop",
         description:
-          "Tuesday stays focused on the operational path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
+          "Maintain Flow stays focused on the operational path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
         items: [
           {
             label: "Agency",
@@ -90,7 +90,7 @@ export function getLandingContent(): LandingContent {
       {
         title: "Design-partner ready workflows",
         description:
-          "Tuesday helps agencies prove that launched AI automations are still healthy without exposing sensitive run data.",
+          "Maintain Flow helps agencies prove that launched AI automations are still healthy without exposing sensitive run data.",
         items: [
           {
             label: "Run logging",

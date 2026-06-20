@@ -2,10 +2,12 @@ import { Resend } from "resend";
 import { getResendApiKey, getResendFromEmail } from "@/lib/env";
 
 export type SendEmailInput = {
+  from?: string;
   to: string;
   subject: string;
   text: string;
   html: string;
+  replyTo?: string | string[];
   idempotencyKey: string;
   attachments?: Array<{
     filename: string;
@@ -19,21 +21,24 @@ export type SendEmailResult = {
 };
 
 export async function sendResendEmail({
+  from,
   to,
   subject,
   text,
   html,
+  replyTo,
   idempotencyKey,
   attachments,
 }: SendEmailInput): Promise<SendEmailResult> {
   const resend = new Resend(getResendApiKey());
   const { data, error } = await resend.emails.send(
     {
-      from: getResendFromEmail(),
+      from: from ?? getResendFromEmail(),
       to,
       subject,
       text,
       html,
+      replyTo,
       attachments,
     },
     { idempotencyKey },

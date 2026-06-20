@@ -124,7 +124,7 @@ export function MiniBarChart({
   const chartDescription = buildChartDescription(label, points);
 
   return (
-    <figure className="rounded-lg border border-border p-3">
+    <figure className="rounded-lg border border-border p-4">
       <figcaption className="text-sm font-medium">{label}</figcaption>
       {points.length ? (
         <div className="mx-auto mt-3 grid w-full max-w-xl gap-2" role="img" aria-label={chartDescription}>
@@ -145,7 +145,7 @@ export function MiniBarChart({
           ))}
         </div>
       ) : (
-        <p className="mx-auto mt-3 flex h-24 w-full max-w-xl items-center rounded-md bg-muted p-3 text-xs/5 text-muted-foreground">
+        <p className="mx-auto mt-4 flex aspect-[8/3] w-full max-w-3xl items-center rounded-md bg-muted p-3 text-xs/5 text-muted-foreground">
           No chart data yet. {emptyDescription}
         </p>
       )}

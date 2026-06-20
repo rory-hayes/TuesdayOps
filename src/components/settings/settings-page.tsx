@@ -1,4 +1,4 @@
-import { CreditCard, FileText, PlugZap, ShieldCheck } from "lucide-react";
+import { CreditCard, ShieldCheck } from "lucide-react";
 import {
   createCheckoutSessionAction,
   createCustomerPortalSessionAction,
@@ -14,13 +14,6 @@ import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
-
-const integrations = [
-  { name: "Supabase", status: "operator managed", detail: "Auth, Postgres, Storage" },
-  { name: "Supabase Cron", status: "operator managed", detail: "Scheduled checks and jobs" },
-  { name: "Resend", status: "operator managed", detail: "Issue alerts and report emails" },
-  { name: "Stripe", status: "operator managed", detail: "Billing gate and customer portal" },
-];
 
 export function SettingsPage({
   workspace,
@@ -45,7 +38,7 @@ export function SettingsPage({
           Agency workspace
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Branding, billing, integrations, and security controls for the agency account.
+          Workspace identity, billing, and security controls for the agency account.
         </p>
       </section>
 
@@ -144,49 +137,6 @@ export function SettingsPage({
                 Customer portal unlocks after checkout creates a Stripe customer.
               </p>
             ) : null}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold">Report branding</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Client-ready report identity.</p>
-            </div>
-            <FileText size={18} className="text-primary" aria-hidden="true" />
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-3">
-              <div>
-                <p className="text-sm font-medium">Client-facing reports</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Reports use your agency name and client-safe summaries.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <h2 className="text-base font-semibold">Integrations</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Approved MVP services for this workspace.</p>
-            </div>
-            <PlugZap size={18} className="text-primary" aria-hidden="true" />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {integrations.map((integration) => (
-              <div key={integration.name} className="flex items-center justify-between gap-3 rounded-lg border border-border p-3">
-                <div>
-                  <p className="text-sm font-medium">{integration.name}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{integration.detail}</p>
-                </div>
-                <Badge variant="muted">{integration.status}</Badge>
-              </div>
-            ))}
-            <p className="rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
-              Runtime provider readiness is checked by operators through the health endpoint, not inferred from workspace settings.
-            </p>
           </CardContent>
         </Card>
       </section>

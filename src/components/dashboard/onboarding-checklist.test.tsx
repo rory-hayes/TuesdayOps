@@ -56,7 +56,15 @@ describe("OnboardingChecklist activation wizard", () => {
 
     const dialog = await screen.findByRole("dialog");
     const scrollRegion = within(dialog).getByRole("region", { name: "Activation wizard content" });
+    const panel = scrollRegion.closest("section")?.parentElement;
+    const contentSection = scrollRegion.closest("section");
 
+    expect(panel?.className).toContain("h-[calc(100dvh-2rem)]");
+    expect(panel?.className).toContain("grid-rows-[minmax(0,1fr)]");
+    expect(panel?.className).toContain("sm:h-[calc(100dvh-4rem)]");
+    expect(panel?.className).toContain("sm:max-h-[900px]");
+    expect(contentSection?.className).toContain("h-full");
+    expect(contentSection?.className).toContain("overflow-hidden");
     expect(scrollRegion.className).toContain("overflow-y-auto");
     expect(scrollRegion.className).toContain("overscroll-contain");
     expect(scrollRegion.getAttribute("tabindex")).toBeNull();

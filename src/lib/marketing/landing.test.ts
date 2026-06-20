@@ -14,7 +14,7 @@ describe("getLandingContent", () => {
       ]),
     ].join(" ");
 
-    expect(content.hero.title).toBe("Tuesday");
+    expect(content.hero.title).toBe("Maintain Flow");
     expect(text).toContain("Agency");
     expect(text).toContain("Client");
     expect(text).toContain("Workflow");

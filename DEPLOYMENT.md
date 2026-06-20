@@ -1,10 +1,10 @@
-# Tuesday Deployment Readiness
+# Maintain Flow Deployment Readiness
 
 This document is the production handoff checklist for design-partner deployments.
 
 ## Runtime
 
-Tuesday requires:
+Maintain Flow requires:
 
 ```txt
 Node.js >=20.19.0
@@ -49,7 +49,8 @@ SCHEDULER_SECRET=
 SUPABASE_CRON_ENABLED=
 
 RESEND_API_KEY=
-RESEND_FROM_EMAIL=
+RESEND_FROM_EMAIL="MaintainFlow Reports <reports@maintainflow.io>"
+RESEND_VERIFIED_SENDER_DOMAIN=maintainflow.io
 ```
 
 Billing, observability, and reserved analytics variables:

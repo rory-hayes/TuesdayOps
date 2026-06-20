@@ -45,6 +45,15 @@ describe("MiniLineChart", () => {
       }),
     ).toBeTruthy();
   });
+
+  it("uses the shared empty chart placeholder sizing", () => {
+    render(<MiniLineChart label="Pass-rate trend" suffix="%" points={[]} />);
+
+    const placeholder = screen.getByText(/No chart data yet/i);
+
+    expect(placeholder.className).toContain("aspect-[8/3]");
+    expect(placeholder.className).toContain("max-w-3xl");
+  });
 });
 
 describe("MiniBarChart", () => {
@@ -67,5 +76,14 @@ describe("MiniBarChart", () => {
         name: "Open issues by severity chart. High: 3. Critical: 1. Latest 1.",
       }),
     ).toBeTruthy();
+  });
+
+  it("matches the line chart empty placeholder sizing", () => {
+    render(<MiniBarChart label="Checks run" points={[]} />);
+
+    const placeholder = screen.getByText(/No chart data yet/i);
+
+    expect(placeholder.className).toContain("aspect-[8/3]");
+    expect(placeholder.className).toContain("max-w-3xl");
   });
 });

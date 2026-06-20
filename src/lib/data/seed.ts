@@ -5,8 +5,8 @@ const agencyId = "agency-tuesday";
 export const seedData: TuesdayOpsSeedData = {
   agency: {
     id: agencyId,
-    name: "Tuesday Studio",
-    slug: "tuesdayops-studio",
+    name: "Maintain Flow Studio",
+    slug: "maintain-flow-studio",
     primaryColor: "#18181B",
     plan: "Design Partner",
     billingStatus: "active",
@@ -526,7 +526,7 @@ export const seedData: TuesdayOpsSeedData = {
       workflowsMonitored: 2,
       passRate: 95,
       summary:
-        "Nova Dental Group's lead intake and reminder workflows stayed healthy overall. Tuesday caught latency drift and one payload mapping regression before the client escalated.",
+        "Nova Dental Group's lead intake and reminder workflows stayed healthy overall. Maintain Flow caught latency drift and one payload mapping regression before the client escalated.",
       recommendations: [
         "Keep the reminder latency pack on a 30 minute cadence until the prompt comparison is complete.",
         "Add one synthetic case for weekend emergency appointment requests.",

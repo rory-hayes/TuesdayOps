@@ -35,6 +35,11 @@ export type Agency = {
   billingPriceId?: string;
   billingCurrentPeriodEnd?: string;
   trialEndsAt?: string;
+  reportSenderName?: string;
+  reportSenderEmail?: string;
+  reportReplyToEmail?: string;
+  reportSenderDomain?: string;
+  reportSenderDomainStatus?: "pending" | "verified" | "failed";
 };
 
 export type Client = {

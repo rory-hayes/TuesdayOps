@@ -86,7 +86,7 @@ export function buildProductionReadiness(env: ReadinessEnv = process.env): Produ
       env,
       keys: [
         ["RESEND_API_KEY", "API key"],
-        ["RESEND_FROM_EMAIL", "From sender"],
+        ["RESEND_FROM_EMAIL", "Verified From sender"],
       ],
     }),
     buildGroup({

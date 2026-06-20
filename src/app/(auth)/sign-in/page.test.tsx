@@ -12,7 +12,7 @@ describe("SignInPage", () => {
     expect(html).toContain('name="source"');
     expect(html).toContain('value="sign-in"');
     expect(html).toContain("or continue with email");
-    expect(html).toContain('aria-label="Sign in to Tuesday"');
+    expect(html).toContain('aria-label="Sign in to Maintain Flow"');
     expect(html).toContain('name="email"');
     expect(html).toContain('name="password"');
     expect(html).toContain("Forgot password?");

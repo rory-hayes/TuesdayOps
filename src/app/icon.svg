@@ -1,8 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tuesday">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Maintain Flow">
   <rect width="512" height="512" rx="120" fill="#09090b" />
-  <path
-    fill="#ffffff"
-    transform="translate(96 96) scale(16)"
-    d="M11.983 1.907a.75.75 0 0 0-1.292-.657l-8.5 9.5A.75.75 0 0 0 2.75 12h6.572l-1.305 6.093a.75.75 0 0 0 1.292.657l8.5-9.5A.75.75 0 0 0 17.25 8h-6.572l1.305-6.093Z"
-  />
+  <path d="M112 304c72 0 72-96 144-96s72 96 144 96" fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="44" />
+  <circle cx="112" cy="304" r="50" fill="#ffffff" />
+  <circle cx="256" cy="208" r="50" fill="#ffffff" />
+  <circle cx="400" cy="304" r="50" fill="#ffffff" />
 </svg>
