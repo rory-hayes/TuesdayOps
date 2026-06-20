@@ -16,11 +16,6 @@ export type WorkspaceContext = {
     billingPriceId?: string;
     billingCurrentPeriodEnd?: string;
     trialEndsAt?: string;
-    reportSenderName?: string;
-    reportSenderEmail?: string;
-    reportReplyToEmail?: string;
-    reportSenderDomain?: string;
-    reportSenderDomainStatus?: "pending" | "verified" | "failed";
   };
   role: "owner" | "admin" | "member" | "viewer";
 };
@@ -40,11 +35,6 @@ type MembershipRow = {
         billing_price_id: string | null;
         billing_current_period_end: string | null;
         trial_ends_at: string | null;
-        report_sender_name: string | null;
-        report_sender_email: string | null;
-        report_reply_to_email: string | null;
-        report_sender_domain: string | null;
-        report_sender_domain_status: "pending" | "verified" | "failed" | null;
       }
     | {
         id: string;
@@ -58,11 +48,6 @@ type MembershipRow = {
         billing_price_id: string | null;
         billing_current_period_end: string | null;
         trial_ends_at: string | null;
-        report_sender_name: string | null;
-        report_sender_email: string | null;
-        report_reply_to_email: string | null;
-        report_sender_domain: string | null;
-        report_sender_domain_status: "pending" | "verified" | "failed" | null;
       }[];
 };
 
@@ -82,7 +67,7 @@ export async function getWorkspaceContext(): Promise<{
   const { data, error } = await supabase
     .from("memberships")
     .select(
-      "role, agencies(id, name, slug, primary_color, plan, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at, report_sender_name, report_sender_email, report_reply_to_email, report_sender_domain, report_sender_domain_status)",
+      "role, agencies(id, name, slug, primary_color, plan, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at)",
     )
     .eq("user_id", user.id)
     .limit(1)
@@ -122,13 +107,8 @@ export async function getWorkspaceContext(): Promise<{
         billingPriceId: agency.billing_price_id ?? undefined,
         billingCurrentPeriodEnd: agency.billing_current_period_end ?? undefined,
         trialEndsAt: agency.trial_ends_at ?? undefined,
-        reportSenderName: agency.report_sender_name ?? undefined,
-        reportSenderEmail: agency.report_sender_email ?? undefined,
-        reportReplyToEmail: agency.report_reply_to_email ?? undefined,
-        reportSenderDomain: agency.report_sender_domain ?? undefined,
-        reportSenderDomainStatus: agency.report_sender_domain_status ?? undefined,
       },
-	    },
+    },
   };
 }
 

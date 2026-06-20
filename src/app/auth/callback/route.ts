@@ -5,19 +5,30 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = safeNextPath(requestUrl.searchParams.get("next"));
+  const providerError = requestUrl.searchParams.get("error");
 
-  if (code) {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
-      return NextResponse.redirect(new URL(next, requestUrl.origin));
-    }
+  if (providerError) {
+    return redirectToSignIn(requestUrl, "Google sign-in could not be completed. Try again.");
   }
 
+  if (!code) {
+    return redirectToSignIn(requestUrl, "Google sign-in could not be completed. Try again.");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+  if (!error) {
+    return NextResponse.redirect(new URL(next, requestUrl.origin));
+  }
+
+  return redirectToSignIn(requestUrl, "Google sign-in could not be completed. Try again.");
+}
+
+function redirectToSignIn(requestUrl: URL, message: string) {
   return NextResponse.redirect(
     new URL(
-      `/sign-in?error=${encodeURIComponent("The sign-in link was invalid or expired.")}`,
+      `/sign-in?error=${encodeURIComponent(message)}`,
       requestUrl.origin,
     ),
   );
