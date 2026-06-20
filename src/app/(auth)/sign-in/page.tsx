@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { AuthDivider, GoogleAuthForm } from "@/components/auth/google-auth-form";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { signInAction } from "@/lib/auth/actions";
+import { signInAction, signInWithGoogleAction } from "@/lib/auth/actions";
 
 type AuthPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -23,6 +24,10 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
       </div>
 
       <PageFeedback notice={notice} error={error} variant="inline" />
+
+      <GoogleAuthForm action={signInWithGoogleAction} source="sign-in" />
+
+      <AuthDivider />
 
       <SignInForm action={signInAction} />
 
