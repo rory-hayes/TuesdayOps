@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { JsonTextArea } from "@/components/ui/json-textarea";
 import { PageFeedback } from "@/components/ui/page-feedback";
+import { FieldError, ValidatedForm } from "@/components/ui/validated-form";
 import { createCheckAction, disableCheckAction, runCheckAction, updateCheckAction } from "@/lib/checks/service";
 import type { TestCase, TestRun, TuesdayOpsSeedData } from "@/lib/domain/types";
 import {
@@ -171,12 +172,14 @@ function CoverageSetupPanel({ data }: { data: TuesdayOpsSeedData }) {
                 <span>Add health check</span>
                 <Plus size={15} aria-hidden="true" />
               </summary>
-              <form action={createCheckAction} className="mt-4 grid gap-3 md:grid-cols-2">
+              <ValidatedForm action={createCheckAction} aria-label="Add health check" className="mt-4 grid gap-3 md:grid-cols-2">
                 <label className="block text-sm font-medium md:col-span-2">
                   Workflow
                   <select
                     required
                     name="workflowId"
+                    aria-label="Workflow"
+                    data-field-label="Workflow"
                     className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
                   >
                     {data.workflows.map((workflow) => (
@@ -185,6 +188,7 @@ function CoverageSetupPanel({ data }: { data: TuesdayOpsSeedData }) {
                       </option>
                     ))}
                   </select>
+                  <FieldError name="workflowId" />
                 </label>
                 <Input label="Check name" name="name" placeholder="Endpoint health check" required minLength={2} maxLength={120} />
                 <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" required min={100} max={599} />
@@ -194,7 +198,7 @@ function CoverageSetupPanel({ data }: { data: TuesdayOpsSeedData }) {
                   <Plus size={15} aria-hidden="true" />
                   Add check
                 </FormSubmitButton>
-              </form>
+              </ValidatedForm>
             </details>
 
             <details className="rounded-lg border border-border bg-muted/40 p-4">
@@ -602,6 +606,7 @@ function Input({
       <input
         required={required}
         name={name}
+        aria-label={label}
         type={type}
         defaultValue={defaultValue}
         min={min}
@@ -609,8 +614,10 @@ function Input({
         minLength={minLength}
         maxLength={maxLength}
         placeholder={placeholder}
+        data-field-label={label}
         className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
       />
+      <FieldError name={name} />
     </label>
   );
 }
