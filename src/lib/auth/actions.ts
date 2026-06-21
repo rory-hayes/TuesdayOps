@@ -12,6 +12,11 @@ import {
   formatSignInError,
   formatSignUpError,
 } from "@/lib/auth/feedback";
+import {
+  buildEmailVerificationPendingRedirect,
+  buildEmailVerificationRequiredRedirect,
+  isEmailVerificationRequired,
+} from "@/lib/auth/email-verification";
 import { getAppUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -60,10 +65,20 @@ export async function signInAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
 
   if (error) {
     redirect(`/sign-in?error=${encodeURIComponent(formatSignInError(error))}`);
+  }
+
+  if (!data.user) {
+    await supabase.auth.signOut();
+    redirect(`/sign-in?error=${encodeURIComponent(formatSignInError(null))}`);
+  }
+
+  if (isEmailVerificationRequired(data.user)) {
+    await supabase.auth.signOut();
+    redirect(buildEmailVerificationRequiredRedirect());
   }
 
   redirect("/");
@@ -83,16 +98,21 @@ export async function signUpAction(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: password.password,
     options: {
-      emailRedirectTo: `${getAppUrl()}/onboarding`,
+      emailRedirectTo: `${getAppUrl()}/auth/callback?next=/onboarding&source=sign-up&flow=email-verification`,
     },
   });
 
   if (error) {
     redirect(`/sign-up?error=${encodeURIComponent(formatSignUpError(error))}`);
+  }
+
+  if (!data.session || !data.user || isEmailVerificationRequired(data.user)) {
+    await supabase.auth.signOut();
+    redirect(buildEmailVerificationPendingRedirect());
   }
 
   redirect("/onboarding");

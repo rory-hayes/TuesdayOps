@@ -55,3 +55,7 @@ Provider setup:
 - Store the Google OAuth client ID and secret in Supabase provider settings.
 - Add the Supabase provider callback URL to Google Authorized Redirect URIs, for example `https://<project-ref>.supabase.co/auth/v1/callback`.
 - Add `${NEXT_PUBLIC_APP_URL}/auth/callback` to the Supabase Auth redirect allowlist for each deployed environment.
+
+## Email Verification
+
+Enable Supabase Auth email confirmations for password signups and configure production SMTP delivery in Supabase. Password signup confirmation links use `${NEXT_PUBLIC_APP_URL}/auth/callback`, so that callback URL must be allowed in Supabase Auth redirect settings.

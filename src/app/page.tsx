@@ -3,6 +3,10 @@ import { OverviewDashboard } from "@/components/dashboard/overview-dashboard";
 import { MarketingLandingPage } from "@/components/marketing/landing-page";
 import { getOperationalData } from "@/lib/data/operational-data";
 import { getWorkspaceContext } from "@/lib/auth/workspace";
+import {
+  buildEmailVerificationRequiredRedirect,
+  isEmailVerificationRequired,
+} from "@/lib/auth/email-verification";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +20,10 @@ export default async function Home({ searchParams }: HomeProps) {
 
   if (!user) {
     return <MarketingLandingPage />;
+  }
+
+  if (isEmailVerificationRequired(user)) {
+    redirect(buildEmailVerificationRequiredRedirect());
   }
 
   if (!workspace) {

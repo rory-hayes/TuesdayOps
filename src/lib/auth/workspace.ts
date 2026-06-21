@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import {
+  buildEmailVerificationRequiredRedirect,
+  isEmailVerificationRequired,
+} from "@/lib/auth/email-verification";
 import { createClient } from "@/lib/supabase/server";
 
 export type WorkspaceContext = {
@@ -79,6 +83,10 @@ export async function getWorkspaceContext(): Promise<{
     return { user: null, workspace: null };
   }
 
+  if (isEmailVerificationRequired(user)) {
+    return { user, workspace: null };
+  }
+
   const { data, error } = await supabase
     .from("memberships")
     .select(
@@ -139,6 +147,8 @@ export async function requireWorkspace(): Promise<WorkspaceContext> {
     redirect("/sign-in");
   }
 
+  redirectIfEmailVerificationRequired(user);
+
   if (!workspace) {
     redirect("/onboarding");
   }
@@ -153,5 +163,13 @@ export async function requireAuthenticatedUser(): Promise<User> {
     redirect("/sign-in");
   }
 
+  redirectIfEmailVerificationRequired(user);
+
   return user;
+}
+
+function redirectIfEmailVerificationRequired(user: User) {
+  if (isEmailVerificationRequired(user)) {
+    redirect(buildEmailVerificationRequiredRedirect());
+  }
 }

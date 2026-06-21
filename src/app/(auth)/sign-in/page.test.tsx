@@ -2,6 +2,7 @@
 
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { EMAIL_VERIFICATION_PENDING_NOTICE } from "@/lib/auth/email-verification";
 import SignInPage from "./page";
 
 describe("SignInPage", () => {
@@ -18,5 +19,17 @@ describe("SignInPage", () => {
     expect(html).toContain('name="email"');
     expect(html).toContain('name="password"');
     expect(html).toContain("Forgot password?");
+  });
+
+  it("shows the pending email verification notice", async () => {
+    const html = renderToStaticMarkup(
+      await SignInPage({
+        searchParams: Promise.resolve({
+          notice: EMAIL_VERIFICATION_PENDING_NOTICE,
+        }),
+      }),
+    );
+
+    expect(html).toContain(EMAIL_VERIFICATION_PENDING_NOTICE);
   });
 });

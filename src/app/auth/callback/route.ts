@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { formatOAuthCallbackError } from "@/lib/auth/feedback";
+import {
+  formatEmailVerificationCallbackError,
+  formatOAuthCallbackError,
+} from "@/lib/auth/feedback";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET(request: NextRequest) {
@@ -7,6 +10,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = safeNextPath(requestUrl.searchParams.get("next"));
   const source = readOAuthSource(requestUrl.searchParams.get("source"));
+  const flow = readCallbackFlow(requestUrl.searchParams.get("flow"));
 
   if (code) {
     const supabase = await createClient();
@@ -16,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(next, requestUrl.origin));
     }
 
-    return redirectWithOAuthError(requestUrl, source, error);
+    return redirectWithCallbackError(requestUrl, source, flow, error);
   }
 
   const providerError = [
@@ -25,7 +29,7 @@ export async function GET(request: NextRequest) {
     requestUrl.searchParams.get("error_code"),
   ].filter(Boolean).join(": ");
 
-  return redirectWithOAuthError(requestUrl, source, providerError || "Missing OAuth code.");
+  return redirectWithCallbackError(requestUrl, source, flow, providerError || "Missing OAuth code.");
 }
 
 function safeNextPath(value: string | null): string {
@@ -40,9 +44,20 @@ function readOAuthSource(value: string | null): "sign-in" | "sign-up" {
   return value === "sign-up" ? "sign-up" : "sign-in";
 }
 
-function redirectWithOAuthError(requestUrl: URL, source: "sign-in" | "sign-up", error: unknown) {
+function readCallbackFlow(value: string | null): "oauth" | "email-verification" {
+  return value === "email-verification" ? "email-verification" : "oauth";
+}
+
+function redirectWithCallbackError(
+  requestUrl: URL,
+  source: "sign-in" | "sign-up",
+  flow: "oauth" | "email-verification",
+  error: unknown,
+) {
   const path = source === "sign-up" ? "/sign-up" : "/sign-in";
-  const message = formatOAuthCallbackError(error, source);
+  const message = flow === "email-verification"
+    ? formatEmailVerificationCallbackError(error)
+    : formatOAuthCallbackError(error, source);
 
   return NextResponse.redirect(
     new URL(`${path}?error=${encodeURIComponent(message)}`, requestUrl.origin),

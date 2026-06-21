@@ -58,4 +58,16 @@ describe("auth callback route", () => {
       "https://app.example.com/sign-up?error=Google%20sign-in%20was%20cancelled.%20Choose%20Continue%20with%20Google%20to%20try%20again.",
     );
   });
+
+  it("uses email verification copy for confirmation-link failures", async () => {
+    const response = await GET(
+      new Request(
+        "https://app.example.com/auth/callback?source=sign-up&flow=email-verification&error=invalid_grant&error_description=expired%20code",
+      ) as never,
+    );
+
+    expect(response.headers.get("location")).toBe(
+      "https://app.example.com/sign-up?error=That%20verification%20link%20expired.%20Sign%20up%20again%20with%20the%20same%20email%20to%20request%20a%20new%20one.",
+    );
+  });
 });
