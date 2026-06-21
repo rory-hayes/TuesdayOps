@@ -51,6 +51,19 @@ describe("WorkflowsPage table controls", () => {
     expect(workflowRows).toEqual(["Open workflow Invoice sync", "Open workflow Support bot"]);
     expect(screen.queryByText("Lead intake")).toBeNull();
   });
+
+  it("shows workflow creation notices as persistent inline feedback", () => {
+    const { container } = render(
+      <WorkflowsPage
+        data={makeData()}
+        notice="Workflow added. Run its first check when ready."
+      />,
+    );
+
+    const notice = screen.getByRole("status");
+    expect(notice.textContent).toContain("Workflow added. Run its first check when ready.");
+    expect(container.querySelector(".toast-notification")).toBeNull();
+  });
 });
 
 function makeData(): TuesdayOpsSeedData {

@@ -101,7 +101,7 @@ export function WorkflowsPage({
         />
       </section>
 
-      <PageFeedback notice={notice} error={upgradePrompt ? undefined : error} />
+      <PageFeedback notice={notice} error={upgradePrompt ? undefined : error} variant="inline" />
       <BillingUpgradeDialog
         prompt={upgradePrompt}
         checkoutAction={createCheckoutSessionAction}

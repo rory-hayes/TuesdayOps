@@ -51,6 +51,22 @@ describe("WorkflowDetailPage maintenance UI", () => {
     expect(html).toContain('value="checks"');
   });
 
+  it("shows workflow creation notices as persistent inline feedback", () => {
+    const { data, workflow } = buildWorkflowDetailFixture();
+
+    const html = renderToStaticMarkup(
+      <WorkflowDetailPage
+        data={data}
+        workflow={workflow}
+        notice="Workflow added. Run its first check when ready."
+      />,
+    );
+
+    expect(html).toContain('role="status"');
+    expect(html).toContain("Workflow added. Run its first check when ready.");
+    expect(html).not.toContain("toast-notification");
+  });
+
   it("renders workflow pass-rate trends on a sober fixed percentage scale", () => {
     const { data, workflow } = buildWorkflowDetailFixture();
     data.checkRuns = [

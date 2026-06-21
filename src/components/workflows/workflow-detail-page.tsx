@@ -128,7 +128,7 @@ export function WorkflowDetailPage({
         </div>
       </section>
 
-      <PageFeedback notice={notice} error={error} />
+      <PageFeedback notice={notice} error={error} variant="inline" />
 
       <section className="grid gap-4 md:grid-cols-4">
         <Stat label="Pass rate" value={formatPercentage(workflow.passRate)} />
