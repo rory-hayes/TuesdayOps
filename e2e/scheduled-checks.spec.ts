@@ -9,12 +9,12 @@ const env = {
   SCHEDULER_SECRET: process.env.SCHEDULER_SECRET ?? localEnv.SCHEDULER_SECRET,
 };
 
+test.skip(!hasRequiredEnv(), "Scheduled-check E2E requires Supabase service and scheduler secrets.");
+
 test("enabled health checks run through the protected scheduled runner", async ({
   page,
   baseURL,
 }, testInfo) => {
-  test.skip(!hasRequiredEnv(), "Scheduled-check E2E requires Supabase service and scheduler secrets.");
-
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-scheduled-${runId}@example.invalid`;

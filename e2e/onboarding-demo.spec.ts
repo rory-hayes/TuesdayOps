@@ -8,9 +8,9 @@ const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
 };
 
-test("onboarding checklist does not expose demo seeding", async ({ page, baseURL }) => {
-  test.skip(!hasRequiredEnv(), "Onboarding demo E2E requires Supabase service credentials.");
+test.skip(!hasRequiredEnv(), "Onboarding demo E2E requires Supabase service credentials.");
 
+test("onboarding checklist does not expose demo seeding", async ({ page, baseURL }) => {
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-onboarding-${runId}@example.invalid`;

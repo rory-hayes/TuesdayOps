@@ -97,7 +97,7 @@ export async function generateReportAction(formData: FormData) {
   const parsed = generateReportFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/reports?error=${encodeURIComponent("Report details did not pass validation.")}`);
+    redirect(`/reports?error=${encodeURIComponent("Choose a client and month before generating a report.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -135,7 +135,7 @@ export async function generateReportAction(formData: FormData) {
       },
     });
   } catch (error) {
-    redirect(`/reports?error=${encodeURIComponent(formatActionError(error, "Report could not be generated."))}`);
+    redirect(`/reports?error=${encodeURIComponent(formatActionError(error, "Report could not be generated. Check the client and period, then try again."))}`);
   }
 
   revalidatePath("/reports");
@@ -146,7 +146,7 @@ export async function generateReportPdfAction(formData: FormData) {
   const parsed = reportIdFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/reports?error=${encodeURIComponent("Report id was invalid.")}`);
+    redirect(`/reports?error=${encodeURIComponent("Report could not be found. Open the report again before exporting.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -173,7 +173,7 @@ export async function generateReportPdfAction(formData: FormData) {
     });
   } catch (error) {
     redirect(
-      `/reports?error=${encodeURIComponent(formatActionError(error, "Report PDF could not be generated."))}`,
+      `/reports?error=${encodeURIComponent(formatActionError(error, "Report PDF could not be generated. Resolve readiness items and try again."))}`,
     );
   }
 
@@ -186,7 +186,7 @@ export async function sendReportAction(formData: FormData) {
   const parsed = reportIdFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/reports?error=${encodeURIComponent("Report id was invalid.")}`);
+    redirect(`/reports?error=${encodeURIComponent("Report could not be found. Open the report again before sending.")}`);
   }
 
   const workspace = await requireWorkspace();

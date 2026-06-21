@@ -1,6 +1,6 @@
 const BILLING_SETUP_ERROR =
-  "Billing is not configured. Contact support to finish subscription setup.";
-const BILLING_FALLBACK_ERROR = "Billing could not be updated.";
+  "Billing is not ready yet. Contact support to finish subscription setup.";
+const BILLING_FALLBACK_ERROR = "Billing could not be updated. Try again or contact support.";
 
 export function formatBillingError(error: unknown, fallback = BILLING_FALLBACK_ERROR): string {
   if (!(error instanceof Error)) {

@@ -9,13 +9,13 @@ const env = {
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? localEnv.RESEND_API_KEY,
 };
 
+test.skip(!hasRequiredEnv(), "Report E2E requires Supabase service credentials.");
+
 test("monthly report can be generated, exported as PDF, and sent or safely failed", async ({
   browser,
   page,
   baseURL,
 }) => {
-  test.skip(!hasRequiredEnv(), "Report E2E requires Supabase service credentials.");
-
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-report-${runId}@example.invalid`;
@@ -196,7 +196,7 @@ test("monthly report can be generated, exported as PDF, and sent or safely faile
   } else {
     expect(sentReport.status).toBe("failed");
     expect(sentReport.send_error ?? "").toMatch(
-      /Report email could not be sent because email delivery is not configured\.|Report email could not be sent\. Check the recipient and try again\./,
+      /Report email is not ready yet\. Contact support to finish email setup\.|Report email could not be delivered\. Check the recipient address and try again\./,
     );
     expect(sentReport.send_error ?? "").not.toContain("RESEND_API_KEY");
   }

@@ -29,7 +29,7 @@ export async function createCheckoutSessionAction(formData?: FormData) {
   const plan = readCheckoutPlan(formData);
 
   if (!["owner", "admin"].includes(workspace.role)) {
-    redirect(`/settings?billing_error=${encodeURIComponent("Only owners and admins can manage billing.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent("Only workspace owners and admins can manage billing.")}`);
   }
 
   if (plan === workspace.agency.plan) {
@@ -37,7 +37,7 @@ export async function createCheckoutSessionAction(formData?: FormData) {
   }
 
   if (plan === "agency_plus") {
-    redirect(`/settings?billing_error=${encodeURIComponent("Agency+ is configured by sales. Submit the contact form instead.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent("Agency+ is configured by sales. Submit the contact form and we will follow up.")}`);
   }
 
   try {
@@ -113,11 +113,11 @@ export async function createCheckoutSessionAction(formData?: FormData) {
     });
     checkoutUrl = session.url;
   } catch (error) {
-    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Stripe Checkout could not be started."))}`);
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Checkout could not be opened. Try again or contact support."))}`);
   }
 
   if (!checkoutUrl) {
-    redirect(`/settings?billing_error=${encodeURIComponent("Stripe did not return a checkout URL.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent("Checkout could not be opened. Try again or contact support.")}`);
   }
 
   redirect(checkoutUrl);
@@ -133,7 +133,7 @@ export async function requestAgencyPlusContactAction(formData: FormData) {
   const workspace = await requireWorkspace();
 
   if (!["owner", "admin"].includes(workspace.role)) {
-    redirect(`/settings?billing_error=${encodeURIComponent("Only owners and admins can contact sales for Agency+ configuration.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent("Only workspace owners and admins can contact sales for Agency+ configuration.")}`);
   }
 
   try {
@@ -171,7 +171,7 @@ export async function requestAgencyPlusContactAction(formData: FormData) {
       },
     });
   } catch (error) {
-    redirect(`/settings?billing_error=${encodeURIComponent(formatActionError(error, "Agency+ contact request could not be saved."))}`);
+    redirect(`/settings?billing_error=${encodeURIComponent(formatActionError(error, "Agency+ contact request could not be sent. Try again or contact support."))}`);
   }
 
   revalidatePath("/settings");
@@ -188,7 +188,7 @@ export async function createCustomerPortalSessionAction() {
   const workspace = await requireWorkspace();
 
   if (!["owner", "admin"].includes(workspace.role)) {
-    redirect(`/settings?billing_error=${encodeURIComponent("Only owners and admins can manage billing.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent("Only workspace owners and admins can manage billing.")}`);
   }
 
   if (!workspace.agency.billingCustomerId) {
@@ -226,11 +226,11 @@ export async function createCustomerPortalSessionAction() {
 
     portalUrl = session.url;
   } catch (error) {
-    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Stripe customer portal could not be started."))}`);
+    redirect(`/settings?billing_error=${encodeURIComponent(formatBillingError(error, "Billing portal could not be opened. Try again or contact support."))}`);
   }
 
   if (!portalUrl) {
-    redirect(`/settings?billing_error=${encodeURIComponent("Stripe did not return a customer portal URL.")}`);
+    redirect(`/settings?billing_error=${encodeURIComponent("Billing portal could not be opened. Try again or contact support.")}`);
   }
 
   redirect(portalUrl);

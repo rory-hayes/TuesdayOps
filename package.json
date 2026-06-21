@@ -14,7 +14,7 @@
     "test": "vitest run src",
     "test:coverage": "vitest run src --coverage",
     "e2e": "playwright test",
-    "e2e:production": "PLAYWRIGHT_SKIP_WEBSERVER=true playwright test e2e/reports.spec.ts",
+    "e2e:production": "PLAYWRIGHT_SKIP_WEBSERVER=true playwright test",
     "smoke:production": "vitest run scripts/production-smoke.test.ts"
   },
   "dependencies": {

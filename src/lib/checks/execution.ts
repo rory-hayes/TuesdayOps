@@ -56,6 +56,8 @@ type ExistingScheduledRunRow = {
   workflow_id: string;
 };
 
+const scheduledCheckTimeoutMs = 8_000;
+
 export async function executeCheckRun({
   supabase,
   agencyId,
@@ -95,6 +97,8 @@ export async function executeCheckRun({
       configJson: check.config_json,
     },
     authConfig,
+    maxAttempts: trigger === "scheduled" ? 1 : undefined,
+    maxTimeoutMs: trigger === "scheduled" ? scheduledCheckTimeoutMs : undefined,
   });
 
   const { data: runRow, error: runError } = await supabase

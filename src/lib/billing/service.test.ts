@@ -70,7 +70,7 @@ describe("billing server actions", () => {
   it("blocks Agency+ checkout before touching Stripe", async () => {
     await expectRedirect(
       createCheckoutSessionAction(formData({ plan: "agency_plus" })),
-      "/settings?billing_error=Agency%2B%20is%20configured%20by%20sales.%20Submit%20the%20contact%20form%20instead.",
+      "/settings?billing_error=Agency%2B%20is%20configured%20by%20sales.%20Submit%20the%20contact%20form%20and%20we%20will%20follow%20up.",
     );
 
     expect(mocks.assertPersistentRateLimit).not.toHaveBeenCalled();

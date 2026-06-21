@@ -31,7 +31,7 @@ export async function updateReportEmailSettingsAction(formData: FormData) {
   const parsed = reportEmailSettingsSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/settings?billingError=${encodeURIComponent("Report email settings did not pass validation.")}`);
+    redirect(`/settings?billingError=${encodeURIComponent("Check the sender name, sender email, and reply-to email before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -68,7 +68,7 @@ export async function updateReportEmailSettingsAction(formData: FormData) {
     .eq("id", workspace.agency.id);
 
   if (error) {
-    redirect(`/settings?billingError=${encodeURIComponent(formatActionError(error, "Report email settings could not be saved."))}`);
+    redirect(`/settings?billingError=${encodeURIComponent(formatActionError(error, "Report email settings could not be saved. Try again or contact support."))}`);
   }
 
   revalidatePath("/settings");

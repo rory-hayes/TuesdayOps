@@ -94,7 +94,7 @@ const activationWorkflowSchema = z.object({
     context.addIssue({
       code: "custom",
       path: ["authSecret"],
-      message: "Authentication secret is required.",
+      message: "Enter the auth secret for this workflow.",
     });
   }
 
@@ -131,7 +131,7 @@ export async function createActivationClientAction(
   const parsed = activationClientSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return errorState("Add a client name, industry, and report email.");
+    return errorState("Add a client name, industry, and valid report email before saving.");
   }
 
   try {
@@ -144,7 +144,7 @@ export async function createActivationClientAction(
       .is("archived_at", null);
 
     if (countError) {
-      return errorState(formatActionError(countError, "Client count could not be loaded."));
+      return errorState(formatActionError(countError, "Client limits could not be checked. Try again or contact support."));
     }
 
     const limitDecision = canCreateClient({
@@ -181,7 +181,7 @@ export async function createActivationClientAction(
       .single();
 
     if (error || !client) {
-      return errorState(formatActionError(error, "Client could not be created."));
+      return errorState(formatActionError(error, "Client could not be added. Check the details and try again."));
     }
 
     revalidateActivationPaths();
@@ -193,7 +193,7 @@ export async function createActivationClientAction(
       clientName: client.name as string,
     };
   } catch (error) {
-    return errorState(formatActionError(error, "Client could not be created."));
+    return errorState(formatActionError(error, "Client could not be added. Check the details and try again."));
   }
 }
 
@@ -204,7 +204,7 @@ export async function createActivationWorkflowAction(
   const parsed = activationWorkflowSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return errorState("Workflow endpoint details did not pass validation.");
+    return errorState("Check the workflow name, endpoint URL, auth settings, and check thresholds before saving.");
   }
 
   try {
@@ -217,7 +217,7 @@ export async function createActivationWorkflowAction(
       .is("archived_at", null);
 
     if (countError) {
-      return errorState(formatActionError(countError, "Workflow count could not be loaded."));
+      return errorState(formatActionError(countError, "Workflow limits could not be checked. Try again or contact support."));
     }
 
     const limitDecision = canCreateWorkflow({
@@ -246,7 +246,7 @@ export async function createActivationWorkflowAction(
         allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
       });
     } catch (error) {
-      return errorState(formatActionError(error, "Workflow endpoint did not pass safety validation."));
+      return errorState(formatActionError(error, "Workflow endpoint could not be used. Use a public endpoint and try again."));
     }
 
     const encryptedAuthConfig = buildActivationEncryptedAuthConfig({
@@ -275,7 +275,7 @@ export async function createActivationWorkflowAction(
       .single();
 
     if (workflowError || !workflow) {
-      return errorState(formatActionError(workflowError, "Workflow could not be created."));
+      return errorState(formatActionError(workflowError, "Workflow could not be added. Review the endpoint settings and try again."));
     }
 
     const checkConfig = buildHealthCheckConfig({
@@ -303,7 +303,7 @@ export async function createActivationWorkflowAction(
       .single();
 
     if (checkError || !check) {
-      return errorState(formatActionError(checkError, "Health check could not be created."));
+      return errorState(formatActionError(checkError, "Health check could not be added. Review the check settings and try again."));
     }
 
     await recordActivationAuditEvent({
@@ -331,7 +331,7 @@ export async function createActivationWorkflowAction(
       checkId: check.id as string,
     };
   } catch (error) {
-    return errorState(formatActionError(error, "Workflow could not be created."));
+    return errorState(formatActionError(error, "Workflow could not be added. Review the endpoint settings and try again."));
   }
 }
 
@@ -342,7 +342,7 @@ export async function runActivationCheckAction(
   const parsed = activationRunSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return errorState("Check id was invalid.");
+    return errorState("Check could not be found. Refresh the page and try again.");
   }
 
   try {
@@ -362,7 +362,7 @@ export async function runActivationCheckAction(
     });
 
     if (!result.workflowId) {
-      return errorState("Check run did not return a workflow.");
+      return errorState("Check run finished, but the workflow could not be loaded. Refresh the page and try again.");
     }
 
     await recordActivationAuditEvent({
@@ -393,7 +393,7 @@ export async function runActivationCheckAction(
       runStatus: result.status === "completed" ? result.runStatus : result.status,
     };
   } catch (error) {
-    return errorState(formatActionError(error, "Check run failed."));
+    return errorState(formatActionError(error, "Check run could not start. Try again in a few minutes."));
   }
 }
 
@@ -404,7 +404,7 @@ export async function generateActivationReportAction(
   const parsed = activationReportSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return errorState("Report details did not pass validation.");
+    return errorState("Choose a client and month before generating a report.");
   }
 
   try {
@@ -453,7 +453,7 @@ export async function generateActivationReportAction(
       clientId: parsed.data.clientId,
     };
   } catch (error) {
-    return errorState(formatActionError(error, "Report could not be generated."));
+    return errorState(formatActionError(error, "Report could not be generated. Check the client and period, then try again."));
   }
 }
 

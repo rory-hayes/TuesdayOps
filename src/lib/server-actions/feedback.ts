@@ -21,7 +21,7 @@ const SAFE_EXACT_MESSAGES = new Set([
   "Workflow was not found or is not accessible.",
 ]);
 
-export function formatActionError(error: unknown, fallback = "Action could not be completed."): string {
+export function formatActionError(error: unknown, fallback = "We could not complete that action. Review the details and try again."): string {
   if (!(error instanceof Error)) {
     return fallback;
   }
@@ -32,7 +32,11 @@ export function formatActionError(error: unknown, fallback = "Action could not b
     return fallback;
   }
 
-  if (SAFE_EXACT_MESSAGES.has(message) || isSafeUpgradeMessage(message) || isSafeReportBlockerMessage(message)) {
+  if (isSafeReportBlockerMessage(message)) {
+    return message.replace(/^Report is blocked: /, "Report needs more source data: ");
+  }
+
+  if (SAFE_EXACT_MESSAGES.has(message) || isSafeUpgradeMessage(message)) {
     return message;
   }
 

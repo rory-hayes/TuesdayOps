@@ -4,6 +4,7 @@ import { recordAuditEventSafely } from "@/lib/audit/events";
 const constructEvent = vi.fn();
 const retrieveSubscription = vi.fn();
 const fromMock = vi.fn();
+const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
 vi.mock("@/lib/billing/stripe", () => ({
   getStripeClient: () => ({
@@ -38,6 +39,7 @@ describe("Stripe webhook route", () => {
     constructEvent.mockReset();
     retrieveSubscription.mockReset();
     fromMock.mockReset();
+    consoleErrorSpy.mockClear();
     vi.mocked(recordAuditEventSafely).mockReset();
   });
 
@@ -69,9 +71,7 @@ describe("Stripe webhook route", () => {
     );
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({
-      error: "No signatures found matching the expected signature for payload.",
-    });
+    await expect(response.json()).resolves.toEqual({ error: "Webhook verification failed." });
     expect(fromMock).not.toHaveBeenCalled();
   });
 
@@ -89,7 +89,7 @@ describe("Stripe webhook route", () => {
     );
 
     expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "Stripe webhook verification failed." });
+    await expect(response.json()).resolves.toEqual({ error: "Webhook verification failed." });
     expect(fromMock).not.toHaveBeenCalled();
   });
 
@@ -142,7 +142,7 @@ describe("Stripe webhook route", () => {
     const response = await postStripeWebhook();
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "billing event lookup failed" });
+    await expect(response.json()).resolves.toEqual({ error: "Webhook event could not be checked." });
   });
 
   it("records unhandled Stripe events without mutating agency billing state", async () => {
@@ -348,7 +348,7 @@ describe("Stripe webhook route", () => {
     const response = await postStripeWebhook();
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "Stripe webhook processing failed." });
+    await expect(response.json()).resolves.toEqual({ error: "Webhook event could not be processed." });
   });
 
   it("records subscription events without an agency when the customer is unmatched", async () => {
@@ -394,7 +394,7 @@ describe("Stripe webhook route", () => {
     const response = await postStripeWebhook();
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "Stripe webhook processing failed." });
+    await expect(response.json()).resolves.toEqual({ error: "Webhook event could not be processed." });
     expect(state.billingEventInserts).toEqual([]);
   });
 
@@ -412,7 +412,7 @@ describe("Stripe webhook route", () => {
     const response = await postStripeWebhook();
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "Stripe webhook processing failed." });
+    await expect(response.json()).resolves.toEqual({ error: "Webhook event could not be processed." });
     expect(state.billingEventInserts).toEqual([]);
   });
 
@@ -425,7 +425,7 @@ describe("Stripe webhook route", () => {
     const response = await postStripeWebhook();
 
     expect(response.status).toBe(500);
-    await expect(response.json()).resolves.toEqual({ error: "billing insert denied" });
+    await expect(response.json()).resolves.toEqual({ error: "Webhook event could not be recorded." });
   });
 });
 

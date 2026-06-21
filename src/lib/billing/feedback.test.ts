@@ -4,10 +4,10 @@ import { formatBillingError } from "@/lib/billing/feedback";
 describe("formatBillingError", () => {
   it("hides internal billing configuration details from customer-facing redirects", () => {
     expect(formatBillingError(new Error("Missing STRIPE_SECRET_KEY. This key is required for billing."))).toBe(
-      "Billing is not configured. Contact support to finish subscription setup.",
+      "Billing is not ready yet. Contact support to finish subscription setup.",
     );
     expect(formatBillingError(new Error("Invalid NEXT_PUBLIC_APP_URL. Set it to an absolute http(s) URL."))).toBe(
-      "Billing is not configured. Contact support to finish subscription setup.",
+      "Billing is not ready yet. Contact support to finish subscription setup.",
     );
   });
 
@@ -26,7 +26,7 @@ describe("formatBillingError", () => {
   });
 
   it("falls back and caps very long messages", () => {
-    expect(formatBillingError("provider object")).toBe("Billing could not be updated.");
+    expect(formatBillingError("provider object")).toBe("Billing could not be updated. Try again or contact support.");
     expect(formatBillingError(new Error("x".repeat(300)))).toHaveLength(240);
   });
 });

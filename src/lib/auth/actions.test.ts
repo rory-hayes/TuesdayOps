@@ -40,7 +40,7 @@ describe("auth server actions", () => {
     expect(signInWithOAuth).toHaveBeenCalledWith({
       provider: "google",
       options: {
-        redirectTo: "https://app.example.com/auth/callback?next=/onboarding",
+        redirectTo: "https://app.example.com/auth/callback?next=/onboarding&source=sign-up",
       },
     });
   });
@@ -57,7 +57,7 @@ describe("auth server actions", () => {
 
     await expectRedirect(
       signInWithGoogleAction(formData({ source: "sign-up" })),
-      "/sign-up?error=Google%20sign-in%20could%20not%20be%20started.%20Try%20again.",
+      "/sign-up?error=Google%20sign-in%20could%20not%20be%20started.%20Refresh%20the%20page%20and%20try%20again.",
     );
   });
 
@@ -73,7 +73,7 @@ describe("auth server actions", () => {
 
     await expectRedirect(
       signInWithGoogleAction(formData({ source: "settings" })),
-      "/sign-in?error=Google%20sign-in%20could%20not%20be%20started.%20Try%20again.",
+      "/sign-in?error=Google%20sign-in%20could%20not%20be%20started.%20Refresh%20the%20page%20and%20try%20again.",
     );
   });
 });

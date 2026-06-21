@@ -115,7 +115,7 @@ describe("check execution persistence helpers", () => {
       runStatus: "healthy",
     });
 
-    expect(runHttpCheck).toHaveBeenCalledWith({
+    expect(runHttpCheck).toHaveBeenCalledWith(expect.objectContaining({
       workflow: {
         endpointUrl: "https://api.example.com/health",
         method: "GET",
@@ -125,7 +125,7 @@ describe("check execution persistence helpers", () => {
         configJson: { assertions: [{ type: "status_code", expected: 200 }] },
       },
       authConfig: { type: "none" },
-    });
+    }));
     expect(inserts).toContainEqual(
       expect.objectContaining({
         agency_id: "agency-1",
@@ -250,6 +250,10 @@ describe("check execution persistence helpers", () => {
         status: "degraded",
       }),
     });
+    expect(runHttpCheck).toHaveBeenCalledWith(expect.objectContaining({
+      maxAttempts: 1,
+      maxTimeoutMs: 8000,
+    }));
     expect(workflowUpdates).toContainEqual(expect.objectContaining({ status: "degraded" }));
   });
 

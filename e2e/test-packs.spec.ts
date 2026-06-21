@@ -8,12 +8,12 @@ const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
 };
 
+test.skip(!hasRequiredEnv(), "Test-pack E2E requires Supabase service credentials.");
+
 test("synthetic test pack run stores failures and resolves recovered issues", async ({
   page,
   baseURL,
 }, testInfo) => {
-  test.skip(!hasRequiredEnv(), "Test-pack E2E requires Supabase service credentials.");
-
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-test-pack-${runId}@example.invalid`;

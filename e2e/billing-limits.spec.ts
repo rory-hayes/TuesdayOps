@@ -8,9 +8,9 @@ const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
 };
 
-test("billing settings show limits and starter client limit is enforced", async ({ page, baseURL }) => {
-  test.skip(!hasRequiredEnv(), "Billing E2E requires Supabase service credentials.");
+test.skip(!hasRequiredEnv(), "Billing E2E requires Supabase service credentials.");
 
+test("billing settings show limits and starter client limit is enforced", async ({ page, baseURL }) => {
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-billing-${runId}@example.invalid`;
@@ -155,7 +155,7 @@ async function createConfirmedUser({ email, password }: { email: string; passwor
 async function waitForCheckoutOrBillingError(
   page: import("@playwright/test").Page,
 ): Promise<"checkout" | "config-error"> {
-  const billingError = page.getByText(/Missing STRIPE_(SECRET_KEY|PRICE_ID(?:_[A-Z_]+)?)|Billing is not configured/);
+  const billingError = page.getByText(/Billing is not ready yet|Billing could not be updated|Checkout could not be opened/);
 
   for (let attempt = 0; attempt < 40; attempt += 1) {
     const url = new URL(page.url());

@@ -62,7 +62,7 @@ const workflowFormSchema = workflowBaseFormSchema
       context.addIssue({
         code: "custom",
         path: ["authSecret"],
-        message: "Authentication secret is required.",
+        message: "Enter the auth secret for this workflow.",
       });
     }
 
@@ -87,7 +87,7 @@ export async function createWorkflowAction(formData: FormData) {
   const parsed = workflowFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/workflows?error=${encodeURIComponent("Workflow endpoint details did not pass validation.")}`);
+    redirect(`/workflows?error=${encodeURIComponent("Check the client, workflow name, endpoint URL, auth settings, and check thresholds before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -128,7 +128,7 @@ export async function createWorkflowFromImportAction(formData: FormData) {
   const parsed = importWorkflowFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/workflows?error=${encodeURIComponent("Workflow import details did not pass validation.")}`);
+    redirect(`/workflows?error=${encodeURIComponent("Choose a client and paste a supported cURL, OpenAPI, Postman, or URL import.")}`);
   }
 
   let plan;
@@ -144,7 +144,7 @@ export async function createWorkflowFromImportAction(formData: FormData) {
           text: importText,
         });
   } catch (error) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow import could not be parsed."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow import could not be read. Check the source format and try again."))}`);
   }
 
   const workspace = await requireWorkspace();
@@ -223,7 +223,7 @@ export async function updateWorkflowAction(formData: FormData) {
   const parsed = workflowUpdateFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/workflows?error=${encodeURIComponent("Workflow update did not pass validation.")}`);
+    redirect(`/workflows?error=${encodeURIComponent("Check the workflow URL, auth settings, and check thresholds before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -250,7 +250,7 @@ export async function updateWorkflowAction(formData: FormData) {
     });
   } catch (error) {
     redirect(buildWorkflowRedirect(parsed.data.id, {
-      error: formatActionError(error, "Workflow settings did not pass validation."),
+      error: formatActionError(error, "Workflow settings could not be saved. Check the endpoint and auth settings, then try again."),
       tab: parsed.data.returnTab,
     }));
   }
@@ -297,7 +297,7 @@ export async function updateWorkflowAction(formData: FormData) {
       configJson: checkConfig,
     });
   } catch (error) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow could not be saved."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow could not be saved. Refresh the page and try again."))}`);
   }
   await recordWorkflowAuditEvent({
     workspace,
@@ -326,7 +326,7 @@ export async function archiveWorkflowAction(formData: FormData) {
   const parsed = workflowIdFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/workflows?error=${encodeURIComponent("Workflow id was invalid.")}`);
+    redirect(`/workflows?error=${encodeURIComponent("Workflow could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -342,7 +342,7 @@ export async function archiveWorkflowAction(formData: FormData) {
   try {
     assertMutationTouchedRow(archiveResult, "Workflow was not found or is not accessible.");
   } catch (error) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow could not be archived."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow could not be archived. Refresh the page and try again."))}`);
   }
 
   await recordWorkflowAuditEvent({
@@ -398,7 +398,7 @@ async function createWorkflowWithHealthCheck({
     .is("archived_at", null);
 
   if (countError) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(countError, "Workflow count could not be loaded."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(countError, "Workflow limits could not be checked. Try again or contact support."))}`);
   }
 
   const limitDecision = canCreateWorkflow({
@@ -418,7 +418,7 @@ async function createWorkflowWithHealthCheck({
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
   } catch (error) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow endpoint did not pass safety validation."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow endpoint could not be used. Use a public endpoint and try again."))}`);
   }
 
   const authConfig = input.authType === "none" ? null : buildWorkflowAuthConfig(input);
@@ -427,7 +427,7 @@ async function createWorkflowWithHealthCheck({
   try {
     encryptedAuthConfig = authConfig ? encryptJsonPayload(authConfig) : null;
   } catch (error) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow auth config could not be encrypted."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(error, "Workflow credentials could not be saved. Try again or contact support."))}`);
   }
 
   const { data: workflow, error: workflowError } = await createAdminClient()
@@ -450,7 +450,7 @@ async function createWorkflowWithHealthCheck({
     .single();
 
   if (workflowError || !workflow) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(workflowError, "Workflow could not be created."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(workflowError, "Workflow could not be added. Review the endpoint settings and try again."))}`);
   }
 
   const checkConfig = buildHealthCheckConfig({
@@ -477,7 +477,7 @@ async function createWorkflowWithHealthCheck({
   });
 
   if (checkError) {
-    redirect(`/workflows?error=${encodeURIComponent(formatActionError(checkError, "Health check could not be created."))}`);
+    redirect(`/workflows?error=${encodeURIComponent(formatActionError(checkError, "Health check could not be added. Review the check settings and try again."))}`);
   }
 
   return workflow.id as string;
