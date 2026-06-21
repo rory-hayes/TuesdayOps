@@ -1,4 +1,4 @@
-import { CreditCard, ShieldCheck } from "lucide-react";
+import { CreditCard, ShieldCheck, type LucideIcon } from "lucide-react";
 import {
   createCheckoutSessionAction,
   createCustomerPortalSessionAction,
@@ -52,7 +52,7 @@ export function SettingsPage({
               <h2 className="text-base font-semibold">Agency profile</h2>
               <p className="mt-1 text-sm text-muted-foreground">Workspace identity and plan state.</p>
             </div>
-            <ShieldCheck size={18} className="text-primary" aria-hidden="true" />
+            <DecorativeCardIcon icon={ShieldCheck} />
           </CardHeader>
           <CardContent className="space-y-4">
             <SettingRow label="Agency" value={workspace.agency.name} />
@@ -69,7 +69,7 @@ export function SettingsPage({
               <h2 className="text-base font-semibold">Billing</h2>
               <p className="mt-1 text-sm text-muted-foreground">Subscription state and plan usage.</p>
             </div>
-            <CreditCard size={18} className="text-primary" aria-hidden="true" />
+            <DecorativeCardIcon icon={CreditCard} />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -142,6 +142,17 @@ export function SettingsPage({
         </Card>
       </section>
     </div>
+  );
+}
+
+function DecorativeCardIcon({ icon: Icon }: { icon: LucideIcon }) {
+  return (
+    <Icon
+      size={18}
+      className="pointer-events-none shrink-0 text-muted-foreground/70"
+      aria-hidden="true"
+      focusable="false"
+    />
   );
 }
 

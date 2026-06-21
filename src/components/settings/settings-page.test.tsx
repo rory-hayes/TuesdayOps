@@ -1,5 +1,8 @@
+/* @vitest-environment jsdom */
+
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/components/settings/settings-page";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
@@ -10,6 +13,8 @@ vi.mock("@/lib/billing/service", () => ({
   createCustomerPortalSessionAction: "createCustomerPortalSessionAction",
   requestAgencyPlusContactAction: "requestAgencyPlusContactAction",
 }));
+
+afterEach(cleanup);
 
 describe("SettingsPage billing", () => {
   it("renders the current plan as disabled instead of a checkout choice", () => {
@@ -53,6 +58,24 @@ describe("SettingsPage billing", () => {
     );
 
     expect(html).toContain(STORED_SLUG_HELP);
+  });
+
+  it("keeps the agency profile card icon decorative instead of exposing a fake control", () => {
+    render(<SettingsPage workspace={workspace} data={data} />);
+
+    const agencyProfileHeading = screen.getByRole("heading", { name: "Agency profile" });
+    const agencyProfileCard = agencyProfileHeading.closest("section");
+
+    expect(agencyProfileCard).not.toBeNull();
+    expect(within(agencyProfileCard!).queryByRole("button")).toBeNull();
+    expect(within(agencyProfileCard!).queryByRole("link")).toBeNull();
+
+    const icon = agencyProfileCard!.querySelector("svg");
+
+    expect(icon).not.toBeNull();
+    expect(icon?.getAttribute("aria-hidden")).toBe("true");
+    expect(icon?.getAttribute("focusable")).toBe("false");
+    expect(icon?.getAttribute("class")).toContain("pointer-events-none");
   });
 });
 
