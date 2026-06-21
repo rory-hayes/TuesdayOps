@@ -282,6 +282,72 @@ describe("issue server actions", () => {
       metadata: { reportable: false },
     }));
   });
+
+  it("marks an ignored unassigned issue reportable by reopening it and clearing ignored resolution state", async () => {
+    const supabase = createSupabaseActionStub({
+      reads: {
+        issues: { status: "ignored", owner_user_id: null },
+      },
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expectRedirect(
+      issueService.setIssueReportableAction(formData({
+        issueId: issueId(),
+        returnTo: "/issues/issue-1",
+        reportable: "true",
+      })),
+      "/issues/issue-1?notice=Issue%20marked%20reportable.",
+    );
+
+    expect(supabase.updates).toContainEqual(expect.objectContaining({
+      table: "issues",
+      payload: {
+        reportable: true,
+        status: "open",
+        resolved_at: null,
+        resolution_note: null,
+        snoozed_until: null,
+      },
+      filters: [
+        ["agency_id", "agency-1"],
+        ["id", issueId()],
+      ],
+    }));
+    expect(recordAuditEvent).toHaveBeenCalledWith(expect.objectContaining({
+      action: "issue.reportable_updated",
+      targetType: "issue",
+      targetId: issueId(),
+      metadata: { reportable: true },
+    }));
+  });
+
+  it("returns an assigned ignored issue to review when marking it reportable", async () => {
+    const supabase = createSupabaseActionStub({
+      reads: {
+        issues: { status: "ignored", owner_user_id: "user-2" },
+      },
+    });
+    mocks.createClient.mockResolvedValue(supabase.client);
+
+    await expectRedirect(
+      issueService.setIssueReportableAction(formData({
+        issueId: issueId(),
+        reportable: "true",
+      })),
+      "/issues?notice=Issue%20marked%20reportable.",
+    );
+
+    expect(supabase.updates).toContainEqual(expect.objectContaining({
+      table: "issues",
+      payload: expect.objectContaining({
+        reportable: true,
+        status: "in_review",
+        resolved_at: null,
+        resolution_note: null,
+      }),
+    }));
+  });
 });
 
 async function expectRedirect(action: Promise<void>, url: string) {

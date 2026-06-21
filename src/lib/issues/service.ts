@@ -209,9 +209,42 @@ export async function setIssueReportableAction(formData: FormData) {
   const workspace = await requireWorkspace();
   const supabase = await createClient();
   const reportable = parsed.data.reportable === "true";
+  const updatePayload: {
+    reportable: boolean;
+    status?: "open" | "in_review";
+    resolved_at?: null;
+    resolution_note?: null;
+    snoozed_until?: null;
+  } = { reportable };
+
+  if (reportable) {
+    const { data: issue, error: issueError } = await supabase
+      .from("issues")
+      .select("status, owner_user_id")
+      .eq("agency_id", workspace.agency.id)
+      .eq("id", parsed.data.issueId)
+      .maybeSingle();
+
+    if (issueError || !issue) {
+      redirect(buildIssueErrorRedirect(
+        "/issues",
+        formatActionError(issueError, "Issue report setting could not be saved. Refresh the page and try again."),
+      ));
+    }
+
+    const currentIssue = issue as { status?: string | null; owner_user_id?: string | null };
+
+    if (currentIssue.status === "ignored") {
+      updatePayload.status = currentIssue.owner_user_id ? "in_review" : "open";
+      updatePayload.resolved_at = null;
+      updatePayload.resolution_note = null;
+      updatePayload.snoozed_until = null;
+    }
+  }
+
   const updateResult = await supabase
     .from("issues")
-    .update({ reportable })
+    .update(updatePayload)
     .eq("agency_id", workspace.agency.id)
     .eq("id", parsed.data.issueId)
     .select("id")
