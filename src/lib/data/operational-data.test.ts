@@ -76,6 +76,80 @@ describe("getOperationalData", () => {
     expect(data.clients[0]?.lastActivityAt).toBe(clientUpdatedAt);
   });
 
+  it("uses the latest completed check run for workflow last check data", async () => {
+    const data = await getOperationalData(makeAgency(), createSupabaseStub({
+      clients: [clientRow()],
+      workflows: [{
+        ...workflowRow(),
+        status: "degraded",
+        pass_rate: 50,
+        latency_ms: 900,
+        last_check_at: "2026-06-14T10:00:00.000Z",
+      }],
+      checks: [{
+        id: "check-1",
+        agency_id: "agency-1",
+        workflow_id: "workflow-1",
+        name: "Health",
+        type: "health",
+        config_json: {
+          timeoutMs: 10000,
+          assertions: [{ type: "status_code", expected: 200 }],
+        },
+        enabled: true,
+        schedule: "Every 60 minutes",
+        created_at: "2026-06-14T09:00:00.000Z",
+        updated_at: "2026-06-14T09:00:00.000Z",
+      }],
+      check_runs: [
+        {
+          id: "run-older-created-later",
+          agency_id: "agency-1",
+          client_id: "client-1",
+          workflow_id: "workflow-1",
+          check_id: "check-1",
+          status: "failed",
+          status_code: 500,
+          latency_ms: 900,
+          response_summary: "Server error",
+          error_message: "HTTP 500",
+          cost_estimate: null,
+          model: null,
+          prompt_version: null,
+          started_at: "2026-06-14T10:00:55.000Z",
+          completed_at: "2026-06-14T10:01:00.000Z",
+          created_at: "2026-06-14T10:06:00.000Z",
+        },
+        {
+          id: "run-latest-completed",
+          agency_id: "agency-1",
+          client_id: "client-1",
+          workflow_id: "workflow-1",
+          check_id: "check-1",
+          status: "healthy",
+          status_code: 200,
+          latency_ms: 120,
+          response_summary: "OK",
+          error_message: null,
+          cost_estimate: null,
+          model: null,
+          prompt_version: null,
+          started_at: "2026-06-14T10:04:55.000Z",
+          completed_at: "2026-06-14T10:05:00.000Z",
+          created_at: "2026-06-14T10:05:00.000Z",
+        },
+      ],
+    }));
+
+    expect(data.workflows[0]).toMatchObject({
+      status: "healthy",
+      latencyMs: 120,
+      lastCheckAt: "2026-06-14T10:05:00.000Z",
+    });
+    expect(data.checks[0]?.latestStatus).toBe("healthy");
+    expect(data.clients[0]?.lastActivityAt).toBe("2026-06-14T10:05:00.000Z");
+  });
+
   it("shows expired snoozed issues as open so they reappear in the maintenance inbox", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-06-18T12:00:00.000Z"));
