@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AgencyOnboardingForm } from "@/components/auth/agency-onboarding-form";
+import { SLUG_NORMALIZATION_HELP } from "@/lib/domain/slug";
 
 describe("AgencyOnboardingForm", () => {
   afterEach(() => cleanup());
@@ -74,5 +75,14 @@ describe("AgencyOnboardingForm", () => {
     expect((screen.getByLabelText("Slug") as HTMLInputElement).value).toBe("custom-slug");
     expect(screen.getByText("Workspace URL slug:")).toBeTruthy();
     expect(screen.getByText("custom-slug")).toBeTruthy();
+  });
+
+  it("explains slug normalization before submission", () => {
+    render(<AgencyOnboardingForm action={vi.fn()} />);
+
+    expect(screen.getByText(SLUG_NORMALIZATION_HELP)).toBeTruthy();
+    expect(screen.getByLabelText("Slug").getAttribute("aria-describedby")).toBe(
+      "agency-slug-help",
+    );
   });
 });

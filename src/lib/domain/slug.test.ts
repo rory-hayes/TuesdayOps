@@ -5,6 +5,7 @@ describe("createSlug", () => {
   it("normalizes names into lowercase hyphenated slugs", () => {
     expect(createSlug("Nova Dental Group")).toBe("nova-dental-group");
     expect(createSlug("  Kinetic   Finance  ")).toBe("kinetic-finance");
+    expect(createSlug("Invalid_Slug")).toBe("invalid-slug");
   });
 
   it("drops punctuation and keeps numbers", () => {
@@ -53,10 +54,20 @@ describe("createSlug", () => {
     });
   });
 
-  it("rejects explicit slugs with spaces or punctuation instead of silently rewriting them", () => {
+  it("rejects explicit slugs with spaces, uppercase, underscores, or punctuation instead of silently rewriting them", () => {
     expect(
       parseOptionalSlug({
         value: "This Is My Agency!@",
+        source: "Agency Name",
+        fallback: "agency",
+      }),
+    ).toEqual({
+      success: false,
+      message: "Use lowercase letters, numbers, and single hyphens only.",
+    });
+    expect(
+      parseOptionalSlug({
+        value: "Invalid_Slug",
         source: "Agency Name",
         fallback: "agency",
       }),

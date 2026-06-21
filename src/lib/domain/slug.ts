@@ -1,6 +1,15 @@
 export const SLUG_FORMAT_MESSAGE =
   "Use lowercase letters, numbers, and single hyphens only.";
 
+export const SLUG_NORMALIZATION_HELP =
+  "Uppercase letters, spaces, and underscores are normalized to lowercase hyphens. Saved slugs use lowercase letters, numbers, and single hyphens only.";
+
+export const OPTIONAL_SLUG_HELP =
+  "Leave blank to generate a lowercase hyphenated slug from the name; spaces and underscores become hyphens. Custom slugs must use lowercase letters, numbers, and single hyphens only.";
+
+export const STORED_SLUG_HELP =
+  "Stored slugs use lowercase letters, numbers, and single hyphens for stable URLs.";
+
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function createSlug(value: string, fallback = "workspace"): string {

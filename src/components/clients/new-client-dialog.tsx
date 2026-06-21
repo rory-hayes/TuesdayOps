@@ -6,6 +6,7 @@ import { PlusIcon, XMarkIcon } from "@heroicons/react/16/solid";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { FieldError, ValidatedForm } from "@/components/ui/validated-form";
+import { OPTIONAL_SLUG_HELP, SLUG_FORMAT_MESSAGE } from "@/lib/domain/slug";
 import { cn } from "@/lib/utils";
 
 type NewClientDialogProps = {
@@ -79,6 +80,8 @@ export function NewClientDialog({ action, trigger = "button", className }: NewCl
                 placeholder="client-company"
                 maxLength={100}
                 pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                title={SLUG_FORMAT_MESSAGE}
+                helperText={OPTIONAL_SLUG_HELP}
               />
               <Field label="Industry" name="industry" placeholder="Operations" required minLength={2} maxLength={80} />
               <Field
@@ -127,6 +130,8 @@ function Field({
   minLength,
   maxLength,
   pattern,
+  title,
+  helperText,
 }: {
   label: string;
   name: string;
@@ -136,7 +141,11 @@ function Field({
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  title?: string;
+  helperText?: string;
 }) {
+  const helpId = helperText ? `${name}-help` : undefined;
+
   return (
     <label className="grid gap-2 text-sm/6 font-medium text-zinc-950">
       {label}
@@ -149,10 +158,16 @@ function Field({
         maxLength={maxLength}
         pattern={pattern}
         placeholder={placeholder}
-        title={pattern ? "Use lowercase letters, numbers, and single hyphens only." : undefined}
+        title={title}
+        aria-describedby={helpId}
         data-field-label={label}
         className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />
+      {helperText ? (
+        <span id={helpId} className="text-xs/5 font-normal text-zinc-500">
+          {helperText}
+        </span>
+      ) : null}
       <FieldError name={name} />
     </label>
   );

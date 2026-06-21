@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { FieldError, ValidatedForm } from "@/components/ui/validated-form";
-import { SLUG_FORMAT_MESSAGE, createSlug } from "@/lib/domain/slug";
+import {
+  SLUG_FORMAT_MESSAGE,
+  SLUG_NORMALIZATION_HELP,
+  createSlug,
+} from "@/lib/domain/slug";
 
 type AgencyOnboardingFormProps = {
   action: (formData: FormData) => void | Promise<void>;
@@ -61,7 +65,7 @@ export function AgencyOnboardingForm({ action }: AgencyOnboardingFormProps) {
           className="h-10 rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 font-normal text-zinc-950 outline-none transition placeholder:text-zinc-400 focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
         />
         <span id="agency-slug-help" className="text-xs/5 font-normal text-zinc-500">
-          {SLUG_FORMAT_MESSAGE}
+          {SLUG_NORMALIZATION_HELP}
         </span>
         {slug ? (
           <span className="text-xs/5 font-normal text-zinc-500">

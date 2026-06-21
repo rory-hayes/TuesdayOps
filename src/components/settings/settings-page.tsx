@@ -14,6 +14,7 @@ import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
+import { STORED_SLUG_HELP } from "@/lib/domain/slug";
 
 export function SettingsPage({
   workspace,
@@ -55,7 +56,7 @@ export function SettingsPage({
           </CardHeader>
           <CardContent className="space-y-4">
             <SettingRow label="Agency" value={workspace.agency.name} />
-            <SettingRow label="Slug" value={workspace.agency.slug} />
+            <SettingRow label="Slug" value={workspace.agency.slug} helpText={STORED_SLUG_HELP} />
             <SettingRow label="Plan" value={getBillingPlanName(workspace.agency.plan)} />
             <SettingRow label="Billing status" value={workspace.agency.billingStatus} />
             <SettingRow label="Trial ends" value={formatDate(workspace.agency.trialEndsAt)} />
@@ -144,11 +145,16 @@ export function SettingsPage({
   );
 }
 
-function SettingRow({ label, value }: { label: string; value: string }) {
+function SettingRow({ label, value, helpText }: { label: string; value: string; helpText?: string }) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-border px-4 py-3">
-      <p className="text-sm text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{value}</p>
+    <div className="rounded-lg border border-border px-4 py-3">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-sm text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium">{value}</p>
+      </div>
+      {helpText ? (
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">{helpText}</p>
+      ) : null}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { SettingsPage } from "@/components/settings/settings-page";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
+import { STORED_SLUG_HELP } from "@/lib/domain/slug";
 
 vi.mock("@/lib/billing/service", () => ({
   createCheckoutSessionAction: "createCheckoutSessionAction",
@@ -44,6 +45,14 @@ describe("SettingsPage billing", () => {
     expect(html).not.toContain("Verified sender email");
     expect(html).not.toContain("Reply-to email");
     expect(html).not.toContain("Send test email");
+  });
+
+  it("explains the stored agency slug format", () => {
+    const html = renderToStaticMarkup(
+      <SettingsPage workspace={workspace} data={data} />,
+    );
+
+    expect(html).toContain(STORED_SLUG_HELP);
   });
 });
 
