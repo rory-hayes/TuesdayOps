@@ -1,5 +1,8 @@
+/* @vitest-environment jsdom */
+
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ChecksPage } from "@/components/checks/checks-page";
 import { buildChecksPageModel } from "@/components/checks/checks-page-model";
 import type { TuesdayOpsSeedData } from "@/lib/domain/types";
@@ -22,6 +25,8 @@ vi.mock("@/lib/test-packs/service", () => ({
 }));
 
 describe("ChecksPage", () => {
+  afterEach(() => cleanup());
+
   it("leads with QA coverage value before configuration controls", () => {
     const html = renderToStaticMarkup(<ChecksPage data={buildChecksFixture()} />);
 
@@ -49,6 +54,37 @@ describe("ChecksPage", () => {
         "Billing Assistant has no QA coverage",
       ]),
     );
+  });
+
+  it("clears add-health-check required errors as corrected values become valid", () => {
+    render(<ChecksPage data={buildChecksFixture()} />);
+
+    fireEvent.click(screen.getByText("Add health check"));
+
+    const form = screen.getByRole("form", { name: "Add health check" });
+    const checkName = within(form).getByLabelText("Check name");
+    const expectedStatus = within(form).getByLabelText("Expected status");
+    const maxLatency = within(form).getByLabelText("Max latency ms");
+
+    fireEvent.submit(form);
+
+    expect(within(form).getByText("Check name is required.")).toBeTruthy();
+    expect(within(form).getByText("Expected status is required.")).toBeTruthy();
+    expect(within(form).getByText("Max latency ms is required.")).toBeTruthy();
+    expect(checkName.getAttribute("aria-invalid")).toBe("true");
+    expect(expectedStatus.getAttribute("aria-invalid")).toBe("true");
+    expect(maxLatency.getAttribute("aria-invalid")).toBe("true");
+
+    fireEvent.change(checkName, { target: { value: "Endpoint health check" } });
+    fireEvent.change(expectedStatus, { target: { value: "200" } });
+    fireEvent.change(maxLatency, { target: { value: "5000" } });
+
+    expect(within(form).queryByText("Check name is required.")).toBeNull();
+    expect(within(form).queryByText("Expected status is required.")).toBeNull();
+    expect(within(form).queryByText("Max latency ms is required.")).toBeNull();
+    expect(checkName.getAttribute("aria-invalid")).toBeNull();
+    expect(expectedStatus.getAttribute("aria-invalid")).toBeNull();
+    expect(maxLatency.getAttribute("aria-invalid")).toBeNull();
   });
 });
 

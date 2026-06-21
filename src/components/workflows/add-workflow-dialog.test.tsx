@@ -168,6 +168,13 @@ describe("AddWorkflowDialog", () => {
     expect(await within(dialog).findByText("Bearer token is required.")).toBeTruthy();
     expect(within(dialog).getByLabelText("Bearer token").getAttribute("aria-invalid")).toBe("true");
     expect(createWorkflowAction).not.toHaveBeenCalled();
+
+    fireEvent.change(within(dialog).getByLabelText("Bearer token"), {
+      target: { value: "secret-token" },
+    });
+
+    expect(within(dialog).queryByText("Bearer token is required.")).toBeNull();
+    expect(within(dialog).getByLabelText("Bearer token").getAttribute("aria-invalid")).toBeNull();
   });
 });
 
