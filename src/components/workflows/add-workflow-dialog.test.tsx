@@ -1,11 +1,15 @@
 /* @vitest-environment jsdom */
 
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AddWorkflowDialog } from "@/components/workflows/add-workflow-dialog";
 
 describe("AddWorkflowDialog", () => {
-  it("keeps the endpoint URL stable through typing, focus changes, and numeric edits", async () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("keeps the endpoint URL stable through focus changes and numeric edits", () => {
     render(
       <AddWorkflowDialog
         clients={[{ id: "client-1", name: "Acme" }]}
@@ -23,7 +27,7 @@ describe("AddWorkflowDialog", () => {
     const typedUrl = "https://example.com/api/health?client=acme&mode=full#ready";
 
     endpointUrlInput.focus();
-    await typeCharacters(endpointUrlInput, typedUrl);
+    fireEvent.change(endpointUrlInput, { target: { value: typedUrl } });
 
     expect(endpointUrlInput.value).toBe(typedUrl);
     expect(document.activeElement).toBe(endpointUrlInput);
@@ -39,6 +43,98 @@ describe("AddWorkflowDialog", () => {
 
     expect(document.activeElement).toBe(endpointUrlInput);
     expect(endpointUrlInput.value).toBe(typedUrl);
+  });
+
+  it("keeps manual endpoint and health-check fields focused with independent values", () => {
+    render(
+      <AddWorkflowDialog
+        clients={[{ id: "client-1", name: "Acme" }]}
+        createWorkflowAction={vi.fn()}
+        createWorkflowFromImportAction={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add workflow" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manual setup" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Add workflow" });
+    const endpointUrl = getInput(dialog, "Endpoint URL");
+    const frequency = getInput(dialog, "Frequency minutes");
+    const expectedStatus = getInput(dialog, "Expected status");
+    const maxLatency = getInput(dialog, "Max latency ms");
+    const timeout = getInput(dialog, "Timeout ms");
+
+    endpointUrl.focus();
+    fireEvent.change(endpointUrl, {
+      target: { value: "https://example.com/api/health?client=acme&mode=full" },
+    });
+
+    expect(document.activeElement).toBe(endpointUrl);
+    expect(endpointUrl.value).toBe("https://example.com/api/health?client=acme&mode=full");
+    expect(frequency.value).toBe("60");
+    expect(expectedStatus.value).toBe("200");
+    expect(maxLatency.value).toBe("5000");
+    expect(timeout.value).toBe("10000");
+
+    frequency.focus();
+    fireEvent.change(frequency, { target: { value: "15" } });
+    expectedStatus.focus();
+    fireEvent.change(expectedStatus, { target: { value: "202" } });
+    maxLatency.focus();
+    fireEvent.change(maxLatency, { target: { value: "850" } });
+    timeout.focus();
+    fireEvent.change(timeout, { target: { value: "12000" } });
+
+    expect(document.activeElement).toBe(timeout);
+    expect(endpointUrl.value).toBe("https://example.com/api/health?client=acme&mode=full");
+    expect(frequency.value).toBe("15");
+    expect(expectedStatus.value).toBe("202");
+    expect(maxLatency.value).toBe("850");
+    expect(timeout.value).toBe("12000");
+  });
+
+  it("keeps Ctrl+A scoped to the active manual input", () => {
+    const documentKeydown = vi.fn();
+    document.addEventListener("keydown", documentKeydown);
+
+    try {
+      render(
+        <AddWorkflowDialog
+          clients={[{ id: "client-1", name: "Acme" }]}
+          createWorkflowAction={vi.fn()}
+          createWorkflowFromImportAction={vi.fn()}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Add workflow" }));
+      fireEvent.click(screen.getByRole("button", { name: "Manual setup" }));
+
+      const dialog = screen.getByRole("dialog", { name: "Add workflow" });
+      const endpointUrl = getInput(dialog, "Endpoint URL");
+      const frequency = getInput(dialog, "Frequency minutes");
+
+      endpointUrl.focus();
+      fireEvent.change(endpointUrl, { target: { value: "https://example.com/api/health" } });
+      endpointUrl.setSelectionRange(endpointUrl.value.length, endpointUrl.value.length);
+      fireEvent.keyDown(endpointUrl, { key: "a", ctrlKey: true });
+
+      expect(documentKeydown).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(endpointUrl);
+      expect(endpointUrl.selectionStart).toBe(0);
+      expect(endpointUrl.selectionEnd).toBe(endpointUrl.value.length);
+      expect(frequency.value).toBe("60");
+
+      frequency.focus();
+      fireEvent.change(frequency, { target: { value: "15" } });
+      fireEvent.keyDown(frequency, { key: "a", ctrlKey: true });
+
+      expect(documentKeydown).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(frequency);
+      expect(frequency.value).toBe("15");
+      expect(endpointUrl.value).toBe("https://example.com/api/health");
+    } finally {
+      document.removeEventListener("keydown", documentKeydown);
+    }
   });
 
   it("shows a specific inline error when auth is selected without a secret", async () => {
@@ -75,9 +171,6 @@ describe("AddWorkflowDialog", () => {
   });
 });
 
-async function typeCharacters(input: HTMLInputElement, value: string) {
-  for (const character of value) {
-    fireEvent.input(input, { target: { value: `${input.value}${character}` } });
-    await Promise.resolve();
-  }
+function getInput(dialog: HTMLElement, name: string) {
+  return within(dialog).getByLabelText(name) as HTMLInputElement;
 }

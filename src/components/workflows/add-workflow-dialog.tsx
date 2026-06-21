@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
-import type { ChangeEventHandler, ReactNode } from "react";
+import { useId, useState, useSyncExternalStore } from "react";
+import type { ChangeEventHandler, KeyboardEvent, ReactNode } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -387,10 +387,13 @@ function Input({
   value?: string;
   onChange?: ChangeEventHandler<HTMLInputElement>;
 }) {
+  const inputId = useId();
+
   return (
-    <label className={`block text-sm font-medium ${className}`}>
-      {label}
+    <div className={`block text-sm font-medium ${className}`}>
+      <label htmlFor={inputId}>{label}</label>
       <input
+        id={inputId}
         required={required}
         name={name}
         aria-label={label}
@@ -398,9 +401,24 @@ function Input({
         {...(value === undefined ? { defaultValue } : { value, onChange })}
         placeholder={placeholder}
         data-field-label={label}
+        onKeyDown={handleInputKeyDown}
         className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />
       <FieldError name={name} />
-    </label>
+    </div>
   );
+}
+
+function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+  if (!isSelectAllShortcut(event)) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+  event.currentTarget.select();
+}
+
+function isSelectAllShortcut(event: KeyboardEvent<HTMLInputElement>) {
+  return (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "a";
 }
