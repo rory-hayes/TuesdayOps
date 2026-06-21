@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import type { ReactNode } from "react";
+import type { ChangeEventHandler, ReactNode } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -101,11 +101,7 @@ export function AddWorkflowDialog({
               />
             </div>
 
-            <div
-              tabIndex={0}
-              aria-label="Add workflow form content. Scroll this panel for all endpoint and check fields."
-              className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6 outline-none focus:ring-2 focus:ring-inset focus:ring-zinc-950/10"
-            >
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
               {mode === "import" ? (
                 <div className="space-y-4">
                   <div>
@@ -176,6 +172,7 @@ function ManualWorkflowForm({
 }) {
   const [method, setMethod] = useState<WorkflowMethod>("GET");
   const [authType, setAuthType] = useState<WorkflowAuthType>("none");
+  const [endpointUrl, setEndpointUrl] = useState("");
   const showRequestBody = method !== "GET";
   const authSecretLabel =
     authType === "basic" ? "Password" : authType === "api_key_header" ? "API key" : "Bearer token";
@@ -268,6 +265,8 @@ function ManualWorkflowForm({
               name="endpointUrl"
               placeholder="e.g. https://example.com/api/health"
               type="url"
+              value={endpointUrl}
+              onChange={(event) => setEndpointUrl(event.currentTarget.value)}
               required
             />
             <label className="block text-sm font-medium">
@@ -375,6 +374,8 @@ function Input({
   required = false,
   className = "",
   defaultValue,
+  value,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -383,6 +384,8 @@ function Input({
   required?: boolean;
   className?: string;
   defaultValue?: string;
+  value?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
 }) {
   return (
     <label className={`block text-sm font-medium ${className}`}>
@@ -392,7 +395,7 @@ function Input({
         name={name}
         aria-label={label}
         type={type}
-        defaultValue={defaultValue}
+        {...(value === undefined ? { defaultValue } : { value, onChange })}
         placeholder={placeholder}
         data-field-label={label}
         className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
