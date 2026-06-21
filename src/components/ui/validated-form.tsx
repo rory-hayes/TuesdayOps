@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useState,
+  type ChangeEvent,
   type ComponentProps,
   type FormEvent,
   type ReactNode,
@@ -18,8 +19,36 @@ type ValidatedFormProps = Omit<ComponentProps<"form">, "onSubmit"> & {
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
 };
 
-export function ValidatedForm({ children, onSubmit, noValidate = true, ...props }: ValidatedFormProps) {
+export function ValidatedForm({
+  children,
+  onChange,
+  onSubmit,
+  noValidate = true,
+  ...props
+}: ValidatedFormProps) {
   const [errors, setErrors] = useState<FormErrors>({});
+
+  function handleChange(event: ChangeEvent<HTMLFormElement>) {
+    onChange?.(event);
+
+    const form = event.currentTarget;
+    const control = getValidatableControl(event.target);
+
+    if (!control || control.form !== form || !errors[control.name]) {
+      return;
+    }
+
+    const nextErrors = { ...errors };
+
+    if (control.validity.valid) {
+      delete nextErrors[control.name];
+    } else {
+      nextErrors[control.name] = getValidationMessage(control);
+    }
+
+    applyErrorAttributes(form, nextErrors);
+    setErrors(nextErrors);
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     const form = event.currentTarget;
@@ -39,7 +68,7 @@ export function ValidatedForm({ children, onSubmit, noValidate = true, ...props 
 
   return (
     <FormValidationContext.Provider value={errors}>
-      <form {...props} noValidate={noValidate} onSubmit={handleSubmit}>
+      <form {...props} noValidate={noValidate} onChange={handleChange} onSubmit={handleSubmit}>
         {children}
       </form>
     </FormValidationContext.Provider>
@@ -79,12 +108,27 @@ function collectFormErrors(form: HTMLFormElement): FormErrors {
 }
 
 function getValidatableControls(form: HTMLFormElement) {
-  return Array.from(form.elements).filter(
-    (element): element is ValidatableControl =>
+  return Array.from(form.elements)
+    .map((element) => getValidatableControl(element))
+    .filter((element): element is ValidatableControl => Boolean(element));
+}
+
+function getValidatableControl(element: EventTarget | Element | null): ValidatableControl | null {
+  if (
+    !(
       element instanceof HTMLInputElement ||
       element instanceof HTMLSelectElement ||
-      element instanceof HTMLTextAreaElement,
-  ).filter((element) => element.name && element.willValidate);
+      element instanceof HTMLTextAreaElement
+    )
+  ) {
+    return null;
+  }
+
+  if (!element.name || !element.willValidate) {
+    return null;
+  }
+
+  return element;
 }
 
 function getValidationMessage(control: ValidatableControl): string {

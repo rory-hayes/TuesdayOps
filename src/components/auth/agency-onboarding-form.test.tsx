@@ -33,6 +33,32 @@ describe("AgencyOnboardingForm", () => {
     expect(screen.getByLabelText("Agency name").getAttribute("aria-invalid")).toBeNull();
   });
 
+  it("clears a required agency name error as soon as the corrected value is valid", () => {
+    const action = vi.fn();
+
+    render(<AgencyOnboardingForm action={action} />);
+
+    const form = screen.getByRole("form", { name: "Create agency workspace" });
+    const agencyName = screen.getByLabelText("Agency name");
+
+    fireEvent.submit(form);
+
+    expect(screen.getByText("Agency name is required.")).toBeTruthy();
+    expect(agencyName.getAttribute("aria-invalid")).toBe("true");
+    expect(action).not.toHaveBeenCalled();
+
+    fireEvent.change(agencyName, {
+      target: { value: "QA Agency" },
+    });
+
+    expect(screen.queryByText("Agency name is required.")).toBeNull();
+    expect(agencyName.getAttribute("aria-invalid")).toBeNull();
+
+    fireEvent.submit(form);
+
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
   it("normalizes manually edited slugs as URL-safe text", () => {
     render(<AgencyOnboardingForm action={vi.fn()} />);
 
