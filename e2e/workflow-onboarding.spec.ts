@@ -8,9 +8,9 @@ const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
 };
 
-test("workflow can be imported from a cURL command", async ({ page, baseURL }) => {
-  test.skip(!hasRequiredEnv(), "Workflow onboarding E2E requires Supabase service credentials.");
+test.skip(!hasRequiredEnv(), "Workflow onboarding E2E requires Supabase service credentials.");
 
+test("workflow can be imported from a cURL command", async ({ page, baseURL }) => {
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-workflow-import-${runId}@example.invalid`;

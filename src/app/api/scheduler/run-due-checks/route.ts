@@ -12,6 +12,8 @@ const schedulerRequestSchema = z.object({
   checkId: z.string().uuid().optional(),
 });
 const schedulerRateLimiter = createMemoryRateLimiter({ limit: 30, windowMs: 60_000 });
+const scheduledCheckBatchLimit = 4;
+const scheduledCheckMaxPages = 1;
 
 export async function POST(request: NextRequest) {
   const rateLimit = schedulerRateLimiter.check(`scheduler:${getRequestIp(request)}`);
@@ -59,7 +61,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const result = await runDueScheduledChecks({ supabase, checkId: parsedBody.data.checkId });
+  const result = await runDueScheduledChecks({
+    supabase,
+    checkId: parsedBody.data.checkId,
+    limit: parsedBody.data.checkId ? 1 : scheduledCheckBatchLimit,
+    maxPages: scheduledCheckMaxPages,
+  });
 
   return NextResponse.json({ ok: true, ...result });
 }

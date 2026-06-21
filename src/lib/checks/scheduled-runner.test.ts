@@ -324,6 +324,28 @@ describe("scheduled check batch runner", () => {
     expect(executeCheckRun).toHaveBeenCalledTimes(120);
   });
 
+  it("can cap pages per invocation so hosted cron calls stay within runtime limits", async () => {
+    vi.mocked(executeCheckRun).mockResolvedValue({
+      status: "completed",
+      checkRunId: "run-1",
+      workflowId: "workflow-1",
+      runStatus: "healthy",
+    });
+    const { supabase, rpc } = createScheduledSupabase({
+      dueChecksResponses: [
+        { data: buildDueCheckRows(4, 0), error: null },
+        { data: buildDueCheckRows(4, 4), error: null },
+      ],
+    });
+
+    await expect(
+      runDueScheduledChecks({ supabase, now, limit: 4, maxPages: 1 }),
+    ).resolves.toEqual({ attempted: 4, completed: 4, skipped: 0, failed: 0 });
+
+    expect(rpc.mock.calls.filter(([name]) => name === "get_due_health_checks")).toHaveLength(1);
+    expect(executeCheckRun).toHaveBeenCalledTimes(4);
+  });
+
   it("does not retry the same due check forever when a page remains due after a failed attempt", async () => {
     vi.mocked(executeCheckRun).mockRejectedValue(new Error("network unavailable"));
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});

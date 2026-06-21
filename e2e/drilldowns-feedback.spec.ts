@@ -8,12 +8,12 @@ const env = {
   SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? localEnv.SUPABASE_SECRET_KEY,
 };
 
+test.skip(!hasRequiredEnv(), "Drilldown acceptance E2E requires Supabase service credentials.");
+
 test("core drilldowns and action feedback stay connected across the MVP loop", async ({
   page,
   baseURL,
 }) => {
-  test.skip(!hasRequiredEnv(), "Drilldown acceptance E2E requires Supabase service credentials.");
-
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-drilldown-${runId}@example.invalid`;

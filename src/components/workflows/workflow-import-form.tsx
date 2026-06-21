@@ -104,7 +104,7 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
     } catch (error) {
       return {
         status: "error",
-        message: error instanceof Error ? error.message : "Workflow import could not be parsed.",
+        message: error instanceof Error ? error.message : "Workflow import could not be read. Check the source format and try again.",
       };
     }
   }, [importSource, importText]);

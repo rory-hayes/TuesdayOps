@@ -87,7 +87,7 @@ export async function signUpAction(formData: FormData) {
     email: parsed.data.email,
     password: password.password,
     options: {
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/onboarding`,
+      emailRedirectTo: `${getAppUrl()}/onboarding`,
     },
   });
 
@@ -108,7 +108,7 @@ export async function signInWithGoogleAction(formData: FormData) {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${getAppUrl()}/auth/callback?next=/onboarding`,
+        redirectTo: `${getAppUrl()}/auth/callback?next=/onboarding&source=${source}`,
       },
     });
 
@@ -122,7 +122,7 @@ export async function signInWithGoogleAction(formData: FormData) {
   }
 
   if (!oauthUrl) {
-    redirect(buildGoogleOAuthErrorRedirect(source, "Google sign-in could not be started. Try again."));
+    redirect(buildGoogleOAuthErrorRedirect(source, "Google sign-in could not be started. Refresh the page and try again."));
   }
 
   redirect(oauthUrl);

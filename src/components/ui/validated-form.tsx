@@ -125,7 +125,7 @@ function getValidationMessage(control: ValidatableControl): string {
     return `Enter a valid value for ${label}.`;
   }
 
-  return control.validationMessage || `${label} did not pass validation.`;
+  return control.validationMessage || `Check ${label} and try again.`;
 }
 
 function applyErrorAttributes(form: HTMLFormElement, errors: FormErrors) {

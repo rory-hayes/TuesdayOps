@@ -102,7 +102,7 @@ export async function createTestPackAction(formData: FormData) {
   const parsed = createTestPackFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Test pack details did not pass validation.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Add a workflow and test pack name before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -116,7 +116,7 @@ export async function createTestPackAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be created."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be added. Review the workflow and name, then try again."))}`);
   }
 
   revalidatePath("/checks");
@@ -127,7 +127,7 @@ export async function createTestCaseAction(formData: FormData) {
   const parsed = createTestCaseFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Test case details did not pass validation.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Add a test case name and valid expected result before saving.")}`);
   }
 
   let inputJson: unknown;
@@ -135,7 +135,7 @@ export async function createTestCaseAction(formData: FormData) {
   try {
     inputJson = parseJsonInput(parsed.data.inputJson ?? "");
   } catch {
-    redirect(`/checks?error=${encodeURIComponent("Test case input must be valid JSON.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Test case input must be valid JSON. Check commas, quotes, and braces.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -148,7 +148,7 @@ export async function createTestCaseAction(formData: FormData) {
       testPackId: parsed.data.testPackId,
     });
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be created."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be added. Refresh the page and try again."))}`);
   }
   const assertions = buildTestCaseAssertions({
     expectedStatus: parsed.data.expectedStatus,
@@ -171,7 +171,7 @@ export async function createTestCaseAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be created."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be added. Review the fields and try again."))}`);
   }
 
   revalidatePath("/checks");
@@ -182,7 +182,7 @@ export async function runTestPackAction(formData: FormData) {
   const parsed = runTestPackFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Test pack id was invalid.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Test pack could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -201,7 +201,7 @@ export async function runTestPackAction(formData: FormData) {
       testPackId: parsed.data.testPackId,
     });
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack run failed."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack run could not start. Try again in a few minutes."))}`);
   }
 
   revalidatePath("/checks");
@@ -215,7 +215,7 @@ export async function updateTestPackAction(formData: FormData) {
   const parsed = updateTestPackFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Test pack update did not pass validation.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Check the test pack name and description before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -234,7 +234,7 @@ export async function updateTestPackAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Test pack was not found or is not accessible.");
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be saved."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be saved. Refresh the page and try again."))}`);
   }
 
   await recordTestPackAuditEvent({
@@ -252,7 +252,7 @@ export async function disableTestPackAction(formData: FormData) {
   const parsed = runTestPackFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Test pack id was invalid.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Test pack could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -268,7 +268,7 @@ export async function disableTestPackAction(formData: FormData) {
   try {
     assertMutationTouchedRow(disableResult, "Test pack was not found or is not accessible.");
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be disabled."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test pack could not be disabled. Refresh the page and try again."))}`);
   }
 
   await recordTestPackAuditEvent({
@@ -286,7 +286,7 @@ export async function updateTestCaseAction(formData: FormData) {
   const parsed = updateTestCaseFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Test case update did not pass validation.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Check the test case name, input JSON, and expected result before saving.")}`);
   }
 
   let inputJson: unknown;
@@ -294,7 +294,7 @@ export async function updateTestCaseAction(formData: FormData) {
   try {
     inputJson = parseJsonInput(parsed.data.inputJson ?? "");
   } catch {
-    redirect(`/checks?error=${encodeURIComponent("Test case input must be valid JSON.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Test case input must be valid JSON. Check commas, quotes, and braces.")}`);
   }
 
   const assertions = buildTestCaseAssertions({
@@ -324,7 +324,7 @@ export async function updateTestCaseAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Test case was not found or is not accessible.");
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be saved."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be saved. Refresh the page and try again."))}`);
   }
 
   await recordTestCaseAuditEvent({
@@ -342,7 +342,7 @@ export async function archiveTestCaseAction(formData: FormData) {
   const parsed = testCaseIdFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Test case id was invalid.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Test case could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -358,7 +358,7 @@ export async function archiveTestCaseAction(formData: FormData) {
   try {
     assertMutationTouchedRow(archiveResult, "Test case was not found or is not accessible.");
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be archived."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Test case could not be archived. Refresh the page and try again."))}`);
   }
 
   await recordTestCaseAuditEvent({

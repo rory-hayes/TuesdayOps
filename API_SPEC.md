@@ -507,13 +507,14 @@ The action:
 - requires an authenticated agency workspace
 - requires owner or admin role
 - applies a DB-backed per-user checkout-start rate limit before contacting Stripe
-- accepts a server-validated `plan` value of `starter`, `growth`, `scale`, or `agency_plus`
+- accepts a server-validated self-serve `plan` value of `starter`, `growth`, or `scale`
 - creates a Stripe customer if the agency does not have one
 - stores `agencies.billing_customer_id` through server-side service-role code
 - creates a Checkout Session with `mode = subscription`
-- maps the selected plan to `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_GROWTH`, `STRIPE_PRICE_ID_SCALE`, or `STRIPE_PRICE_ID_AGENCY_PLUS`
+- maps the selected plan to `STRIPE_PRICE_ID_STARTER`, `STRIPE_PRICE_ID_GROWTH`, or `STRIPE_PRICE_ID_SCALE`
 - redirects to Stripe's hosted Checkout URL
 - redirects back to Settings with sanitized billing errors if provider setup or Checkout fails
+- blocks `agency_plus` Checkout attempts and routes Agency+ to the contact-sales request form
 
 If Stripe env vars are missing, the action redirects back to Settings with a clear billing error.
 

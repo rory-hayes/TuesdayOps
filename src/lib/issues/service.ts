@@ -37,7 +37,7 @@ export async function assignIssueToMeAction(formData: FormData) {
   const parsed = issueIdSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/issues?error=${encodeURIComponent("Issue id was invalid.")}`);
+    redirect(`/issues?error=${encodeURIComponent("Issue could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -53,7 +53,7 @@ export async function assignIssueToMeAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be assigned.")));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be assigned. Refresh the page and try again.")));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -88,7 +88,7 @@ export async function updateIssueNoteAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue note could not be saved.")));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue note could not be saved. Refresh the page and try again.")));
   }
 
   await recordIssueAuditEvent({
@@ -108,7 +108,7 @@ export async function rerunIssueCheckAction(formData: FormData) {
   const parsed = issueIdSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/issues?error=${encodeURIComponent("Issue id was invalid.")}`);
+    redirect(`/issues?error=${encodeURIComponent("Issue could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -145,7 +145,7 @@ export async function rerunIssueCheckAction(formData: FormData) {
   } catch (error) {
     redirect(buildIssueErrorRedirect(
       parsed.data.returnTo?.startsWith("/issues/") ? parsed.data.returnTo : "/issues",
-      formatActionError(error, "Issue check could not be rerun."),
+      formatActionError(error, "Issue check could not be rerun. Try again in a few minutes."),
     ));
   }
 
@@ -184,7 +184,7 @@ export async function resolveIssueAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be resolved.")));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be resolved. Refresh the page and try again.")));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -203,7 +203,7 @@ export async function setIssueReportableAction(formData: FormData) {
   const parsed = reportableIssueSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/issues?error=${encodeURIComponent("Issue report setting was invalid.")}`);
+    redirect(`/issues?error=${encodeURIComponent("Issue report setting could not be read. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -220,7 +220,7 @@ export async function setIssueReportableAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue report setting could not be saved.")));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue report setting could not be saved. Refresh the page and try again.")));
   }
 
   await recordIssueAuditEvent({
@@ -246,7 +246,7 @@ export async function ignoreIssueAction(formData: FormData) {
   const parsed = issueIdSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/issues?error=${encodeURIComponent("Issue id was invalid.")}`);
+    redirect(`/issues?error=${encodeURIComponent("Issue could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -268,7 +268,7 @@ export async function ignoreIssueAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be ignored.")));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be ignored. Refresh the page and try again.")));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,
@@ -287,7 +287,7 @@ export async function snoozeIssueAction(formData: FormData) {
   const parsed = snoozeIssueSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/issues?error=${encodeURIComponent("Issue snooze details were invalid.")}`);
+    redirect(`/issues?error=${encodeURIComponent("Choose how long to snooze the issue before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -307,7 +307,7 @@ export async function snoozeIssueAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Issue was not found or is not accessible.");
   } catch (error) {
-    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be snoozed.")));
+    redirect(buildIssueErrorRedirect("/issues", formatActionError(error, "Issue could not be snoozed. Refresh the page and try again.")));
   }
   await recordIssueAuditEvent({
     agencyId: workspace.agency.id,

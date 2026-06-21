@@ -21,10 +21,8 @@ export async function POST(request: Request) {
     const body = await request.text();
     event = getStripeClient().webhooks.constructEvent(body, signature, getStripeWebhookSecret());
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Stripe webhook verification failed." },
-      { status: 400 },
-    );
+    console.error("Stripe webhook verification failed", error);
+    return NextResponse.json({ error: "Webhook verification failed." }, { status: 400 });
   }
 
   const supabase = createAdminClient();
@@ -35,7 +33,8 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingEventError) {
-    return NextResponse.json({ error: existingEventError.message }, { status: 500 });
+    console.error("Billing event lookup failed", existingEventError);
+    return NextResponse.json({ error: "Webhook event could not be checked." }, { status: 500 });
   }
 
   if (existingEvent) {
@@ -53,10 +52,8 @@ export async function POST(request: Request) {
       agencyId = await handleSubscriptionEvent(event.data.object as Stripe.Subscription);
     }
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Stripe webhook processing failed." },
-      { status: 500 },
-    );
+    console.error("Stripe webhook processing failed", error);
+    return NextResponse.json({ error: "Webhook event could not be processed." }, { status: 500 });
   }
 
   const { error: insertEventError } = await supabase.from("billing_events").insert({
@@ -66,7 +63,8 @@ export async function POST(request: Request) {
   });
 
   if (insertEventError) {
-    return NextResponse.json({ error: insertEventError.message }, { status: 500 });
+    console.error("Billing event insert failed", insertEventError);
+    return NextResponse.json({ error: "Webhook event could not be recorded." }, { status: 500 });
   }
 
   if (agencyId) {

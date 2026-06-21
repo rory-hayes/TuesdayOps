@@ -97,6 +97,8 @@ describe("scheduler run-due-checks route", () => {
     expect(runDueScheduledChecks).toHaveBeenCalledWith({
       supabase: { admin: true },
       checkId: "550e8400-e29b-41d4-a716-446655440000",
+      limit: 1,
+      maxPages: 1,
     });
 
     const headerAuth = await POST(
@@ -112,6 +114,8 @@ describe("scheduler run-due-checks route", () => {
     expect(runDueScheduledChecks).toHaveBeenLastCalledWith({
       supabase: { admin: true },
       checkId: undefined,
+      limit: 4,
+      maxPages: 1,
     });
   });
 

@@ -63,15 +63,19 @@ export async function runHttpCheck({
   check,
   authConfig,
   transport = sendPinnedWorkflowRequest,
+  maxTimeoutMs,
+  maxAttempts = maxRequestAttempts,
 }: {
   workflow: RunnableWorkflow;
   check: RunnableCheck;
   authConfig?: WorkflowAuthConfig;
   transport?: WorkflowHttpTransport;
+  maxTimeoutMs?: number;
+  maxAttempts?: number;
 }): Promise<HttpCheckResult> {
   const startedAtDate = new Date();
   const startedAt = startedAtDate.toISOString();
-  const config = parseCheckConfig(check.configJson);
+  const config = applyRuntimeLimits(parseCheckConfig(check.configJson), { maxTimeoutMs });
   const headers = buildHeaders(workflow.authType, authConfig);
 
   try {
@@ -79,7 +83,9 @@ export async function runHttpCheck({
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
 
-    for (let attempt = 1; attempt <= maxRequestAttempts; attempt += 1) {
+    const requestAttempts = Math.max(1, maxAttempts);
+
+    for (let attempt = 1; attempt <= requestAttempts; attempt += 1) {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
 
@@ -163,6 +169,17 @@ export async function runHttpCheck({
 
 function parseCheckConfig(value: unknown): CheckConfig {
   return checkConfigSchema.parse(value);
+}
+
+function applyRuntimeLimits(config: CheckConfig, { maxTimeoutMs }: { maxTimeoutMs?: number }): CheckConfig {
+  if (!maxTimeoutMs) {
+    return config;
+  }
+
+  return {
+    ...config,
+    timeoutMs: Math.min(config.timeoutMs, Math.max(1000, maxTimeoutMs)),
+  };
 }
 
 function buildHeaders(

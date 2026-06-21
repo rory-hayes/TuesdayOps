@@ -151,8 +151,8 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
 
       <Dialog open={open} onClose={setOpen} className="relative z-50">
         <DialogBackdrop className="fixed inset-0 bg-zinc-950/30" />
-        <div className="fixed inset-0 flex w-screen items-start justify-center overflow-y-auto px-4 py-4 sm:items-center sm:py-8">
-          <DialogPanel className="grid max-h-[calc(100dvh-2rem)] w-full max-w-6xl overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-zinc-950/10 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="fixed inset-0 flex w-screen items-start justify-center overflow-hidden px-4 py-4 sm:items-center sm:py-8">
+          <DialogPanel className="grid h-[calc(100dvh-2rem)] w-full max-w-6xl grid-rows-[minmax(0,1fr)] overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-zinc-950/10 sm:h-[calc(100dvh-4rem)] sm:max-h-[900px] lg:grid-cols-[320px_minmax(0,1fr)]">
             <aside className="hidden min-h-0 border-r border-zinc-950/10 bg-zinc-50/80 p-6 lg:flex lg:flex-col">
               <div>
                 <p className="text-sm/6 font-medium text-zinc-500">Activation path</p>
@@ -209,8 +209,8 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
               </div>
             </aside>
 
-            <section className="flex min-h-0 flex-col">
-              <header className="flex items-start justify-between gap-4 border-b border-zinc-950/10 p-5 sm:p-6">
+            <section className="flex h-full min-h-0 flex-col overflow-hidden">
+              <header className="flex shrink-0 items-start justify-between gap-4 border-b border-zinc-950/10 p-5 sm:p-6">
                 <div>
                   <p className="text-sm/6 font-medium text-zinc-500">
                     Step {context.steps.findIndex((step) => step.id === activeStep) + 1} of {context.steps.length}
@@ -262,7 +262,7 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
                 </div>
               </div>
 
-              <footer className="flex flex-col-reverse gap-3 border-t border-zinc-950/10 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <footer className="flex shrink-0 flex-col-reverse gap-3 border-t border-zinc-950/10 bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
                 <button
                   type="button"
                   className="text-sm/6 font-medium text-zinc-500 transition hover:text-zinc-950"
@@ -371,7 +371,7 @@ function WizardStepPanel({
       return (
         <BlockedPanel
           title="Create the health check first"
-          description="Tuesday creates the first health check when you connect a workflow endpoint."
+          description="Maintain Flow creates the first health check when you connect a workflow endpoint."
           onClick={() => onContinue("workflow")}
         />
       );
@@ -673,7 +673,7 @@ function RunCheckStepForm({
           <div>
             <h3 className="text-base/7 font-semibold text-zinc-950">Run the first health check</h3>
             <p className="mt-1 text-sm/6 text-zinc-500">
-              Tuesday will call the configured endpoint, store the result, update workflow health, and create an issue if the run fails or degrades.
+              Maintain Flow will call the configured endpoint, store the result, update workflow health, and create an issue if the run fails or degrades.
             </p>
             {workflow ? (
               <p className="mt-3 break-all rounded-lg bg-zinc-50 p-3 font-mono text-xs/5 text-zinc-600 ring-1 ring-zinc-950/5">
@@ -1110,7 +1110,7 @@ function getStepDescription(step: WizardStepId): string {
     agency: "The workspace anchors every client, workflow, check, issue, and report.",
     client: "Start with one retained client so monitoring data has the right owner.",
     workflow: "Preserve the full endpoint URL and configure the check that proves it is healthy.",
-    check_run: "Send a safe request, store the result, and let Tuesday update health and issues.",
+    check_run: "Send a safe request, store the result, and let Maintain Flow update health and issues.",
     report: "Create a client-facing proof draft from the real source data collected so far.",
   };
 

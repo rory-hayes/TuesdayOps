@@ -3,7 +3,7 @@ import { AuthDivider, GoogleAuthForm } from "@/components/auth/google-auth-form"
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { PageFeedback } from "@/components/ui/page-feedback";
-import { signInAction, signInWithGoogleAction } from "@/lib/auth/actions";
+import { signInAction } from "@/lib/auth/actions";
 
 type AuthPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -25,7 +25,7 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
 
       <PageFeedback notice={notice} error={error} variant="inline" />
 
-      <GoogleAuthForm action={signInWithGoogleAction} source="sign-in" />
+      <GoogleAuthForm source="sign-in" />
 
       <AuthDivider />
 
@@ -40,7 +40,7 @@ export default async function SignInPage({ searchParams }: AuthPageProps) {
       </Link>
 
       <p className="text-sm/6 text-zinc-500">
-        New to Tuesday?{" "}
+        New to Maintain Flow?{" "}
         <Link href="/sign-up" prefetch={false} className="font-semibold text-zinc-950 hover:text-zinc-700">
           Create an account
         </Link>

@@ -46,7 +46,7 @@ describe("sendIssueAlertForNewIssue", () => {
       expect.objectContaining({
         to: "ops@example.com",
         idempotencyKey: "issue-alert:issue-1",
-        subject: "[Tuesday] High issue for Harbor Legal: Risk router returned HTTP 500",
+        subject: "[Maintain Flow] High issue for Harbor Legal: Risk router returned HTTP 500",
       }),
     );
     expect(updates).toContainEqual(

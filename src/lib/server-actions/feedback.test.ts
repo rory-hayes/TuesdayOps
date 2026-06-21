@@ -33,7 +33,7 @@ describe("formatActionError", () => {
       "Test pack run failed.",
     );
     expect(formatActionError(new Error("Report is blocked: Report has no check runs for this period."))).toBe(
-      "Report is blocked: Report has no check runs for this period.",
+      "Report needs more source data: Report has no check runs for this period.",
     );
   });
 

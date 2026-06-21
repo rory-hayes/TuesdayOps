@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatAgencyError,
+  formatOAuthCallbackError,
   formatOAuthError,
   formatPasswordResetError,
   formatSignInError,
@@ -13,17 +14,17 @@ describe("auth feedback formatting", () => {
       new Error("Invalid login credentials for ops@example.com with token=abc123"),
     );
 
-    expect(message).toBe("Email or password did not match an active account.");
+    expect(message).toBe("We could not find an active account for that email and password. Check the details or create an account first.");
     expect(message).not.toContain("ops@example.com");
     expect(message).not.toContain("abc123");
   });
 
   it("maps common sign-up provider errors to safe customer-facing copy", () => {
     expect(formatSignUpError(new Error("User already registered: rory@example.com token=abc123"))).toBe(
-      "An account with this email already exists. Sign in instead.",
+      "An account with this email already exists. Sign in instead, or reset your password.",
     );
     expect(formatSignUpError(new Error("Database error saving new user with SUPABASE_SECRET_KEY=abc123"))).toBe(
-      "Account could not be created. Check the details and try again.",
+      "We could not create the account. Check the email and password requirements, then try again.",
     );
   });
 
@@ -32,9 +33,21 @@ describe("auth feedback formatting", () => {
       new Error("Google OAuth failed for ops@example.com with access_token=abc123"),
     );
 
-    expect(message).toBe("Google sign-in could not be started. Try again.");
+    expect(message).toBe("Google sign-in could not be started. Refresh the page and try again.");
     expect(message).not.toContain("ops@example.com");
     expect(message).not.toContain("abc123");
+  });
+
+  it("maps Google callback failures to self-triage copy without provider details", () => {
+    expect(formatOAuthCallbackError(new Error("user not found for ops@example.com token=abc123"), "sign-in")).toBe(
+      "No account is linked to that Google profile yet. Create an account first, then continue with Google.",
+    );
+    expect(formatOAuthCallbackError(new Error("access_denied: user cancelled"), "sign-up")).toBe(
+      "Google sign-in was cancelled. Choose Continue with Google to try again.",
+    );
+    expect(formatOAuthCallbackError(new Error("invalid_grant: expired code"), "sign-in")).toBe(
+      "That sign-in link expired. Start Google sign-in again.",
+    );
   });
 
   it("maps workspace duplicate-slug errors without exposing database internals", () => {

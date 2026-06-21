@@ -20,11 +20,18 @@ billing_price_id text
 billing_current_period_end timestamptz
 trial_ends_at timestamptz
 sample_data_seeded_at timestamptz -- legacy field retained for existing migrated databases; not used by active onboarding
+report_sender_name text
+report_sender_email text
+report_reply_to_email text
+report_sender_domain text
+report_sender_domain_status text check in ('pending', 'verified', 'failed')
 created_at timestamptz default now()
 updated_at timestamptz default now()
 ```
 
 Billing state columns are service-controlled. Browser-token updates are limited to non-billing agency profile fields such as `name`, `slug`, `logo_url`, and `primary_color`; Stripe Checkout/webhook flows update billing identifiers and subscription state through server-side service-role code.
+
+Report email sender settings are service-action controlled. Report sends only use `report_sender_email` as the From address when its domain matches the configured Resend verified sender domain and `report_sender_domain_status = 'verified'`; otherwise reports fall back to the platform sender and use the configured sender or reply address as Reply-To.
 
 ## users / profiles
 

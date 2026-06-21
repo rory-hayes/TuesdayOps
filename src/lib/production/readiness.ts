@@ -86,7 +86,7 @@ export function buildProductionReadiness(env: ReadinessEnv = process.env): Produ
       env,
       keys: [
         ["RESEND_API_KEY", "API key"],
-        ["RESEND_FROM_EMAIL", "From sender"],
+        ["RESEND_FROM_EMAIL", "Verified From sender"],
       ],
     }),
     buildGroup({
@@ -100,7 +100,6 @@ export function buildProductionReadiness(env: ReadinessEnv = process.env): Produ
         ["STRIPE_PRICE_ID_STARTER", "Starter subscription price"],
         ["STRIPE_PRICE_ID_GROWTH", "Growth subscription price"],
         ["STRIPE_PRICE_ID_SCALE", "Scale subscription price"],
-        ["STRIPE_PRICE_ID_AGENCY_PLUS", "Agency+ subscription price"],
         ["NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY", "Publishable key"],
       ],
     }),
@@ -235,6 +234,14 @@ function isConfiguredEnvValue(key: keyof ReadinessEnv, value: string | undefined
 
   if (key === "NEXT_PUBLIC_APP_URL") {
     return isAbsoluteHttpUrl(configuredValue);
+  }
+
+  if (key === "STRIPE_SECRET_KEY") {
+    return configuredValue.startsWith("sk_live_") || configuredValue.startsWith("rk_live_");
+  }
+
+  if (key === "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY") {
+    return configuredValue.startsWith("pk_live_");
   }
 
   return true;

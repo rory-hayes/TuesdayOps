@@ -34,7 +34,7 @@ export async function createClientAction(formData: FormData) {
   const parsed = clientFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/clients?error=${encodeURIComponent("Add a client name, industry, and report email.")}`);
+    redirect(`/clients?error=${encodeURIComponent("Add a client name, industry, and valid report email before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -46,7 +46,7 @@ export async function createClientAction(formData: FormData) {
     .is("archived_at", null);
 
   if (countError) {
-    redirect(`/clients?error=${encodeURIComponent(formatActionError(countError, "Client count could not be loaded."))}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(countError, "Client limits could not be checked. Try again or contact support."))}`);
   }
 
   const limitDecision = canCreateClient({
@@ -79,7 +79,7 @@ export async function createClientAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be created."))}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be added. Check the details and try again."))}`);
   }
 
   revalidatePath("/clients");
@@ -95,7 +95,7 @@ export async function updateClientAction(formData: FormData) {
     .safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/clients?error=${encodeURIComponent("Client update did not pass validation.")}`);
+    redirect(`/clients?error=${encodeURIComponent("Check the client name, industry, and report email before saving.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -127,7 +127,7 @@ export async function updateClientAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Client was not found or is not accessible.");
   } catch (error) {
-    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be saved."))}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be saved. Refresh the page and try again."))}`);
   }
 
   revalidatePath("/clients");
@@ -139,7 +139,7 @@ export async function archiveClientAction(formData: FormData) {
   const parsed = clientIdSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/clients?error=${encodeURIComponent("Client id was invalid.")}`);
+    redirect(`/clients?error=${encodeURIComponent("Client could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -155,7 +155,7 @@ export async function archiveClientAction(formData: FormData) {
   try {
     assertMutationTouchedRow(archiveResult, "Client was not found or is not accessible.");
   } catch (error) {
-    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be archived."))}`);
+    redirect(`/clients?error=${encodeURIComponent(formatActionError(error, "Client could not be archived. Refresh the page and try again."))}`);
   }
 
   revalidatePath("/clients");

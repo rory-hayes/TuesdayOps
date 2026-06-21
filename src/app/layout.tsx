@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Tuesday",
+  title: "Maintain Flow",
   description: "Post-launch monitoring, QA, and proof reports for AI agencies.",
   icons: {
     icon: [

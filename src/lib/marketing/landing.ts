@@ -27,21 +27,21 @@ export type LandingContent = {
 export function getLandingContent(): LandingContent {
   return {
     hero: {
-      title: "Tuesday",
+      title: "Keep every client workflow running.",
       eyebrow: "Operational proof for AI agencies",
       description:
-        "Monitor live client workflows, catch silent failures, and turn Check Run, Issue, and Monthly Report data into clear proof-of-work updates.",
+        "The post-launch operating layer for AI agencies. Monitor the automations you ship, catch silent failures before clients notice, and turn the work you do into monthly proof.",
     },
     customerBase: {
       eyebrow: "Customer base",
       title: "Agency teams are turning launches into retained operations.",
       description:
-        "Tuesday is built for agencies that need to keep client AI systems visible after handoff, with proof generated from monitored workflows and monthly reporting.",
+        "Maintain Flow is built for agencies that need to keep client AI systems visible after handoff, with proof generated from monitored workflows and monthly reporting.",
       metrics: [
         {
           value: "200+",
           label: "customers",
-          description: "Agency teams using Tuesday to keep retained client work visible.",
+          description: "Agency teams using Maintain Flow to keep retained client work visible.",
         },
         {
           value: "2,500+",
@@ -57,36 +57,36 @@ export function getLandingContent(): LandingContent {
     },
     sections: [
       {
-        title: "How it works",
+        title: "A maintenance loop your agency can actually run.",
         description:
-          "Tuesday turns routine workflow maintenance into a simple operating path your team can repeat for every retained client.",
+          "Maintain Flow keeps the post-launch path simple: connect each client workflow, monitor Check Runs, resolve Issues, and send Monthly Reports from stored evidence.",
         items: [
           {
-            label: "Connect workflow endpoint",
-            description: "Register the client workflow, endpoint, auth context, and owner in one workspace.",
+            label: "Connect",
+            description: "Add the client, register the workflow, and keep credentials tenant-scoped.",
           },
           {
-            label: "Run health checks",
-            description: "Schedule checks and accept run logs so failures, latency, and regressions stay visible.",
+            label: "Monitor",
+            description: "Run scheduled or manual checks with status, latency, and report-ready context.",
           },
           {
-            label: "Create issues",
-            description: "Convert failed checks into deduped issues with severity, owner, and client context.",
+            label: "Catch",
+            description: "Surface failed checks, schema drift, expired keys, and stalled runs before clients escalate.",
           },
           {
-            label: "Resolve maintenance work",
-            description: "Track fixes, notes, and resolution summaries without losing the operational evidence.",
+            label: "Resolve",
+            description: "Turn failures into owned Issues with severity, notes, and resolution history.",
           },
           {
-            label: "Send proof report",
-            description: "Package monitored workflows, caught issues, completed fixes, and next-month recommendations.",
+            label: "Report",
+            description: "Generate Monthly Reports with checks, incidents, fixes, and proof clients can understand.",
           },
         ],
       },
       {
         title: "Design-partner ready workflows",
         description:
-          "Tuesday helps agencies prove that launched AI automations are still healthy without exposing sensitive run data.",
+          "Maintain Flow helps agencies prove that launched AI automations are still healthy without exposing sensitive run data.",
         items: [
           {
             label: "Run logging",

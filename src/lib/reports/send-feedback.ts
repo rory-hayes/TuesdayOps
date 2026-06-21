@@ -1,10 +1,10 @@
 import { formatActionError } from "@/lib/server-actions/feedback";
 
 const EMAIL_NOT_CONFIGURED_MESSAGE =
-  "Report email could not be sent because email delivery is not configured.";
+  "Report email is not ready yet. Contact support to finish email setup.";
 const EMAIL_DELIVERY_FAILED_MESSAGE =
-  "Report email could not be sent. Check the recipient and try again.";
-const REPORT_SEND_FALLBACK = "Report email could not be sent.";
+  "Report email could not be delivered. Check the recipient address and try again.";
+const REPORT_SEND_FALLBACK = "Report email could not be sent. Try again or contact support.";
 
 export function buildReportSendRedirect({
   reportId,

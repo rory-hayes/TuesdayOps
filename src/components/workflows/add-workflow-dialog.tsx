@@ -67,7 +67,7 @@ export function AddWorkflowDialog({
                   id="add-workflow-description"
                   className="mt-2 max-w-2xl text-sm/6 text-zinc-500"
                 >
-                  Import an existing endpoint or configure one manually, then Tuesday creates the first health check.
+                  Import an existing endpoint or configure one manually, then Maintain Flow creates the first health check.
                 </p>
               </div>
               <button

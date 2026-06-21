@@ -38,14 +38,18 @@ export async function runDueScheduledChecks({
   supabase,
   now = new Date(),
   limit = 50,
+  maxPages,
   checkId,
 }: {
   supabase: SupabaseClient;
   now?: Date;
   limit?: number;
+  maxPages?: number;
   checkId?: string;
 }): Promise<ScheduledCheckBatchResult> {
   const pageLimit = Math.max(checkId ? 1 : limit, 1);
+  const pageBudget = checkId ? 1 : Math.max(maxPages ?? Number.POSITIVE_INFINITY, 1);
+  let pagesLoaded = 0;
   const attemptedCheckIds = new Set<string>();
   const summary: ScheduledCheckBatchResult = {
     attempted: 0,
@@ -54,7 +58,7 @@ export async function runDueScheduledChecks({
     failed: 0,
   };
 
-  while (true) {
+  while (pagesLoaded < pageBudget) {
     const checks = await loadSchedulableChecks({
       supabase,
       now,
@@ -62,6 +66,7 @@ export async function runDueScheduledChecks({
       checkId,
       excludeCheckIds: [...attemptedCheckIds],
     });
+    pagesLoaded += 1;
 
     if (!checks.length) {
       break;

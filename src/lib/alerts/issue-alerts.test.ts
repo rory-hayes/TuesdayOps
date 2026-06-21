@@ -45,11 +45,11 @@ describe("issue alert safe copy", () => {
       appUrl: "https://tuesday-ops.vercel.app",
     });
 
-    expect(email.subject).toBe("[Tuesday] High issue for Harbor Legal: Risk router token=[redacted] returned HTTP 500");
+    expect(email.subject).toBe("[Maintain Flow] High issue for Harbor Legal: Risk router token=[redacted] returned HTTP 500");
     expect(email.text).toContain("Client: Harbor Legal");
     expect(email.text).toContain("Workflow: Risk Router");
     expect(email.text).toContain("Check: Endpoint health check");
-    expect(email.text).toContain("Open Tuesday: https://tuesday-ops.vercel.app/issues");
+    expect(email.text).toContain("Open Maintain Flow: https://tuesday-ops.vercel.app/issues");
     expect(email.text).not.toContain("abc123");
     expect(email.html).not.toContain("abc123");
   });
@@ -66,8 +66,8 @@ describe("issue alert safe copy", () => {
       appUrl: "https://tuesday-ops.vercel.app/",
     });
 
-    expect(email.subject).toBe("[Tuesday] Critical issue for Harbor Legal: Risk router returned HTTP 500");
-    expect(email.text).toContain("Critical severity issue detected in Tuesday.");
-    expect(email.text).toContain("Open Tuesday: https://tuesday-ops.vercel.app/issues");
+    expect(email.subject).toBe("[Maintain Flow] Critical issue for Harbor Legal: Risk router returned HTTP 500");
+    expect(email.text).toContain("Critical severity issue detected in Maintain Flow.");
+    expect(email.text).toContain("Open Maintain Flow: https://tuesday-ops.vercel.app/issues");
   });
 });

@@ -46,7 +46,7 @@ export function SignUpForm({ action }: SignUpFormProps) {
     <form
       action={action}
       onSubmit={handleSubmit}
-      aria-label="Create Tuesday account"
+      aria-label="Create Maintain Flow account"
       noValidate
       className="grid gap-6"
     >

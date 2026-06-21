@@ -46,9 +46,9 @@ export function buildIssueAlertEmail({
   const issuesUrl = `${appUrl.replace(/\/$/, "")}/issues`;
 
   return {
-    subject: `[Tuesday] ${severityLabel} issue for ${safeClientName}: ${safeTitle}`,
+    subject: `[Maintain Flow] ${severityLabel} issue for ${safeClientName}: ${safeTitle}`,
     text: [
-      `${severityLabel} severity issue detected in Tuesday.`,
+      `${severityLabel} severity issue detected in Maintain Flow.`,
       "",
       `Client: ${safeClientName}`,
       `Workflow: ${safeWorkflowName}`,
@@ -60,10 +60,10 @@ export function buildIssueAlertEmail({
       "",
       `Suggested action: ${safeSuggestedAction}`,
       "",
-      `Open Tuesday: ${issuesUrl}`,
+      `Open Maintain Flow: ${issuesUrl}`,
     ].join("\n"),
     html: [
-      `<p><strong>${escapeHtml(severityLabel)} severity issue detected in Tuesday.</strong></p>`,
+      `<p><strong>${escapeHtml(severityLabel)} severity issue detected in Maintain Flow.</strong></p>`,
       "<ul>",
       `<li><strong>Client:</strong> ${escapeHtml(safeClientName)}</li>`,
       `<li><strong>Workflow:</strong> ${escapeHtml(safeWorkflowName)}</li>`,
@@ -73,7 +73,7 @@ export function buildIssueAlertEmail({
       `<p><strong>Issue:</strong> ${escapeHtml(safeTitle)}</p>`,
       `<p>${escapeHtml(safeDescription)}</p>`,
       `<p><strong>Suggested action:</strong> ${escapeHtml(safeSuggestedAction)}</p>`,
-      `<p><a href="${escapeHtml(issuesUrl)}">Open Tuesday issue queue</a></p>`,
+      `<p><a href="${escapeHtml(issuesUrl)}">Open Maintain Flow issue queue</a></p>`,
     ].join(""),
   };
 }

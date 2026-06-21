@@ -11,6 +11,7 @@ import { getOperationalData, getReportSourceData } from "@/lib/data/operational-
 import type { ReportDraft, ReportItemCategory } from "@/lib/domain/types";
 import { getAppUrl } from "@/lib/env";
 import { buildReportDraft } from "@/lib/reports/aggregation";
+import { buildReportEmailIdentity, type ReportEmailIdentity } from "@/lib/reports/email-identity";
 import { prepareReportNarrativeEdit, type ReportNarrativeEditField } from "@/lib/reports/narrative-edits";
 import { buildReportEmail, buildReportPdfAttachment, renderReportPdfBytes } from "@/lib/reports/pdf";
 import { assertReportCanBeExported, buildReportQuality } from "@/lib/reports/quality";
@@ -96,7 +97,7 @@ export async function generateReportAction(formData: FormData) {
   const parsed = generateReportFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/reports?error=${encodeURIComponent("Report details did not pass validation.")}`);
+    redirect(`/reports?error=${encodeURIComponent("Choose a client and month before generating a report.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -134,7 +135,7 @@ export async function generateReportAction(formData: FormData) {
       },
     });
   } catch (error) {
-    redirect(`/reports?error=${encodeURIComponent(formatActionError(error, "Report could not be generated."))}`);
+    redirect(`/reports?error=${encodeURIComponent(formatActionError(error, "Report could not be generated. Check the client and period, then try again."))}`);
   }
 
   revalidatePath("/reports");
@@ -145,7 +146,7 @@ export async function generateReportPdfAction(formData: FormData) {
   const parsed = reportIdFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/reports?error=${encodeURIComponent("Report id was invalid.")}`);
+    redirect(`/reports?error=${encodeURIComponent("Report could not be found. Open the report again before exporting.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -172,7 +173,7 @@ export async function generateReportPdfAction(formData: FormData) {
     });
   } catch (error) {
     redirect(
-      `/reports?error=${encodeURIComponent(formatActionError(error, "Report PDF could not be generated."))}`,
+      `/reports?error=${encodeURIComponent(formatActionError(error, "Report PDF could not be generated. Resolve readiness items and try again."))}`,
     );
   }
 
@@ -185,7 +186,7 @@ export async function sendReportAction(formData: FormData) {
   const parsed = reportIdFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/reports?error=${encodeURIComponent("Report id was invalid.")}`);
+    redirect(`/reports?error=${encodeURIComponent("Report could not be found. Open the report again before sending.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -193,6 +194,7 @@ export async function sendReportAction(formData: FormData) {
   const admin = createAdminClient();
   let sendStatus: "sent" | "failed" = "sent";
   let sendMessage: string | undefined;
+  let emailIdentity: ReportEmailIdentity | undefined;
 
   try {
     await assertPersistentRateLimit({
@@ -205,6 +207,17 @@ export async function sendReportAction(formData: FormData) {
       data: await getOperationalData(workspace.agency),
       reportId: parsed.data.reportId,
     }));
+    const reportStatus = await loadReportEditStatus({
+      supabase,
+      agencyId: workspace.agency.id,
+      reportId: parsed.data.reportId,
+    });
+
+    if (reportStatus.status === "sent") {
+      throw new Error("Report has already been sent. Sent report history is preserved.");
+    }
+
+    emailIdentity = buildReportEmailIdentity(workspace.agency);
     const { draft, pdfBytes } = await generateAndStoreReportPdf({
       supabase,
       admin,
@@ -224,9 +237,12 @@ export async function sendReportAction(formData: FormData) {
     const email = buildReportEmail({
       report: draft,
       downloadUrl: `${getAppUrl()}/api/reports/${parsed.data.reportId}/download`,
+      senderName: emailIdentity.senderName,
     });
     const delivery = await sendResendEmail({
+      from: emailIdentity.from,
       to: client.report_recipient_email,
+      replyTo: emailIdentity.replyTo,
       subject: email.subject,
       text: email.text,
       html: email.html,
@@ -258,24 +274,38 @@ export async function sendReportAction(formData: FormData) {
       actorUserId: workspace.user.id,
       action: "report.send_attempted",
       reportId: parsed.data.reportId,
-      metadata: { status: "sent" },
+      metadata: {
+        status: "sent",
+        fromEmail: emailIdentity.fromEmail,
+        replyTo: emailIdentity.replyTo,
+        usingFallbackSender: emailIdentity.usingFallbackSender,
+      },
     });
   } catch (error) {
     const safeMessage = formatReportSendError(error);
     sendStatus = "failed";
     sendMessage = safeMessage;
-    await recordReportSendFailure({
-      supabase,
-      agencyId: workspace.agency.id,
-      reportId: parsed.data.reportId,
-      error: safeMessage,
-    });
+
+    if (!isSentReportPreservationError(error)) {
+      await recordReportSendFailure({
+        supabase,
+        agencyId: workspace.agency.id,
+        reportId: parsed.data.reportId,
+        error: safeMessage,
+      });
+    }
     await recordReportAuditEvent({
       agencyId: workspace.agency.id,
       actorUserId: workspace.user.id,
       action: "report.send_attempted",
       reportId: parsed.data.reportId,
-      metadata: { status: "failed", error: safeMessage },
+      metadata: {
+        status: "failed",
+        error: safeMessage,
+        fromEmail: emailIdentity?.fromEmail,
+        replyTo: emailIdentity?.replyTo,
+        usingFallbackSender: emailIdentity?.usingFallbackSender,
+      },
     });
   }
 
@@ -795,6 +825,10 @@ function sanitizeReportError(value: string) {
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
     .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
     .slice(0, 600);
+}
+
+function isSentReportPreservationError(error: unknown): boolean {
+  return error instanceof Error && /already been sent/i.test(error.message);
 }
 
 async function recordReportAuditEvent({

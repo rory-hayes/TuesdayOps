@@ -77,7 +77,7 @@ export async function createCheckAction(formData: FormData) {
   });
 
   if (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be created."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be added. Review the workflow and check settings, then try again."))}`);
   }
 
   revalidatePath("/checks");
@@ -125,7 +125,7 @@ export async function updateCheckAction(formData: FormData) {
   try {
     assertMutationTouchedRow(updateResult, "Check was not found or is not accessible.");
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be saved."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be saved. Refresh the page and try again."))}`);
   }
 
   const workflowId = (updateResult.data as { workflow_id?: string } | null)?.workflow_id;
@@ -155,7 +155,7 @@ export async function runCheckAction(formData: FormData) {
   const parsed = runCheckFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Check id was invalid.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Check could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -186,11 +186,11 @@ export async function runCheckAction(formData: FormData) {
       runStatus: result.status === "completed" ? result.runStatus : result.status,
     });
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check run failed."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check run could not start. Try again in a few minutes."))}`);
   }
 
   if (!workflowId) {
-    redirect(`/checks?error=${encodeURIComponent("Check run did not return a workflow.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Check run finished, but the workflow could not be loaded. Refresh the page and try again.")}`);
   }
 
   revalidatePath("/checks");
@@ -208,7 +208,7 @@ export async function disableCheckAction(formData: FormData) {
   const parsed = runCheckFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/checks?error=${encodeURIComponent("Check id was invalid.")}`);
+    redirect(`/checks?error=${encodeURIComponent("Check could not be found. Refresh the page and try again.")}`);
   }
 
   const workspace = await requireWorkspace();
@@ -224,7 +224,7 @@ export async function disableCheckAction(formData: FormData) {
   try {
     assertMutationTouchedRow(disableResult, "Check was not found or is not accessible.");
   } catch (error) {
-    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be disabled."))}`);
+    redirect(`/checks?error=${encodeURIComponent(formatActionError(error, "Check could not be disabled. Refresh the page and try again."))}`);
   }
 
   const workflowId = (disableResult.data as { workflow_id?: string } | null)?.workflow_id;

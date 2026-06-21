@@ -16,7 +16,7 @@ describe("SignUpForm", () => {
     fireEvent.change(screen.getByLabelText("Email"), { target: { value: "ops@example.com" } });
     fireEvent.change(screen.getByLabelText("New password"), { target: { value: "weak" } });
     fireEvent.change(screen.getByLabelText("Confirm password"), { target: { value: "weak" } });
-    fireEvent.submit(screen.getByRole("form", { name: "Create Tuesday account" }));
+    fireEvent.submit(screen.getByRole("form", { name: "Create Maintain Flow account" }));
 
     expect(screen.getByRole("alert").textContent).toContain(PASSWORD_REQUIREMENTS);
     expect(action).not.toHaveBeenCalled();
@@ -28,7 +28,7 @@ describe("SignUpForm", () => {
       expect(screen.getByText("Password and confirmation must match.")).toBeTruthy();
     });
 
-    fireEvent.submit(screen.getByRole("form", { name: "Create Tuesday account" }));
+    fireEvent.submit(screen.getByRole("form", { name: "Create Maintain Flow account" }));
 
     expect(screen.getByRole("alert").textContent).toContain("Password and confirmation must match.");
     expect(action).not.toHaveBeenCalled();

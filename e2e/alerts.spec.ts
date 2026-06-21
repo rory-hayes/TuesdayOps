@@ -10,9 +10,9 @@ const env = {
   RESEND_API_KEY: process.env.RESEND_API_KEY ?? localEnv.RESEND_API_KEY,
 };
 
-test("high-severity scheduled issue records an alert attempt", async ({ page, baseURL }) => {
-  test.skip(!hasRequiredEnv(), "Alert E2E requires Supabase service and scheduler secrets.");
+test.skip(!hasRequiredEnv(), "Alert E2E requires Supabase service and scheduler secrets.");
 
+test("high-severity scheduled issue records an alert attempt", async ({ page, baseURL }) => {
   const appUrl = baseURL ?? "http://localhost:3000";
   const runId = Date.now();
   const email = `qa-alert-${runId}@example.invalid`;

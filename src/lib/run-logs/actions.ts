@@ -26,7 +26,7 @@ export async function rotateWorkflowRunLogKeyAction(
   const parsed = workflowIdSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return { error: "Workflow id was invalid." };
+    return { error: "Workflow could not be found. Refresh the page and try again." };
   }
 
   const workspace = await requireWorkspace();
@@ -67,7 +67,7 @@ export async function rotateWorkflowRunLogKeyAction(
       keyPrefix: key.prefix,
     };
   } catch (error) {
-    return { error: formatActionError(error, "Run-log API key could not be rotated.") };
+    return { error: formatActionError(error, "Run-log API key could not be rotated. Refresh the page and try again.") };
   }
 }
 
@@ -78,7 +78,7 @@ export async function revokeWorkflowRunLogKeysAction(
   const parsed = workflowIdSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return { error: "Workflow id was invalid." };
+    return { error: "Workflow could not be found. Refresh the page and try again." };
   }
 
   const workspace = await requireWorkspace();
@@ -102,7 +102,7 @@ export async function revokeWorkflowRunLogKeysAction(
 
     return { notice: "Active run-log API keys revoked." };
   } catch (error) {
-    return { error: formatActionError(error, "Run-log API keys could not be revoked.") };
+    return { error: formatActionError(error, "Run-log API keys could not be revoked. Refresh the page and try again.") };
   }
 }
 
