@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   formatAgencyError,
+  formatEmailVerificationCallbackError,
   formatOAuthCallbackError,
   formatOAuthError,
   formatPasswordResetError,
@@ -47,6 +48,19 @@ describe("auth feedback formatting", () => {
     );
     expect(formatOAuthCallbackError(new Error("invalid_grant: expired code"), "sign-in")).toBe(
       "That sign-in link expired. Start Google sign-in again.",
+    );
+  });
+
+  it("maps email verification callback failures without Google-specific copy", () => {
+    expect(formatEmailVerificationCallbackError(new Error("invalid_grant: expired code"))).toBe(
+      "That verification link expired. Sign up again with the same email to request a new one.",
+    );
+    expect(
+      formatEmailVerificationCallbackError(
+        new Error("Verification failed for ops@example.com token_hash=abc123"),
+      ),
+    ).toBe(
+      "Email verification could not be completed. Use the latest verification link or sign up again to request a new one.",
     );
   });
 

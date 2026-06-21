@@ -137,6 +137,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 `NEXT_PUBLIC_POSTHOG_KEY` and `NEXT_PUBLIC_POSTHOG_HOST` are reserved for a later analytics pass and are not launch-blocking while PostHog is intentionally skipped.
 `ALLOW_PRIVATE_WORKFLOW_ENDPOINTS=true` is only for local/private test environments. Production should leave it unset so workflow checks cannot call localhost, private networks, or metadata endpoints.
 Google sign-in is configured in Supabase Auth provider settings. Add `${NEXT_PUBLIC_APP_URL}/auth/callback` to the Supabase redirect allowlist and add the Supabase provider callback URL to Google Authorized Redirect URIs.
+Email/password signups require Supabase Auth email confirmations to be enabled. The app sends signup confirmation links through `${NEXT_PUBLIC_APP_URL}/auth/callback`, signs out unverified password sessions, and keeps unverified users out of onboarding and app routes until Supabase reports `email_confirmed_at` or `confirmed_at`.
 
 Scheduled checks are triggered by Supabase Cron calling `/api/scheduler/run-due-checks`. Monthly report draft automation uses the same scheduler secret on `/api/scheduler/run-monthly-reports`. The Cron SQL reads `tuesdayops_app_url` and `tuesdayops_scheduler_secret` from Supabase Vault, so the scheduler secret is not stored in migrations or client code. Set `SUPABASE_CRON_ENABLED=true` only after the Cron job and Vault secrets are configured.
 

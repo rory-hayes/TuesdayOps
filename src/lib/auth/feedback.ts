@@ -9,6 +9,10 @@ const OAUTH_SIGN_UP_ACCOUNT_ERROR =
 const OAUTH_CANCELLED_ERROR = "Google sign-in was cancelled. Choose Continue with Google to try again.";
 const OAUTH_EXPIRED_ERROR = "That sign-in link expired. Start Google sign-in again.";
 const EXISTING_ACCOUNT_ERROR = "An account with this email already exists. Sign in instead, or reset your password.";
+const EMAIL_VERIFICATION_CALLBACK_ERROR =
+  "Email verification could not be completed. Use the latest verification link or sign up again to request a new one.";
+const EMAIL_VERIFICATION_EXPIRED_ERROR =
+  "That verification link expired. Sign up again with the same email to request a new one.";
 const AGENCY_ERROR = "Workspace could not be created. Check the workspace name and slug, then try again.";
 const DUPLICATE_AGENCY_SLUG_ERROR = "That workspace slug is already in use. Try another slug.";
 const PASSWORD_RESET_ERROR = "Password reset could not be completed. Request a new reset link and try again.";
@@ -75,6 +79,20 @@ export function formatOAuthCallbackError(error: unknown, source: OAuthSource = "
   return source === "sign-up"
     ? "Google account creation could not be completed. Try again, or create an account with email."
     : OAUTH_CALLBACK_ERROR;
+}
+
+export function formatEmailVerificationCallbackError(error: unknown): string {
+  const message = readErrorMessage(error).toLowerCase();
+
+  if (message.includes("expired") || message.includes("invalid_grant") || message.includes("invalid code")) {
+    return EMAIL_VERIFICATION_EXPIRED_ERROR;
+  }
+
+  if (message.includes("rate limit") || message.includes("too many")) {
+    return "Too many attempts. Try again in a few minutes.";
+  }
+
+  return EMAIL_VERIFICATION_CALLBACK_ERROR;
 }
 
 export function formatAgencyError(error: unknown): string {

@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
 import { EMAIL_FORMAT_ERROR, EMAIL_FORMAT_HELP } from "@/lib/auth/email";
+import { EMAIL_VERIFICATION_PENDING_NOTICE } from "@/lib/auth/email-verification";
 import SignInPage from "./page";
 
 describe("SignInPage", () => {
@@ -42,5 +43,17 @@ describe("SignInPage", () => {
 
     expect(screen.queryByText(EMAIL_FORMAT_ERROR)).toBeNull();
     expect(email.getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("shows the pending email verification notice", async () => {
+    const html = renderToStaticMarkup(
+      await SignInPage({
+        searchParams: Promise.resolve({
+          notice: EMAIL_VERIFICATION_PENDING_NOTICE,
+        }),
+      }),
+    );
+
+    expect(html).toContain(EMAIL_VERIFICATION_PENDING_NOTICE);
   });
 });

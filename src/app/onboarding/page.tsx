@@ -3,6 +3,10 @@ import { AgencyOnboardingForm } from "@/components/auth/agency-onboarding-form";
 import { AuthLayout } from "@/components/auth/auth-layout";
 import { PageFeedback } from "@/components/ui/page-feedback";
 import { createAgencyAction } from "@/lib/auth/actions";
+import {
+  buildEmailVerificationRequiredRedirect,
+  isEmailVerificationRequired,
+} from "@/lib/auth/email-verification";
 import { getWorkspaceContext } from "@/lib/auth/workspace";
 
 type OnboardingPageProps = {
@@ -15,6 +19,10 @@ export default async function OnboardingPage({ searchParams }: OnboardingPagePro
 
   if (!user) {
     redirect("/sign-in");
+  }
+
+  if (isEmailVerificationRequired(user)) {
+    redirect(buildEmailVerificationRequiredRedirect());
   }
 
   if (workspace) {

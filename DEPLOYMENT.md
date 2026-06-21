@@ -89,6 +89,15 @@ Before launch:
 - Add the Supabase callback URL to Google Authorized Redirect URIs, for example `https://<project-ref>.supabase.co/auth/v1/callback`.
 - Add `${NEXT_PUBLIC_APP_URL}/auth/callback` to the Supabase Auth redirect allowlist for production and preview environments that should support Google sign-in.
 
+## Email Verification
+
+Email/password signups rely on Supabase Auth email confirmations. Before launch:
+
+- Enable email confirmations in Supabase Auth email settings.
+- Configure a production SMTP provider in Supabase so signup confirmation links are delivered reliably.
+- Add `${NEXT_PUBLIC_APP_URL}/auth/callback` to the Supabase Auth redirect allowlist for every environment that supports password signups.
+- Verify an unconfirmed password user is redirected back to sign-in with the pending-verification notice and cannot reach `/onboarding` or app routes until confirmed.
+
 ## Supabase Migration Procedure
 
 Before applying migrations:
