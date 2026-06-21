@@ -28,6 +28,8 @@ type ActiveIssueRow = {
   occurrence_count: number | null;
 };
 
+const reusableIssueStatuses = ["open", "in_review", "snoozed", "ignored"];
+
 export async function createOrUpdateIssueForCheckRun({
   supabase,
   context,
@@ -111,7 +113,7 @@ async function findActiveIssue({
     .eq("agency_id", context.agencyId)
     .eq("workflow_id", context.workflowId)
     .eq("fingerprint", fingerprint)
-    .in("status", ["open", "in_review", "snoozed"])
+    .in("status", reusableIssueStatuses)
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();

@@ -102,11 +102,75 @@ describe("createOrUpdateIssueForCheckRun", () => {
         occurrence_count: 4,
         status: "open",
         snoozed_until: null,
+        resolved_at: null,
+        resolution_note: null,
         title: "Risk Router returned HTTP 500",
       }),
     );
-    expect(issueQuery.in).toHaveBeenCalledWith("status", ["open", "in_review", "snoozed"]);
+    expect(issueQuery.in).toHaveBeenCalledWith("status", ["open", "in_review", "snoozed", "ignored"]);
     expect(sendIssueAlertForNewIssue).not.toHaveBeenCalled();
+  });
+
+  it("reopens and updates a matching ignored issue instead of inserting a duplicate", async () => {
+    const { supabase, insertedIssues, updatedIssues, issueQuery } = createIssueSupabase({
+      findResponses: [{ data: { id: "ignored-issue", occurrence_count: 2 }, error: null }],
+      updateResponse: { data: { id: "ignored-issue" }, error: null },
+    });
+
+    await expect(
+      createOrUpdateIssueForCheckRun({ supabase, context: failedContext }),
+    ).resolves.toEqual({ id: "ignored-issue", created: false });
+
+    expect(insertedIssues).toEqual([]);
+    expect(updatedIssues).toContainEqual(
+      expect.objectContaining({
+        check_run_id: "run-1",
+        occurrence_count: 3,
+        reportable: true,
+        status: "open",
+        snoozed_until: null,
+        resolved_at: null,
+        resolution_note: null,
+      }),
+    );
+    expect(issueQuery.in).toHaveBeenCalledWith("status", ["open", "in_review", "snoozed", "ignored"]);
+    expect(sendIssueAlertForNewIssue).not.toHaveBeenCalled();
+  });
+
+  it("creates a new issue when the rerun failure has a different fingerprint", async () => {
+    const { supabase, insertedIssues, updatedIssues } = createIssueSupabase({
+      findResponses: [{ data: null, error: null }],
+      insertResponse: { data: { id: "issue-404" }, error: null },
+    });
+    const changedFailureContext: IssueRunContext = {
+      ...failedContext,
+      checkRunId: "run-404",
+      statusCode: 404,
+      assertionResults: [
+        {
+          type: "status_code",
+          passed: false,
+          message: "Expected HTTP 200 but received HTTP 404.",
+        },
+      ],
+    };
+
+    await expect(
+      createOrUpdateIssueForCheckRun({ supabase, context: changedFailureContext }),
+    ).resolves.toEqual({ id: "issue-404", created: true });
+
+    expect(updatedIssues).toEqual([]);
+    expect(insertedIssues).toContainEqual(
+      expect.objectContaining({
+        check_run_id: "run-404",
+        fingerprint: "check-1:status_code:404",
+        status: "open",
+      }),
+    );
+    expect(sendIssueAlertForNewIssue).toHaveBeenCalledWith(expect.objectContaining({
+      issueId: "issue-404",
+      created: true,
+    }));
   });
 
   it("retries lookup and updates when a concurrent insert wins the unique fingerprint race", async () => {

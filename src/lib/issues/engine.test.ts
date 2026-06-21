@@ -119,6 +119,8 @@ describe("issue engine", () => {
       reportable: true,
       status: "open",
       snoozed_until: null,
+      resolved_at: null,
+      resolution_note: null,
       last_seen_at: now,
       occurrence_count: 3,
     });
