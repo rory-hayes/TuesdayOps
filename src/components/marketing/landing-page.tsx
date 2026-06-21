@@ -10,7 +10,6 @@ import {
   LockClosedIcon,
   PlayIcon,
   ShieldCheckIcon,
-  Squares2X2Icon,
 } from "@heroicons/react/20/solid";
 import { BrandLogo } from "@/components/brand-logo";
 import { PUBLIC_BILLING_PLANS } from "@/lib/billing/plans";
@@ -21,42 +20,49 @@ const workflowRows = [
     workflow: "Lead intake agent",
     client: "Northstar Studio",
     status: "Healthy",
-    passRate: "99%",
+    passRate: "99.2%",
     tone: "success",
   },
   {
-    workflow: "Support triage",
+    workflow: "Support triage v3",
     client: "Oak & Field",
     status: "Review",
-    passRate: "86%",
+    passRate: "86.1%",
     tone: "warning",
   },
   {
     workflow: "Proposal assistant",
     client: "Brightline Labs",
     status: "Healthy",
-    passRate: "96%",
+    passRate: "96.4%",
+    tone: "success",
+  },
+  {
+    workflow: "Invoice extractor",
+    client: "Mercer & Co.",
+    status: "Healthy",
+    passRate: "98.0%",
     tone: "success",
   },
 ];
 
 const issueRows = [
-  { label: "Expired API key", detail: "Webhook check failed twice", severity: "High" },
-  { label: "Schema drift", detail: "Missing lead.intent field", severity: "Medium" },
+  { label: "OpenAI key expired", detail: "Lead intake agent failed twice", severity: "High", time: "2m ago" },
+  { label: "Schema drift", detail: "Missing lead.intent field", severity: "Medium", time: "37m ago" },
+  { label: "Latency above threshold", detail: "p95 response time crossed 1.5s", severity: "Low", time: "2h ago" },
 ];
 
 const metrics = [
-  { label: "Workflow pass rate", value: "96%", note: "+4 pts" },
-  { label: "Open issues", value: "3", note: "1 high" },
-  { label: "Report drafts", value: "8", note: "ready" },
+  { label: "Active workflows", value: "12", note: "3 clients" },
+  { label: "Pass rate", value: "96.4%", note: "+1.2 pts" },
+  { label: "Runs · 24h", value: "5,140", note: "logged" },
 ];
 
 const loopIcons = [
-  Squares2X2Icon,
   KeyIcon,
-  ShieldCheckIcon,
   ClockIcon,
   ExclamationTriangleIcon,
+  ShieldCheckIcon,
   DocumentChartBarIcon,
 ];
 
@@ -100,6 +106,13 @@ const reportItems = [
   "Prompt v7 passed change validation",
 ];
 
+const planFeatureBullets: Record<string, string[]> = {
+  starter: ["3 clients", "10 workflows", "Health checks and issues", "Monthly proof reports"],
+  growth: ["10 clients", "50 workflows", "Team-wide workflow visibility", "Retainer-ready reporting"],
+  scale: ["30 clients", "150 workflows", "Higher client and automation volume", "Operational record for larger books"],
+  agency_plus: ["Custom client limits", "Custom workflow limits", "Sales-led onboarding", "Fit for larger agencies and MSPs"],
+};
+
 export function MarketingLandingPage() {
   const content = getLandingContent();
 
@@ -134,7 +147,7 @@ export function MarketingLandingPage() {
             <Link
               href="/sign-up"
               prefetch={false}
-              className="inline-flex h-9 items-center rounded-md bg-zinc-950 px-3.5 text-sm/6 font-semibold !text-white shadow-sm transition-colors hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"
+              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-3.5 text-sm/6 font-semibold !text-white shadow-sm shadow-blue-600/20 transition-colors hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-600/30"
             >
               <span className="hidden sm:inline">Start monitoring</span>
               <span className="sm:hidden">Start</span>
@@ -145,15 +158,12 @@ export function MarketingLandingPage() {
 
       <section
         id="content"
-        className="mx-auto grid w-full max-w-7xl gap-10 px-5 pb-10 pt-10 sm:px-8 lg:grid-cols-[minmax(0,0.86fr)_minmax(30rem,1.14fr)] lg:items-center lg:pb-10 lg:pt-10"
+        className="mx-auto grid w-full max-w-7xl gap-10 px-5 pb-10 pt-12 sm:px-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(31rem,1.1fr)] lg:items-center lg:pb-12 lg:pt-14"
       >
         <div className="max-w-2xl">
           <h1 className="text-5xl/13 font-semibold tracking-normal text-zinc-950 sm:text-6xl/16">
             {content.hero.title}
           </h1>
-          <p className="mt-5 max-w-xl text-3xl/10 font-semibold tracking-normal text-zinc-950 sm:text-4xl/12">
-            Keep client AI workflows healthy after launch.
-          </p>
           <p className="mt-5 max-w-xl text-base/7 text-zinc-600 sm:text-lg/8">
             {content.hero.description}
           </p>
@@ -161,19 +171,22 @@ export function MarketingLandingPage() {
             <Link
               href="/sign-up"
               prefetch={false}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-zinc-950 px-4 text-sm/6 font-semibold !text-white shadow-sm transition hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-950/20"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-blue-600 px-4 text-sm/6 font-semibold !text-white shadow-sm shadow-blue-600/20 transition hover:bg-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-600/30"
             >
               Start monitoring
               <ArrowRightIcon className="size-4" aria-hidden="true" />
             </Link>
             <Link
-              href="#loop"
+              href="#product"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-zinc-950/10 bg-white px-4 text-sm/6 font-semibold text-zinc-950 shadow-sm transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-950/10"
             >
-              See how it works
+              See the dashboard
               <PlayIcon className="size-4 text-zinc-500" aria-hidden="true" />
             </Link>
           </div>
+          <p className="mt-3 text-sm/6 text-zinc-500">
+            Add your first client, workflow, and health check from the onboarding flow.
+          </p>
 
           <div className="mt-8 grid max-w-2xl gap-4 border-t border-zinc-950/10 pt-5 sm:grid-cols-3">
             <ProofMetric value="Built for" label="AI agencies, not generic observability" />
@@ -242,18 +255,18 @@ export function MarketingLandingPage() {
               <p className="mt-4 max-w-xl text-base/7 text-zinc-600">{content.sections[0].description}</p>
             </div>
             <p className="max-w-2xl text-sm/6 text-zinc-500 lg:justify-self-end">
-              Every screen supports the same operational path: add the client, register the workflow, run checks, resolve issues, and generate proof from stored source data.
+              One operator can keep dozens of live workflows moving without losing the thread between monitoring, maintenance, and client communication.
             </p>
           </div>
 
-          <ol className="mt-12 grid gap-0 overflow-hidden rounded-lg border border-zinc-950/10 bg-white md:grid-cols-3 xl:grid-cols-6">
+          <ol className="mt-12 grid gap-0 overflow-hidden rounded-lg border border-zinc-950/10 bg-white md:grid-cols-5">
             {content.sections[0].items.map((item, index) => {
               const Icon = loopIcons[index] ?? CheckCircleIcon;
 
               return (
                 <li
                   key={item.label}
-                  className="relative border-b border-zinc-950/10 p-5 md:border-r md:[&:nth-child(3n)]:border-r-0 xl:border-b-0 xl:[&:nth-child(3n)]:border-r xl:last:border-r-0"
+                  className="relative border-b border-zinc-950/10 p-5 md:border-b-0 md:border-r md:last:border-r-0"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="grid size-9 place-items-center rounded-full border border-zinc-950/10 bg-zinc-50 text-zinc-700">
@@ -290,14 +303,14 @@ export function MarketingLandingPage() {
               <article
                 key={plan.key}
                 className={[
-                  "relative flex min-h-[22rem] flex-col rounded-lg border p-5 shadow-[var(--shadow-soft)]",
+                  "relative flex min-h-[25rem] flex-col rounded-lg border p-5 shadow-[var(--shadow-soft)]",
                   plan.featured
-                    ? "border-zinc-950 bg-zinc-950 text-white"
+                    ? "border-blue-600 bg-zinc-950 text-white shadow-blue-600/20"
                     : "border-zinc-950/10 bg-[#f8f8f7] text-zinc-950",
                 ].join(" ")}
               >
                 {plan.featured ? (
-                  <span className="absolute right-4 top-4 text-xs/5 font-semibold uppercase text-zinc-400">
+                  <span className="absolute right-4 top-4 rounded-full bg-blue-500/15 px-2 py-0.5 text-xs/5 font-semibold uppercase text-blue-200">
                     Recommended
                   </span>
                 ) : null}
@@ -313,19 +326,35 @@ export function MarketingLandingPage() {
                 </div>
                 <div
                   className={[
-                    "mt-6 border-t pt-4 text-sm/6",
+                    "mt-6 border-t pt-4 text-sm/6 font-medium",
                     plan.featured ? "border-white/15 text-zinc-200" : "border-zinc-950/10 text-zinc-700",
                   ].join(" ")}
                 >
                   {plan.limitLabel}
                 </div>
+                <ul
+                  className={[
+                    "mt-4 grid gap-2 text-sm/6",
+                    plan.featured ? "text-zinc-300" : "text-zinc-600",
+                  ].join(" ")}
+                >
+                  {(planFeatureBullets[plan.key] ?? []).map((feature) => (
+                    <li key={feature} className="flex gap-2">
+                      <CheckCircleIcon
+                        className={["mt-1 size-4 shrink-0", plan.featured ? "text-blue-300" : "text-blue-600"].join(" ")}
+                        aria-hidden="true"
+                      />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
                 <Link
                   href="/sign-up"
                   prefetch={false}
                   className={[
                     "mt-auto inline-flex h-10 items-center justify-center rounded-md px-3 text-sm/6 font-semibold transition focus:outline-none focus:ring-2",
                     plan.featured
-                      ? "bg-white !text-zinc-950 hover:bg-zinc-100 focus:ring-white/50"
+                      ? "bg-blue-500 !text-white hover:bg-blue-400 focus:ring-blue-300/50"
                       : "bg-zinc-950 !text-white hover:bg-zinc-800 focus:ring-zinc-950/20",
                   ].join(" ")}
                 >
@@ -432,12 +461,12 @@ function ProductScene() {
     >
       <div className="flex flex-col justify-between gap-3 border-b border-zinc-950/10 px-4 py-3 sm:flex-row sm:items-center">
         <div>
-          <p className="text-sm/6 font-semibold text-zinc-950">Northstar Studio</p>
-          <p className="text-xs/5 text-zinc-500">June workflow maintenance record</p>
+          <p className="text-sm/6 font-semibold text-zinc-950">app.maintainflow.io / overview</p>
+          <p className="text-xs/5 text-zinc-500">Client workflow maintenance</p>
         </div>
-        <span className="inline-flex w-fit items-center gap-2 rounded-md border border-zinc-950/10 bg-zinc-50 px-2.5 py-1 text-xs/5 font-semibold text-zinc-700">
-          <DocumentChartBarIcon className="size-4 text-zinc-500" aria-hidden="true" />
-          Report draft ready
+        <span className="inline-flex w-fit items-center gap-2 rounded-md border border-blue-600/20 bg-blue-50 px-2.5 py-1 text-xs/5 font-semibold text-blue-700">
+          <span className="size-2 rounded-full bg-blue-600" aria-hidden="true" />
+          Live
         </span>
       </div>
 
@@ -512,7 +541,9 @@ function ProductScene() {
                       {issue.severity}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs/5 text-zinc-500">{issue.detail}</p>
+                  <p className="mt-1 text-xs/5 text-zinc-500">
+                    {issue.detail} · {issue.time}
+                  </p>
                 </div>
               ))}
             </div>

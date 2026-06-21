@@ -3,13 +3,12 @@
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 
 type GoogleAuthFormProps = {
-  action: (formData: FormData) => void | Promise<void>;
   source: "sign-in" | "sign-up";
 };
 
-export function GoogleAuthForm({ action, source }: GoogleAuthFormProps) {
+export function GoogleAuthForm({ source }: GoogleAuthFormProps) {
   return (
-    <form action={action} aria-label="Continue with Google" className="grid gap-3">
+    <form action="/auth/google" method="get" aria-label="Continue with Google" className="grid gap-3">
       <input type="hidden" name="source" value={source} />
       <FormSubmitButton
         type="submit"

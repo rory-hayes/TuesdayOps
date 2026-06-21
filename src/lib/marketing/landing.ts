@@ -27,10 +27,10 @@ export type LandingContent = {
 export function getLandingContent(): LandingContent {
   return {
     hero: {
-      title: "Maintain Flow",
+      title: "Keep every client workflow running.",
       eyebrow: "Operational proof for AI agencies",
       description:
-        "Monitor live client workflows, catch silent failures, and turn Check Run, Issue, and Monthly Report data into clear proof-of-work updates.",
+        "The post-launch operating layer for AI agencies. Monitor the automations you ship, catch silent failures before clients notice, and turn the work you do into monthly proof.",
     },
     customerBase: {
       eyebrow: "Customer base",
@@ -57,33 +57,29 @@ export function getLandingContent(): LandingContent {
     },
     sections: [
       {
-        title: "Built around the MVP loop",
+        title: "A maintenance loop your agency can actually run.",
         description:
-          "Maintain Flow stays focused on the operational path agencies need after delivery: Agency, Client, Workflow, Check, Check Run, Issue, and Monthly Report.",
+          "Maintain Flow keeps the post-launch path simple: connect each client workflow, monitor Check Runs, resolve Issues, and send Monthly Reports from stored evidence.",
         items: [
           {
-            label: "Agency",
-            description: "Run one tenant-safe workspace for client workflow maintenance.",
+            label: "Connect",
+            description: "Add the client, register the workflow, and keep credentials tenant-scoped.",
           },
           {
-            label: "Client",
-            description: "Keep each retained client connected to workflows, issues, and reports.",
+            label: "Monitor",
+            description: "Run scheduled or manual checks with status, latency, and report-ready context.",
           },
           {
-            label: "Workflow",
-            description: "Register the endpoint, run-log, model, and QA context that matters.",
+            label: "Catch",
+            description: "Surface failed checks, schema drift, expired keys, and stalled runs before clients escalate.",
           },
           {
-            label: "Check Run",
-            description: "Store scheduled, manual, or external results with status and latency.",
+            label: "Resolve",
+            description: "Turn failures into owned Issues with severity, notes, and resolution history.",
           },
           {
-            label: "Issue",
-            description: "Convert failures into deduped, resolvable operational work.",
-          },
-          {
-            label: "Monthly Report",
-            description: "Summarize health, incidents, resolutions, and proof for stakeholders.",
+            label: "Report",
+            description: "Generate Monthly Reports with checks, incidents, fixes, and proof clients can understand.",
           },
         ],
       },

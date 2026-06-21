@@ -13,14 +13,20 @@ describe("getLandingContent", () => {
         ...section.items.map((item) => `${item.label} ${item.description}`),
       ]),
     ].join(" ");
+    const lowerText = text.toLowerCase();
 
-    expect(content.hero.title).toBe("Maintain Flow");
-    expect(text).toContain("Agency");
-    expect(text).toContain("Client");
-    expect(text).toContain("Workflow");
-    expect(text).toContain("Check Run");
-    expect(text).toContain("Issue");
-    expect(text).toContain("Monthly Report");
+    expect(content.hero.title).toBe("Keep every client workflow running.");
+    expect(lowerText).toContain("agency");
+    expect(lowerText).toContain("client");
+    expect(lowerText).toContain("workflow");
+    expect(lowerText).toContain("check run");
+    expect(lowerText).toContain("issue");
+    expect(lowerText).toContain("monthly report");
+    expect(text).toContain("Connect");
+    expect(text).toContain("Monitor");
+    expect(text).toContain("Catch");
+    expect(text).toContain("Resolve");
+    expect(text).toContain("Report");
     expect(text).not.toContain("TuesdayOps");
   });
 

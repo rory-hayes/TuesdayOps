@@ -12,6 +12,8 @@ describe("SignUpPage", () => {
     const html = renderToStaticMarkup(await SignUpPage({ searchParams: Promise.resolve({}) }));
 
     expect(html).toContain('aria-label="Continue with Google"');
+    expect(html).toContain('action="/auth/google"');
+    expect(html).toContain('method="get"');
     expect(html).toContain('name="source"');
     expect(html).toContain('value="sign-up"');
     expect(html).toContain("or continue with email");
