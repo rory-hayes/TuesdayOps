@@ -229,7 +229,7 @@ export async function getOperationalData(
       .from("check_runs")
       .select("*")
       .eq("agency_id", agency.id)
-      .order("created_at", { ascending: false })
+      .order("completed_at", { ascending: false })
       .limit(100),
     supabase
       .from("issues")
@@ -390,7 +390,7 @@ export async function getReportSourceData({
       .eq("client_id", clientId)
       .gte("completed_at", periodStartIso)
       .lte("completed_at", periodEndIso)
-      .order("created_at", { ascending: false }),
+      .order("completed_at", { ascending: false }),
     supabase
       .from("issues")
       .select("*")
@@ -515,7 +515,7 @@ function mapWorkflow(row: WorkflowRow, runRows: CheckRunRow[]): Workflow {
   const passRate = recentRuns.length
     ? Math.round((healthyRuns / recentRuns.length) * 100)
     : Number(row.pass_rate);
-  const latestRun = recentRuns[0];
+  const latestRun = getLatestCompletedRun(recentRuns);
 
   return {
     id: row.id,
@@ -538,7 +538,7 @@ function mapWorkflow(row: WorkflowRow, runRows: CheckRunRow[]): Workflow {
 }
 
 function mapCheck(row: CheckRow, runRows: CheckRunRow[]): Check {
-  const latestRun = runRows.find((run) => run.check_id === row.id);
+  const latestRun = getLatestCompletedRun(runRows.filter((run) => run.check_id === row.id));
   const config = checkConfigSchema.safeParse(row.config_json);
 
   return {
@@ -553,6 +553,20 @@ function mapCheck(row: CheckRow, runRows: CheckRunRow[]): Check {
     assertionCount: config.success ? config.data.assertions.length : 0,
     latestStatus: latestRun?.status ?? "skipped",
   };
+}
+
+function getLatestCompletedRun(runRows: CheckRunRow[]): CheckRunRow | undefined {
+  return [...runRows].sort(compareCheckRunCompletionDesc)[0];
+}
+
+function compareCheckRunCompletionDesc(left: CheckRunRow, right: CheckRunRow): number {
+  return toTimestamp(right.completed_at) - toTimestamp(left.completed_at);
+}
+
+function toTimestamp(value: string): number {
+  const timestamp = new Date(value).getTime();
+
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
 function mapCheckRun(row: CheckRunRow): CheckRun {

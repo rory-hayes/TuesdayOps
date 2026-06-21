@@ -67,6 +67,46 @@ describe("WorkflowDetailPage maintenance UI", () => {
     expect(html).not.toContain("toast-notification");
   });
 
+  it("uses the latest completed run in the workflow overview", () => {
+    const { data, workflow } = buildWorkflowDetailFixture();
+    data.checkRuns = [
+      {
+        id: "run-created-later",
+        agencyId: "agency-1",
+        clientId: "client-1",
+        workflowId: workflow.id,
+        checkId: "check-1",
+        status: "failed",
+        statusCode: 500,
+        latencyMs: 900,
+        responseSummary: "Server error",
+        errorMessage: "Older failure",
+        startedAt: "2026-06-18T10:00:00.000Z",
+        completedAt: "2026-06-18T10:00:01.000Z",
+      },
+      {
+        id: "run-completed-latest",
+        agencyId: "agency-1",
+        clientId: "client-1",
+        workflowId: workflow.id,
+        checkId: "check-1",
+        status: "healthy",
+        statusCode: 200,
+        latencyMs: 120,
+        responseSummary: "Latest health payload",
+        startedAt: "2026-06-18T10:04:59.000Z",
+        completedAt: "2026-06-18T10:05:00.000Z",
+      },
+    ];
+
+    const html = renderToStaticMarkup(
+      <WorkflowDetailPage data={data} workflow={workflow} activeTab="overview" />,
+    );
+
+    expect(html.indexOf("Latest health payload")).toBeGreaterThanOrEqual(0);
+    expect(html.indexOf("Latest health payload")).toBeLessThan(html.indexOf("Older failure"));
+  });
+
   it("renders workflow pass-rate trends on a sober fixed percentage scale", () => {
     const { data, workflow } = buildWorkflowDetailFixture();
     data.checkRuns = [

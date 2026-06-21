@@ -50,7 +50,9 @@ export function WorkflowDetailPage({
   const tab = getActiveTab(activeTab);
   const client = data.clients.find((candidate) => candidate.id === workflow.clientId);
   const checks = data.checks.filter((check) => check.workflowId === workflow.id);
-  const runs = data.checkRuns.filter((run) => run.workflowId === workflow.id);
+  const runs = data.checkRuns
+    .filter((run) => run.workflowId === workflow.id)
+    .sort((left, right) => new Date(right.completedAt).getTime() - new Date(left.completedAt).getTime());
   const workflowIssues = data.issues
     .filter((issue) => issue.workflowId === workflow.id)
     .sort((left, right) => new Date(right.lastSeenAt).getTime() - new Date(left.lastSeenAt).getTime());

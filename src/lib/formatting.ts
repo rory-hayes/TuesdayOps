@@ -19,20 +19,26 @@ export function formatDateTime(value: string): string {
   }).format(new Date(value));
 }
 
-export function formatRelativeTime(value: string, now = new Date("2026-06-11T14:45:00.000Z")): string {
+export function formatRelativeTime(value: string, now = new Date()): string {
   const diffMs = now.getTime() - new Date(value).getTime();
-  const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
+  const diffSeconds = Math.max(0, Math.floor(diffMs / 1000));
+
+  if (diffSeconds < 60) {
+    return "just now";
+  }
+
+  const diffMinutes = Math.floor(diffSeconds / 60);
 
   if (diffMinutes < 60) {
     return `${diffMinutes}m ago`;
   }
 
-  const diffHours = Math.round(diffMinutes / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
 
   if (diffHours < 24) {
     return `${diffHours}h ago`;
   }
 
-  const diffDays = Math.round(diffHours / 24);
+  const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
 }
