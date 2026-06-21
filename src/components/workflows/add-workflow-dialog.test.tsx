@@ -176,6 +176,51 @@ describe("AddWorkflowDialog", () => {
     expect(within(dialog).queryByText("Bearer token is required.")).toBeNull();
     expect(within(dialog).getByLabelText("Bearer token").getAttribute("aria-invalid")).toBeNull();
   });
+
+  it("rejects invalid health check ranges before submitting the manual workflow", async () => {
+    const createWorkflowAction = vi.fn();
+
+    render(
+      <AddWorkflowDialog
+        clients={[{ id: "11111111-1111-4111-8111-111111111111", name: "Acme" }]}
+        createWorkflowAction={createWorkflowAction}
+        createWorkflowFromImportAction={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add workflow" }));
+    fireEvent.click(screen.getByRole("button", { name: "Manual setup" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Add workflow" });
+    fireEvent.change(within(dialog).getByLabelText("Workflow name"), {
+      target: { value: "Lead intake" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Endpoint URL"), {
+      target: { value: "https://example.com/api/health" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Frequency minutes"), {
+      target: { value: "0" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Expected status"), {
+      target: { value: "999" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Max latency ms"), {
+      target: { value: "0" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Timeout ms"), {
+      target: { value: "0" },
+    });
+
+    const form = within(dialog).getByRole("form", { name: "Manual workflow setup" });
+    fireEvent.submit(form);
+
+    expect(await within(dialog).findByText("Frequency must be 5-10080 minutes.")).toBeTruthy();
+    expect(within(dialog).getByText("Expected status must be 100-599.")).toBeTruthy();
+    expect(within(dialog).getByText("Max latency must be 100-60000 ms.")).toBeTruthy();
+    expect(within(dialog).getByText("Timeout must be 1000-60000 ms.")).toBeTruthy();
+    expect(within(dialog).getByLabelText("Frequency minutes").getAttribute("aria-invalid")).toBe("true");
+    expect(createWorkflowAction).not.toHaveBeenCalled();
+  });
 });
 
 function getInput(dialog: HTMLElement, name: string) {

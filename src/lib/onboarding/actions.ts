@@ -9,6 +9,12 @@ import { buildHealthCheckConfig } from "@/lib/checks/config";
 import { executeCheckRun } from "@/lib/checks/execution";
 import { buildManualCheckRunNotice } from "@/lib/checks/lifecycle";
 import { assertManualCheckRunRateLimit } from "@/lib/checks/rate-limits";
+import {
+  checkFrequencyMinutesSchema,
+  expectedStatusSchema,
+  maxLatencyMsSchema,
+  timeoutMsSchema,
+} from "@/lib/checks/validation";
 import { getReportSourceData } from "@/lib/data/operational-data";
 import { sanitizeUserText } from "@/lib/domain/input-sanitization";
 import type { Workflow } from "@/lib/domain/types";
@@ -76,10 +82,10 @@ const activationWorkflowSchema = z.object({
   authSecret: z.string().trim().optional(),
   authHeaderName: z.string().trim().optional(),
   basicUsername: z.string().trim().optional(),
-  checkFrequencyMinutes: z.coerce.number().int().min(5).max(10080),
-  expectedStatus: z.coerce.number().int().min(100).max(599).default(200),
-  maxLatencyMs: z.coerce.number().int().min(100).max(60000).default(5000),
-  timeoutMs: z.coerce.number().int().min(1000).max(60000).default(10000),
+  checkFrequencyMinutes: checkFrequencyMinutesSchema,
+  expectedStatus: expectedStatusSchema.default(200),
+  maxLatencyMs: maxLatencyMsSchema.default(5000),
+  timeoutMs: timeoutMsSchema.default(10000),
   requestBody: z.string().trim().optional(),
   responseContains: z.string().trim().max(200).optional(),
   jsonFieldPath: z.string().trim().max(120).optional(),

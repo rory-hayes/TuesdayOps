@@ -13,6 +13,11 @@ import {
   formatCheckConfigValidationError,
 } from "@/lib/checks/lifecycle";
 import { assertManualCheckRunRateLimit } from "@/lib/checks/rate-limits";
+import {
+  expectedStatusSchema,
+  maxLatencyMsSchema,
+  timeoutMsSchema,
+} from "@/lib/checks/validation";
 import { formatActionError } from "@/lib/server-actions/feedback";
 import { assertMutationTouchedRow } from "@/lib/server-actions/mutation-result";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -21,9 +26,9 @@ import { createClient } from "@/lib/supabase/server";
 const createCheckFormSchema = z.object({
   workflowId: z.string().uuid(),
   name: z.string().trim().min(2).max(120),
-  expectedStatus: z.coerce.number().int().min(100).max(599).default(200),
-  maxLatencyMs: z.coerce.number().int().min(100).max(60000).default(5000),
-  timeoutMs: z.coerce.number().int().min(1000).max(60000).default(10000),
+  expectedStatus: expectedStatusSchema.default(200),
+  maxLatencyMs: maxLatencyMsSchema.default(5000),
+  timeoutMs: timeoutMsSchema.default(10000),
   requestBody: z.string().trim().optional(),
   responseContains: z.string().trim().max(200).optional(),
   jsonFieldPath: z.string().trim().max(120).optional(),

@@ -1,4 +1,5 @@
 import type { CheckRunStatus } from "@/lib/domain/types";
+import { getHealthCheckThresholdMessage } from "@/lib/checks/thresholds";
 
 export function buildCheckDisableUpdate() {
   return {
@@ -33,15 +34,15 @@ export function formatCheckConfigValidationError(
     }
 
     if (field === "expectedStatus") {
-      return "Expected status must be 100-599.";
+      return getHealthCheckThresholdMessage(field);
     }
 
     if (field === "maxLatencyMs") {
-      return "Max latency must be 100-60000 ms.";
+      return getHealthCheckThresholdMessage(field);
     }
 
     if (field === "timeoutMs") {
-      return "Timeout must be 1000-60000 ms.";
+      return getHealthCheckThresholdMessage(field);
     }
 
     if (field === "responseContains") {

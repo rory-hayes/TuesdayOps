@@ -1,13 +1,20 @@
 "use client";
 
-import { useId, useState, useSyncExternalStore } from "react";
+import { useActionState, useId, useState, useSyncExternalStore } from "react";
 import type { ChangeEventHandler, KeyboardEvent, ReactNode } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
 import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { PageFeedback } from "@/components/ui/page-feedback";
 import { FieldError, ValidatedForm } from "@/components/ui/validated-form";
 import { WorkflowImportForm } from "@/components/workflows/workflow-import-form";
+import {
+  getHealthCheckThresholdMessage,
+  healthCheckThresholds,
+  type HealthCheckThresholdField,
+} from "@/lib/checks/thresholds";
+import type { WorkflowCreateActionState } from "@/lib/workflows/validation";
 
 type ClientOption = {
   id: string;
@@ -16,7 +23,10 @@ type ClientOption = {
 
 type AddWorkflowDialogProps = {
   clients: ClientOption[];
-  createWorkflowAction: (formData: FormData) => void | Promise<void>;
+  createWorkflowAction: (
+    previousState: WorkflowCreateActionState,
+    formData: FormData,
+  ) => Promise<WorkflowCreateActionState>;
   createWorkflowFromImportAction: (formData: FormData) => void | Promise<void>;
 };
 
@@ -168,14 +178,19 @@ function ManualWorkflowForm({
   action,
 }: {
   clients: ClientOption[];
-  action: (formData: FormData) => void | Promise<void>;
+  action: (
+    previousState: WorkflowCreateActionState,
+    formData: FormData,
+  ) => Promise<WorkflowCreateActionState>;
 }) {
   const [method, setMethod] = useState<WorkflowMethod>("GET");
   const [authType, setAuthType] = useState<WorkflowAuthType>("none");
   const [endpointUrl, setEndpointUrl] = useState("");
+  const [state, formAction] = useActionState(action, null);
   const showRequestBody = method !== "GET";
   const authSecretLabel =
     authType === "basic" ? "Password" : authType === "api_key_header" ? "API key" : "Bearer token";
+  const serverErrors = state?.status === "error" ? state.fieldErrors : undefined;
 
   if (!clients.length) {
     return (
@@ -193,7 +208,16 @@ function ManualWorkflowForm({
           Register a live client endpoint and create its first health check.
         </p>
       </div>
-      <ValidatedForm action={action} aria-label="Manual workflow setup" className="grid gap-5">
+      <PageFeedback
+        variant="inline"
+        error={state?.status === "error" ? state.message : undefined}
+      />
+      <ValidatedForm
+        action={formAction}
+        aria-label="Manual workflow setup"
+        className="grid gap-5"
+        serverErrors={serverErrors}
+      >
         <section className="rounded-lg border border-zinc-950/10 p-4">
           <div className="flex items-center gap-2 text-sm/6 font-semibold text-zinc-950">
             <span className="grid size-6 place-items-center rounded-full bg-primary/10 text-xs text-primary">1</span>
@@ -333,10 +357,34 @@ function ManualWorkflowForm({
             Set the first health check
           </div>
           <div className="mt-4 grid gap-3 md:grid-cols-4">
-            <Input label="Frequency minutes" name="checkFrequencyMinutes" placeholder="60" type="number" defaultValue="60" required />
-            <Input label="Expected status" name="expectedStatus" placeholder="200" type="number" defaultValue="200" required />
-            <Input label="Max latency ms" name="maxLatencyMs" placeholder="5000" type="number" defaultValue="5000" required />
-            <Input label="Timeout ms" name="timeoutMs" placeholder="10000" type="number" defaultValue="10000" required />
+            <ThresholdInput
+              field="checkFrequencyMinutes"
+              label="Frequency minutes"
+              name="checkFrequencyMinutes"
+              placeholder="60"
+              defaultValue="60"
+            />
+            <ThresholdInput
+              field="expectedStatus"
+              label="Expected status"
+              name="expectedStatus"
+              placeholder="200"
+              defaultValue="200"
+            />
+            <ThresholdInput
+              field="maxLatencyMs"
+              label="Max latency ms"
+              name="maxLatencyMs"
+              placeholder="5000"
+              defaultValue="5000"
+            />
+            <ThresholdInput
+              field="timeoutMs"
+              label="Timeout ms"
+              name="timeoutMs"
+              placeholder="10000"
+              defaultValue="10000"
+            />
             <Input
               className="md:col-span-2"
               label="Response contains"
@@ -376,6 +424,10 @@ function Input({
   defaultValue,
   value,
   onChange,
+  min,
+  max,
+  minMessage,
+  maxMessage,
 }: {
   label: string;
   name: string;
@@ -386,6 +438,10 @@ function Input({
   defaultValue?: string;
   value?: string;
   onChange?: ChangeEventHandler<HTMLInputElement>;
+  min?: number;
+  max?: number;
+  minMessage?: string;
+  maxMessage?: string;
 }) {
   const inputId = useId();
 
@@ -399,8 +455,12 @@ function Input({
         aria-label={label}
         type={type}
         {...(value === undefined ? { defaultValue } : { value, onChange })}
+        min={min}
+        max={max}
         placeholder={placeholder}
         data-field-label={label}
+        data-min-message={minMessage}
+        data-max-message={maxMessage}
         onKeyDown={handleInputKeyDown}
         className="mt-2 h-10 w-full rounded-lg border border-zinc-950/10 bg-white px-3 text-sm/6 outline-none focus:border-zinc-950/20 focus:ring-2 focus:ring-zinc-950/10"
       />
@@ -421,4 +481,36 @@ function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
 
 function isSelectAllShortcut(event: KeyboardEvent<HTMLInputElement>) {
   return (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === "a";
+}
+
+function ThresholdInput({
+  field,
+  label,
+  name,
+  placeholder,
+  defaultValue,
+}: {
+  field: HealthCheckThresholdField;
+  label: string;
+  name: string;
+  placeholder: string;
+  defaultValue: string;
+}) {
+  const bounds = healthCheckThresholds[field];
+  const message = getHealthCheckThresholdMessage(field);
+
+  return (
+    <Input
+      label={label}
+      name={name}
+      placeholder={placeholder}
+      type="number"
+      defaultValue={defaultValue}
+      min={bounds.min}
+      max={bounds.max}
+      minMessage={message}
+      maxMessage={message}
+      required
+    />
+  );
 }

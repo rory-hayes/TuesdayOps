@@ -3,6 +3,9 @@
 import {
   createContext,
   useContext,
+  useEffect,
+  useMemo,
+  useRef,
   useState,
   type ChangeEvent,
   type ComponentProps,
@@ -13,10 +16,17 @@ import {
 type FormErrors = Record<string, string>;
 
 const FormValidationContext = createContext<FormErrors>({});
+const emptyFormErrors: FormErrors = {};
+const emptyDismissedNames: Record<string, true> = {};
+const emptyDismissedServerErrors = {
+  source: emptyFormErrors,
+  names: emptyDismissedNames,
+};
 
 type ValidatedFormProps = Omit<ComponentProps<"form">, "onSubmit"> & {
   children: ReactNode;
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void;
+  serverErrors?: FormErrors;
 };
 
 export function ValidatedForm({
@@ -24,9 +34,31 @@ export function ValidatedForm({
   onChange,
   onSubmit,
   noValidate = true,
+  serverErrors = emptyFormErrors,
   ...props
 }: ValidatedFormProps) {
-  const [errors, setErrors] = useState<FormErrors>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  const [clientErrors, setClientErrors] = useState<FormErrors>({});
+  const [dismissedServerErrors, setDismissedServerErrors] = useState<{
+    source: FormErrors;
+    names: Record<string, true>;
+  }>(emptyDismissedServerErrors);
+  const activeDismissedServerErrors = dismissedServerErrors.source === serverErrors
+    ? dismissedServerErrors.names
+    : emptyDismissedNames;
+  const errors = useMemo(
+    () => ({
+      ...getVisibleServerErrors(serverErrors, activeDismissedServerErrors),
+      ...clientErrors,
+    }),
+    [activeDismissedServerErrors, clientErrors, serverErrors],
+  );
+
+  useEffect(() => {
+    if (formRef.current) {
+      applyErrorAttributes(formRef.current, errors);
+    }
+  }, [errors]);
 
   function handleChange(event: ChangeEvent<HTMLFormElement>) {
     onChange?.(event);
@@ -34,20 +66,43 @@ export function ValidatedForm({
     const form = event.currentTarget;
     const control = getValidatableControl(event.target);
 
-    if (!control || control.form !== form || !errors[control.name]) {
+    if (!control || control.form !== form) {
       return;
     }
 
-    const nextErrors = { ...errors };
+    setClientErrors((current) => {
+      const next = { ...current };
 
-    if (control.validity.valid) {
-      delete nextErrors[control.name];
-    } else {
-      nextErrors[control.name] = getValidationMessage(control);
-    }
+      if (control.validity.valid) {
+        delete next[control.name];
+      } else if (current[control.name]) {
+        next[control.name] = getValidationMessage(control);
+      }
 
-    applyErrorAttributes(form, nextErrors);
-    setErrors(nextErrors);
+      return next;
+    });
+
+    setDismissedServerErrors((current) => {
+      const currentNames = current.source === serverErrors ? current.names : emptyDismissedNames;
+
+      if (control.validity.valid && serverErrors[control.name]) {
+        return {
+          source: serverErrors,
+          names: { ...currentNames, [control.name]: true },
+        };
+      }
+
+      if (!control.validity.valid && currentNames[control.name]) {
+        const next = { ...currentNames };
+        delete next[control.name];
+        return {
+          source: serverErrors,
+          names: next,
+        };
+      }
+
+      return current.source === serverErrors ? current : { source: serverErrors, names: currentNames };
+    });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -55,7 +110,7 @@ export function ValidatedForm({
     const nextErrors = collectFormErrors(form);
 
     applyErrorAttributes(form, nextErrors);
-    setErrors(nextErrors);
+    setClientErrors(nextErrors);
 
     if (Object.keys(nextErrors).length) {
       event.preventDefault();
@@ -68,7 +123,7 @@ export function ValidatedForm({
 
   return (
     <FormValidationContext.Provider value={errors}>
-      <form {...props} noValidate={noValidate} onChange={handleChange} onSubmit={handleSubmit}>
+      <form {...props} ref={formRef} noValidate={noValidate} onChange={handleChange} onSubmit={handleSubmit}>
         {children}
       </form>
     </FormValidationContext.Provider>
@@ -154,11 +209,11 @@ function getValidationMessage(control: ValidatableControl): string {
   }
 
   if (validity.rangeUnderflow && "min" in control) {
-    return `${label} must be at least ${control.min}.`;
+    return control.dataset.minMessage || `${label} must be at least ${control.min}.`;
   }
 
   if (validity.rangeOverflow && "max" in control) {
-    return `${label} must be ${control.max} or less.`;
+    return control.dataset.maxMessage || `${label} must be ${control.max} or less.`;
   }
 
   if (validity.patternMismatch) {
@@ -216,4 +271,13 @@ function getMinLength(control: ValidatableControl): number {
 
 function getMaxLength(control: ValidatableControl): number {
   return control instanceof HTMLSelectElement ? 0 : control.maxLength;
+}
+
+function getVisibleServerErrors(
+  serverErrors: FormErrors,
+  dismissedServerErrors: Record<string, true>,
+): FormErrors {
+  return Object.fromEntries(
+    Object.entries(serverErrors).filter(([name]) => !dismissedServerErrors[name]),
+  );
 }

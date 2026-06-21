@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { recordAuditEvent } from "@/lib/audit/events";
 import { requireWorkspace } from "@/lib/auth/workspace";
 import type { WorkspaceContext } from "@/lib/auth/workspace";
@@ -27,67 +26,30 @@ import {
   buildWorkflowSettingsUpdate,
 } from "@/lib/workflows/lifecycle";
 import { parseWorkflowImport } from "@/lib/workflows/onboarding";
+import {
+  buildWorkflowFormFieldErrors,
+  formatWorkflowFormValidationSummary,
+  importWorkflowFormSchema,
+  workflowFormSchema,
+  workflowIdFormSchema,
+  workflowUpdateFormSchema,
+  type WorkflowCreateActionState,
+} from "@/lib/workflows/validation";
 
-const workflowBaseFormSchema = z.object({
-  clientId: z.string().uuid(),
-  name: z.string().trim().min(2).max(120),
-  type: z.enum(["http_endpoint", "webhook", "n8n", "make", "zapier", "mcp_server", "custom_api", "manual_log"]),
-  environment: z.enum(["production", "staging", "development"]),
-  endpointUrl: z.string().trim().url(),
-  method: z.enum(["GET", "POST", "PUT", "PATCH"]),
-  authType: z.enum(["none", "bearer", "api_key_header", "basic"]),
-  authSecret: z.string().trim().optional(),
-  authHeaderName: z.string().trim().optional(),
-  basicUsername: z.string().trim().optional(),
-  checkFrequencyMinutes: z.coerce.number().int().min(5).max(10080),
-  expectedStatus: z.coerce.number().int().min(100).max(599).default(200),
-  maxLatencyMs: z.coerce.number().int().min(100).max(60000).default(5000),
-  timeoutMs: z.coerce.number().int().min(1000).max(60000).default(10000),
-  requestBody: z.string().trim().optional(),
-  responseContains: z.string().trim().max(200).optional(),
-  jsonFieldPath: z.string().trim().max(120).optional(),
-  fieldNotEmptyPath: z.string().trim().max(120).optional(),
-  notContainsValue: z.string().trim().max(200).optional(),
-  matchesRegexPattern: z.string().trim().max(500).optional(),
-  requireValidJson: z.enum(["on"]).optional(),
-});
-
-const workflowFormSchema = workflowBaseFormSchema
-  .superRefine((value, context) => {
-    if (value.authType === "none") {
-      return;
-    }
-
-    if (!value.authSecret) {
-      context.addIssue({
-        code: "custom",
-        path: ["authSecret"],
-        message: "Enter the auth secret for this workflow.",
-      });
-    }
-
-    if (value.authType === "api_key_header" && !value.authHeaderName) {
-      context.addIssue({
-        code: "custom",
-        path: ["authHeaderName"],
-        message: "API key header name is required.",
-      });
-    }
-
-    if (value.authType === "basic" && !value.basicUsername) {
-      context.addIssue({
-        code: "custom",
-        path: ["basicUsername"],
-        message: "Basic auth username is required.",
-      });
-    }
-  });
-
-export async function createWorkflowAction(formData: FormData) {
+export async function createWorkflowAction(
+  _previousState: WorkflowCreateActionState,
+  formData: FormData,
+): Promise<WorkflowCreateActionState> {
   const parsed = workflowFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/workflows?error=${encodeURIComponent("Check the client, workflow name, endpoint URL, auth settings, and check thresholds before saving.")}`);
+    const fieldErrors = buildWorkflowFormFieldErrors(parsed.error.issues);
+
+    return {
+      status: "error",
+      message: formatWorkflowFormValidationSummary(fieldErrors),
+      fieldErrors,
+    };
   }
 
   const workspace = await requireWorkspace();
@@ -114,15 +76,6 @@ export async function createWorkflowAction(formData: FormData) {
   revalidatePath("/");
   redirect(`/workflows/${workflowId}?notice=${encodeURIComponent("Workflow added. Run its first check when ready.")}`);
 }
-
-const importWorkflowFormSchema = z.object({
-  clientId: z.string().uuid(),
-  importSource: z.enum(["url", "curl", "openapi", "postman"]),
-  workflowType: workflowBaseFormSchema.shape.type.optional(),
-  importedWorkflowName: z.string().trim().max(120).optional(),
-  importText: z.string().trim().min(8),
-  rawImportText: z.string().trim().optional(),
-});
 
 export async function createWorkflowFromImportAction(formData: FormData) {
   const parsed = importWorkflowFormSchema.safeParse(Object.fromEntries(formData));
@@ -163,11 +116,11 @@ export async function createWorkflowFromImportAction(formData: FormData) {
       authSecret: plan.authSecret,
       authHeaderName: plan.authHeaderName,
       checkFrequencyMinutes: plan.checkFrequencyMinutes,
-    expectedStatus: plan.expectedStatus,
-    maxLatencyMs: plan.maxLatencyMs,
-    timeoutMs: Math.max(plan.maxLatencyMs + 1000, 3000),
-    requestBody: plan.requestBody,
-  },
+      expectedStatus: plan.expectedStatus,
+      maxLatencyMs: plan.maxLatencyMs,
+      timeoutMs: Math.max(plan.maxLatencyMs + 1000, 3000),
+      requestBody: plan.requestBody,
+    },
   });
   await recordWorkflowAuditEvent({
     workspace,
@@ -188,42 +141,13 @@ export async function createWorkflowFromImportAction(formData: FormData) {
   redirect(`/workflows/${workflowId}?notice=${encodeURIComponent("Workflow imported and health check created.")}`);
 }
 
-const workflowUpdateFormSchema = workflowBaseFormSchema
-  .omit({
-    clientId: true,
-  })
-  .extend({
-    id: z.string().uuid(),
-    includedInReports: z.enum(["on"]).optional(),
-    returnTab: z.enum(["overview", "checks", "api", "endpoint", "settings"]).optional(),
-  })
-  .superRefine((value, context) => {
-    if (value.authType === "api_key_header" && value.authSecret && !value.authHeaderName) {
-      context.addIssue({
-        code: "custom",
-        path: ["authHeaderName"],
-        message: "API key header name is required when rotating API key auth.",
-      });
-    }
-
-    if (value.authType === "basic" && value.authSecret && !value.basicUsername) {
-      context.addIssue({
-        code: "custom",
-        path: ["basicUsername"],
-        message: "Basic auth username is required when rotating basic auth.",
-      });
-    }
-  });
-
-const workflowIdFormSchema = z.object({
-  id: z.string().uuid(),
-});
-
 export async function updateWorkflowAction(formData: FormData) {
   const parsed = workflowUpdateFormSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/workflows?error=${encodeURIComponent("Check the workflow URL, auth settings, and check thresholds before saving.")}`);
+    const fieldErrors = buildWorkflowFormFieldErrors(parsed.error.issues);
+
+    redirect(`/workflows?error=${encodeURIComponent(formatWorkflowFormValidationSummary(fieldErrors))}`);
   }
 
   const workspace = await requireWorkspace();
