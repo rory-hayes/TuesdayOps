@@ -3,6 +3,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
+import { EMAIL_FORMAT_ERROR, EMAIL_FORMAT_HELP } from "@/lib/auth/email";
 import SignUpPage from "./page";
 
 describe("SignUpPage", () => {
@@ -19,6 +20,7 @@ describe("SignUpPage", () => {
     expect(html).toContain("or continue with email");
     expect(html).toContain('aria-label="Create Maintain Flow account"');
     expect(html).toContain("noValidate");
+    expect(html).toContain(EMAIL_FORMAT_HELP);
     expect(html).toContain("New password");
     expect(html).toContain('name="password"');
     expect(html).toContain('name="confirmPassword"');
@@ -39,7 +41,7 @@ describe("SignUpPage", () => {
     fireEvent.change(confirmPassword, { target: { value: "different" } });
     fireEvent.submit(screen.getByRole("form", { name: "Create Maintain Flow account" }));
 
-    expect(screen.getByText("Enter a valid email address.")).toBeTruthy();
+    expect(screen.getByText(EMAIL_FORMAT_ERROR)).toBeTruthy();
     expect(
       screen.getByText("Use at least 12 characters with uppercase, lowercase, number, and symbol."),
     ).toBeTruthy();
@@ -57,10 +59,10 @@ describe("SignUpPage", () => {
     const confirmPassword = screen.getByLabelText("Confirm password") as HTMLInputElement;
 
     fireEvent.change(email, { target: { value: "not-an-email" } });
-    expect(screen.getByText("Enter a valid email address.")).toBeTruthy();
+    expect(screen.getByText(EMAIL_FORMAT_ERROR)).toBeTruthy();
 
-    fireEvent.change(email, { target: { value: "owner@example.com" } });
-    expect(screen.queryByText("Enter a valid email address.")).toBeNull();
+    fireEvent.change(email, { target: { value: "owner+alerts@sub.example.com" } });
+    expect(screen.queryByText(EMAIL_FORMAT_ERROR)).toBeNull();
 
     fireEvent.change(password, { target: { value: "short" } });
     expect(
@@ -89,7 +91,7 @@ describe("SignUpPage", () => {
 
     fireEvent.change(confirmPassword, { target: { value: "Tuesday-2026!" } });
     expect(screen.queryByText("Password and confirmation must match.")).toBeNull();
-    expect(email.value).toBe("owner@example.com");
+    expect(email.value).toBe("owner+alerts@sub.example.com");
     expect(password.value).toBe("Tuesday-2026!");
     expect(confirmPassword.value).toBe("Tuesday-2026!");
   });

@@ -3,10 +3,29 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SignUpForm } from "@/components/auth/sign-up-form";
+import { EMAIL_FORMAT_ERROR, EMAIL_FORMAT_HELP } from "@/lib/auth/email";
 import { PASSWORD_REQUIREMENTS } from "@/lib/auth/password";
 
 describe("SignUpForm", () => {
   afterEach(() => cleanup());
+
+  it("guides invalid emails and accepts plus addressing with subdomains", () => {
+    render(<SignUpForm action={vi.fn()} />);
+
+    const email = screen.getByLabelText("Email") as HTMLInputElement;
+
+    expect(screen.getByText(EMAIL_FORMAT_HELP)).toBeTruthy();
+
+    fireEvent.change(email, { target: { value: "not-an-email" } });
+
+    expect(screen.getByText(EMAIL_FORMAT_ERROR)).toBeTruthy();
+    expect(email.getAttribute("aria-invalid")).toBe("true");
+
+    fireEvent.change(email, { target: { value: "ops+alerts@sub.example.co.uk" } });
+
+    expect(screen.queryByText(EMAIL_FORMAT_ERROR)).toBeNull();
+    expect(email.getAttribute("aria-invalid")).toBeNull();
+  });
 
   it("shows inline accessible validation for weak and mismatched passwords", async () => {
     const action = vi.fn();

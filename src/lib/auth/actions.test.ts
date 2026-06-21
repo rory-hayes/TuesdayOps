@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { signInWithGoogleAction } from "@/lib/auth/actions";
+import { signInAction, signInWithGoogleAction, signUpAction } from "@/lib/auth/actions";
+import { EMAIL_FORMAT_ERROR } from "@/lib/auth/email";
 import { createClient } from "@/lib/supabase/server";
 
 const mocks = vi.hoisted(() => ({
@@ -41,6 +42,56 @@ describe("auth server actions", () => {
       provider: "google",
       options: {
         redirectTo: "https://app.example.com/auth/callback?next=/onboarding&source=sign-up",
+      },
+    });
+  });
+
+  it("returns helpful email guidance before signing in with an invalid address", async () => {
+    await expectRedirect(
+      signInAction(formData({ email: "not-an-email", password: "Tuesday-2026!" })),
+      `/sign-in?error=${encodeURIComponent(EMAIL_FORMAT_ERROR)}`,
+    );
+
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("returns helpful email guidance before signing up with an invalid address", async () => {
+    await expectRedirect(
+      signUpAction(
+        formData({
+          email: "not-an-email",
+          password: "Tuesday-2026!",
+          confirmPassword: "Tuesday-2026!",
+        }),
+      ),
+      `/sign-up?error=${encodeURIComponent(EMAIL_FORMAT_ERROR)}`,
+    );
+
+    expect(createClient).not.toHaveBeenCalled();
+  });
+
+  it("accepts plus-addressed subdomain emails before creating an account", async () => {
+    const signUp = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: { signUp },
+    } as never);
+
+    await expectRedirect(
+      signUpAction(
+        formData({
+          email: "ops+alerts@sub.example.co.uk",
+          password: "Tuesday-2026!",
+          confirmPassword: "Tuesday-2026!",
+        }),
+      ),
+      "/onboarding",
+    );
+
+    expect(signUp).toHaveBeenCalledWith({
+      email: "ops+alerts@sub.example.co.uk",
+      password: "Tuesday-2026!",
+      options: {
+        emailRedirectTo: "https://app.example.com/onboarding",
       },
     });
   });

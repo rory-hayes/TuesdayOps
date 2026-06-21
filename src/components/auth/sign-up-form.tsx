@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { AuthInputField, AuthPasswordField } from "@/components/auth/auth-fields";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { EMAIL_FORMAT_ERROR, EMAIL_FORMAT_HELP, isAuthEmailAddress } from "@/lib/auth/email";
 import { PASSWORD_REQUIREMENTS, validatePasswordCredentials } from "@/lib/auth/password";
 
 type SignUpFormProps = {
@@ -58,6 +59,7 @@ export function SignUpForm({ action }: SignUpFormProps) {
         autoComplete="email"
         value={values.email}
         onChange={(event) => updateValue("email", event.target.value)}
+        description={EMAIL_FORMAT_HELP}
         error={errors.email}
       />
       <AuthPasswordField
@@ -96,8 +98,8 @@ function validateSignUpValues(values: SignUpValues): SignUpErrors {
 
   if (!email) {
     errors.email = "Email is required.";
-  } else if (!isEmailAddress(email)) {
-    errors.email = "Enter a valid email address.";
+  } else if (!isAuthEmailAddress(email)) {
+    errors.email = EMAIL_FORMAT_ERROR;
   }
 
   if (!values.password) {
@@ -135,8 +137,4 @@ function getVisibleSignUpErrors(
   }
 
   return visibleErrors;
-}
-
-function isEmailAddress(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }

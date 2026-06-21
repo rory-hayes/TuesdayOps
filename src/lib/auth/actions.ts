@@ -12,16 +12,22 @@ import {
   formatSignInError,
   formatSignUpError,
 } from "@/lib/auth/feedback";
+import { AUTH_EMAIL_PATTERN, EMAIL_FORMAT_ERROR } from "@/lib/auth/email";
 import { getAppUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
+const emailSchema = z
+  .string()
+  .trim()
+  .pipe(z.email({ pattern: AUTH_EMAIL_PATTERN, error: EMAIL_FORMAT_ERROR }));
+
 const authSchema = z.object({
-  email: z.string().trim().email(),
+  email: emailSchema,
   password: z.string().min(8),
 });
 
 const signUpSchema = z.object({
-  email: z.string().trim().email(),
+  email: emailSchema,
   password: z.string(),
   confirmPassword: z.string(),
 });
@@ -31,7 +37,7 @@ const googleOAuthSchema = z.object({
 });
 
 const resetRequestSchema = z.object({
-  email: z.string().trim().email(),
+  email: emailSchema,
 });
 
 const passwordUpdateSchema = z.object({
@@ -56,7 +62,11 @@ export async function signInAction(formData: FormData) {
   const parsed = authSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/sign-in?error=${encodeURIComponent("Enter a valid email and password.")}`);
+    redirect(
+      `/sign-in?error=${encodeURIComponent(
+        formatCredentialsParseError(parsed.error, "Enter your password."),
+      )}`,
+    );
   }
 
   const supabase = await createClient();
@@ -73,7 +83,11 @@ export async function signUpAction(formData: FormData) {
   const parsed = signUpSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/sign-up?error=${encodeURIComponent("Use a valid email and complete both password fields.")}`);
+    redirect(
+      `/sign-up?error=${encodeURIComponent(
+        formatCredentialsParseError(parsed.error, "Complete both password fields."),
+      )}`,
+    );
   }
 
   const password = validatePasswordCredentials(parsed.data);
@@ -144,7 +158,7 @@ export async function requestPasswordResetAction(formData: FormData) {
   const parsed = resetRequestSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    redirect(`/forgot-password?error=${encodeURIComponent("Enter a valid email address.")}`);
+    redirect(`/forgot-password?error=${encodeURIComponent(EMAIL_FORMAT_ERROR)}`);
   }
 
   const supabase = await createClient();
@@ -161,6 +175,10 @@ export async function requestPasswordResetAction(formData: FormData) {
       "If an account exists for that email, a reset link will arrive shortly.",
     )}`,
   );
+}
+
+function formatCredentialsParseError(error: z.ZodError, fallback: string) {
+  return error.issues.some((issue) => issue.path[0] === "email") ? EMAIL_FORMAT_ERROR : fallback;
 }
 
 export async function updatePasswordAction(formData: FormData) {
