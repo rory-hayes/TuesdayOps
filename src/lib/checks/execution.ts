@@ -84,22 +84,7 @@ export async function executeCheckRun({
     }
   }
 
-  const authConfig = workflow.encrypted_auth_config
-    ? decryptJsonPayload<WorkflowAuthConfig>(workflow.encrypted_auth_config)
-    : { type: "none" as const };
-  const result = await runHttpCheck({
-    workflow: {
-      endpointUrl: workflow.endpoint_url,
-      method: workflow.method,
-      authType: workflow.auth_type,
-    },
-    check: {
-      configJson: check.config_json,
-    },
-    authConfig,
-    maxAttempts: trigger === "scheduled" ? 1 : undefined,
-    maxTimeoutMs: trigger === "scheduled" ? scheduledCheckTimeoutMs : undefined,
-  });
+  const result = await runWorkflowCheckSafely({ workflow, check, trigger });
 
   const { data: runRow, error: runError } = await supabase
     .from("check_runs")
@@ -133,25 +118,34 @@ export async function executeCheckRun({
     throw new Error("Check run could not be saved.");
   }
 
-  await createOrUpdateIssueForCheckRun({
-    supabase,
-    context: {
-      agencyId,
-      clientId: workflow.client_id,
-      workflowId: workflow.id,
-      workflowName: workflow.name,
-      checkId: check.id,
-      checkName: check.name,
-      checkRunId: runRow.id,
-      status: result.status,
-      statusCode: result.statusCode,
-      latencyMs: result.latencyMs,
-      errorMessage: result.errorMessage,
-      assertionResults: result.assertionResults,
-    },
-  });
+  const issueContext = {
+    agencyId,
+    clientId: workflow.client_id,
+    workflowId: workflow.id,
+    workflowName: workflow.name,
+    checkId: check.id,
+    checkName: check.name,
+    checkRunId: runRow.id,
+    status: result.status,
+    statusCode: result.statusCode,
+    latencyMs: result.latencyMs,
+    errorMessage: result.errorMessage,
+    assertionResults: result.assertionResults,
+  };
 
-  await updateWorkflowSummary({ supabase, agencyId, workflowId: workflow.id, result });
+  if (trigger === "scheduled") {
+    await runScheduledPostProcessingSafely({
+      supabase,
+      agencyId,
+      checkId: check.id,
+      workflowId: workflow.id,
+      result,
+      issueContext,
+    });
+  } else {
+    await createOrUpdateIssueForCheckRun({ supabase, context: issueContext });
+    await updateWorkflowSummary({ supabase, agencyId, workflowId: workflow.id, result });
+  }
 
   return {
     status: "completed",
@@ -159,6 +153,109 @@ export async function executeCheckRun({
     workflowId: workflow.id,
     runStatus: result.status,
   };
+}
+
+async function runWorkflowCheckSafely({
+  workflow,
+  check,
+  trigger,
+}: {
+  workflow: ExecutionWorkflowRow;
+  check: ExecutionCheckRow;
+  trigger: CheckRunTrigger;
+}): Promise<HttpCheckResult> {
+  const startedAtDate = new Date();
+
+  try {
+    const authConfig = workflow.encrypted_auth_config
+      ? decryptJsonPayload<WorkflowAuthConfig>(workflow.encrypted_auth_config)
+      : { type: "none" as const };
+
+    return await runHttpCheck({
+      workflow: {
+        endpointUrl: workflow.endpoint_url,
+        method: workflow.method,
+        authType: workflow.auth_type,
+      },
+      check: {
+        configJson: check.config_json,
+      },
+      authConfig,
+      maxAttempts: trigger === "scheduled" ? 1 : undefined,
+      maxTimeoutMs: trigger === "scheduled" ? scheduledCheckTimeoutMs : undefined,
+    });
+  } catch (error) {
+    return buildFailedExecutionResult({ error, startedAtDate });
+  }
+}
+
+function buildFailedExecutionResult({
+  error,
+  startedAtDate,
+}: {
+  error: unknown;
+  startedAtDate: Date;
+}): HttpCheckResult {
+  return {
+    status: "failed",
+    latencyMs: Date.now() - startedAtDate.getTime(),
+    responseSummary: "",
+    assertionResults: [],
+    errorMessage: formatExecutionError(error),
+    startedAt: startedAtDate.toISOString(),
+    completedAt: new Date().toISOString(),
+  };
+}
+
+function formatExecutionError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown check execution error.";
+
+  if (/decrypt|authentication tag|unsupported state|WORKFLOW_AUTH_ENCRYPTION_KEY/i.test(message)) {
+    return "Workflow authentication could not be decrypted. Re-enter the workflow credentials and rerun the check.";
+  }
+
+  return message
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
+    .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
+    .slice(0, 400);
+}
+
+async function runScheduledPostProcessingSafely({
+  supabase,
+  agencyId,
+  checkId,
+  workflowId,
+  result,
+  issueContext,
+}: {
+  supabase: SupabaseClient;
+  agencyId: string;
+  checkId: string;
+  workflowId: string;
+  result: HttpCheckResult;
+  issueContext: Parameters<typeof createOrUpdateIssueForCheckRun>[0]["context"];
+}) {
+  try {
+    await createOrUpdateIssueForCheckRun({ supabase, context: issueContext });
+  } catch (error) {
+    console.error("Scheduled check issue sync failed", {
+      agencyId,
+      checkId,
+      workflowId,
+      reason: formatExecutionError(error),
+    });
+  }
+
+  try {
+    await updateWorkflowSummary({ supabase, agencyId, workflowId, result });
+  } catch (error) {
+    console.error("Scheduled workflow summary update failed", {
+      agencyId,
+      checkId,
+      workflowId,
+      reason: formatExecutionError(error),
+    });
+  }
 }
 
 export function buildCheckRunInsert({

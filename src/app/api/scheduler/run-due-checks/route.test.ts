@@ -125,6 +125,11 @@ describe("scheduler run-due-checks route", () => {
       completed: 1,
       skipped: 1,
       failed: 2,
+      failures: [{
+        agencyId: "agency-1",
+        checkId: "550e8400-e29b-41d4-a716-446655440000",
+        reason: "Check configuration is invalid.",
+      }],
     });
 
     const response = await POST(
@@ -142,6 +147,11 @@ describe("scheduler run-due-checks route", () => {
       completed: 1,
       skipped: 1,
       failed: 2,
+      failures: [{
+        agencyId: "agency-1",
+        checkId: "550e8400-e29b-41d4-a716-446655440000",
+        reason: "Check configuration is invalid.",
+      }],
     });
   });
 

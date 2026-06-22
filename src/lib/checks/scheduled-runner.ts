@@ -22,6 +22,13 @@ export type ScheduledCheckBatchResult = {
   completed: number;
   skipped: number;
   failed: number;
+  failures?: ScheduledCheckFailure[];
+};
+
+export type ScheduledCheckFailure = {
+  agencyId: string;
+  checkId: string;
+  reason: string;
 };
 
 type DueHealthCheckRow = {
@@ -90,6 +97,7 @@ export async function runDueScheduledChecks({
     summary.completed += pageResult.completed;
     summary.skipped += pageResult.skipped;
     summary.failed += pageResult.failed;
+    appendScheduledFailures(summary, pageResult.failures);
 
     if (checkId || checks.length < pageLimit) {
       break;
@@ -152,11 +160,18 @@ export async function runScheduledCheckBatch({
         summary.completed += 1;
       }
     } catch (error) {
+      const reason = formatScheduledRunError(error);
+
       summary.failed += 1;
+      appendScheduledFailures(summary, [{
+        agencyId: check.agencyId,
+        checkId: check.id,
+        reason,
+      }]);
       console.error("Scheduled check run failed", {
         agencyId: check.agencyId,
         checkId: check.id,
-        reason: formatScheduledRunError(error),
+        reason,
       });
     }
   }
@@ -171,6 +186,17 @@ function formatScheduledRunError(error: unknown): string {
     .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
     .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
     .slice(0, 400);
+}
+
+function appendScheduledFailures(
+  summary: ScheduledCheckBatchResult,
+  failures: ScheduledCheckFailure[] | undefined,
+) {
+  if (!failures?.length) {
+    return;
+  }
+
+  summary.failures = [...(summary.failures ?? []), ...failures];
 }
 
 export async function loadSchedulableChecks({

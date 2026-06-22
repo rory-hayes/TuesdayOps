@@ -87,7 +87,17 @@ describe("scheduled check batch runner", () => {
       });
 
       expect(executeCheckRun).toHaveBeenCalledTimes(2);
-      expect(result).toEqual({ attempted: 2, completed: 0, skipped: 1, failed: 1 });
+      expect(result).toEqual({
+        attempted: 2,
+        completed: 0,
+        skipped: 1,
+        failed: 1,
+        failures: [{
+          agencyId: "agency-1",
+          checkId: "first",
+          reason: "temporary failure with token=[redacted]",
+        }],
+      });
       expect(consoleError).toHaveBeenCalledWith("Scheduled check run failed", {
         agencyId: "agency-1",
         checkId: "first",
@@ -360,7 +370,17 @@ describe("scheduled check batch runner", () => {
     try {
       await expect(
         runDueScheduledChecks({ supabase, now, limit: 1 }),
-      ).resolves.toEqual({ attempted: 1, completed: 0, skipped: 0, failed: 1 });
+      ).resolves.toEqual({
+        attempted: 1,
+        completed: 0,
+        skipped: 0,
+        failed: 1,
+        failures: [{
+          agencyId: "agency-0",
+          checkId: "check-0",
+          reason: "network unavailable",
+        }],
+      });
     } finally {
       consoleError.mockRestore();
     }

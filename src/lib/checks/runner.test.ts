@@ -391,6 +391,63 @@ describe("runHttpCheck", () => {
     expect(result.assertionResults.every((assertion) => !assertion.passed)).toBe(true);
   });
 
+  it("records invalid check configuration as a failed check without calling the workflow endpoint", async () => {
+    const transport = createTransport([
+      { statusCode: 200, bodyText: "{\"ok\":true}", truncated: false },
+    ]);
+
+    const result = await runHttpCheck({
+      workflow: {
+        endpointUrl: "https://api.example.com/config",
+        method: "GET",
+        authType: "none",
+      },
+      check: {
+        configJson: {
+          assertions: [],
+        },
+      },
+      authConfig: { type: "none" },
+      transport,
+    });
+
+    expect(transport).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      status: "failed",
+      errorMessage: "Check configuration is invalid.",
+      assertionResults: [],
+    });
+  });
+
+  it("preserves the original failure reason when scheduled checks run with one attempt", async () => {
+    const transport = createTransport([
+      new Error("connect ECONNREFUSED"),
+    ]);
+
+    const result = await runHttpCheck({
+      workflow: {
+        endpointUrl: "https://api.example.com/down",
+        method: "GET",
+        authType: "none",
+      },
+      check: {
+        configJson: {
+          timeoutMs: 1000,
+          assertions: [{ type: "status_code", expected: 200 }],
+        },
+      },
+      authConfig: { type: "none" },
+      maxAttempts: 1,
+      transport,
+    });
+
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      status: "failed",
+      errorMessage: "connect ECONNREFUSED",
+    });
+  });
+
   it("normalizes non-Error request failures and abort errors", async () => {
     const input = {
       workflow: {

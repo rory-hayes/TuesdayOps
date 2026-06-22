@@ -257,6 +257,81 @@ describe("check execution persistence helpers", () => {
     expect(workflowUpdates).toContainEqual(expect.objectContaining({ status: "degraded" }));
   });
 
+  it("persists runner setup failures as failed check runs with user-facing reasons", async () => {
+    vi.mocked(runHttpCheck).mockRejectedValue(new Error("runner exploded with token=secret-123"));
+    vi.mocked(createOrUpdateIssueForCheckRun).mockResolvedValue({ id: "issue-1", created: true });
+    const { supabase, inserts, workflowUpdates } = createExecutionSupabase();
+
+    await expect(
+      executeCheckRun({
+        supabase,
+        agencyId: "agency-1",
+        checkId: "check-1",
+        trigger: "scheduled",
+        scheduledFor: "2026-06-13T12:05:00.000Z",
+      }),
+    ).resolves.toEqual({
+      status: "completed",
+      checkRunId: "run-1",
+      workflowId: "workflow-1",
+      runStatus: "failed",
+    });
+
+    expect(inserts).toContainEqual(
+      expect.objectContaining({
+        status: "failed",
+        error_message: "runner exploded with token=[redacted]",
+        assertion_results_json: [],
+        trigger: "scheduled",
+      }),
+    );
+    expect(createOrUpdateIssueForCheckRun).toHaveBeenCalledWith({
+      supabase,
+      context: expect.objectContaining({
+        checkRunId: "run-1",
+        status: "failed",
+        errorMessage: "runner exploded with token=[redacted]",
+      }),
+    });
+    expect(workflowUpdates).toContainEqual(expect.objectContaining({ status: "failed" }));
+  });
+
+  it("keeps scheduled execution completed when issue sync fails after the run is saved", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(runHttpCheck).mockResolvedValue({
+      ...healthyResult,
+      status: "failed",
+      errorMessage: "Request timed out.",
+      assertionResults: [],
+    });
+    vi.mocked(createOrUpdateIssueForCheckRun).mockRejectedValue(new Error("issues offline"));
+    const { supabase, workflowUpdates } = createExecutionSupabase();
+
+    await expect(
+      executeCheckRun({
+        supabase,
+        agencyId: "agency-1",
+        checkId: "check-1",
+        trigger: "scheduled",
+        scheduledFor: "2026-06-13T12:05:00.000Z",
+      }),
+    ).resolves.toEqual({
+      status: "completed",
+      checkRunId: "run-1",
+      workflowId: "workflow-1",
+      runStatus: "failed",
+    });
+
+    expect(workflowUpdates).toContainEqual(expect.objectContaining({ status: "failed" }));
+    expect(consoleError).toHaveBeenCalledWith("Scheduled check issue sync failed", {
+      agencyId: "agency-1",
+      checkId: "check-1",
+      workflowId: "workflow-1",
+      reason: "issues offline",
+    });
+    consoleError.mockRestore();
+  });
+
   it("throws when check run persistence fails for a non-idempotent error", async () => {
     vi.mocked(runHttpCheck).mockResolvedValue(healthyResult);
     const { supabase } = createExecutionSupabase({

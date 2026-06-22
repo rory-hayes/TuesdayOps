@@ -75,10 +75,11 @@ export async function runHttpCheck({
 }): Promise<HttpCheckResult> {
   const startedAtDate = new Date();
   const startedAt = startedAtDate.toISOString();
-  const config = applyRuntimeLimits(parseCheckConfig(check.configJson), { maxTimeoutMs });
-  const headers = buildHeaders(workflow.authType, authConfig);
+  let config: CheckConfig | null = null;
 
   try {
+    config = applyRuntimeLimits(parseCheckConfig(check.configJson), { maxTimeoutMs });
+    const headers = buildHeaders(workflow.authType, authConfig);
     const endpoint = await resolveSafeWorkflowEndpoint(workflow.endpointUrl, {
       allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
     });
@@ -136,7 +137,7 @@ export async function runHttpCheck({
           completedAt: new Date().toISOString(),
         };
       } catch (error) {
-        if (attempt === maxRequestAttempts) {
+        if (attempt === requestAttempts) {
           throw error;
         }
       } finally {
@@ -146,29 +147,18 @@ export async function runHttpCheck({
 
     throw new Error("Request did not complete after retry.");
   } catch (error) {
-    const latencyMs = Date.now() - startedAtDate.getTime();
-    const message = error instanceof Error ? error.message : "Unknown check runner error.";
-
-    return {
-      status: "failed",
-      latencyMs,
-      responseSummary: "",
-      assertionResults: config.assertions.map((assertion) => ({
-        type: assertion.type,
-        passed: false,
-        message: "Request did not complete, so this assertion could not be evaluated.",
-      })),
-      errorMessage: /operation was aborted|this operation was aborted/i.test(message)
-        ? "Request timed out."
-        : message,
-      startedAt,
-      completedAt: new Date().toISOString(),
-    };
+    return buildFailedHttpCheckResult({ error, config, startedAtDate, startedAt });
   }
 }
 
 function parseCheckConfig(value: unknown): CheckConfig {
-  return checkConfigSchema.parse(value);
+  const parsed = checkConfigSchema.safeParse(value);
+
+  if (!parsed.success) {
+    throw new Error("Check configuration is invalid.");
+  }
+
+  return parsed.data;
 }
 
 function applyRuntimeLimits(config: CheckConfig, { maxTimeoutMs }: { maxTimeoutMs?: number }): CheckConfig {
@@ -208,6 +198,48 @@ function buildHeaders(
   }
 
   return headers;
+}
+
+function buildFailedHttpCheckResult({
+  error,
+  config,
+  startedAtDate,
+  startedAt,
+}: {
+  error: unknown;
+  config: CheckConfig | null;
+  startedAtDate: Date;
+  startedAt: string;
+}): HttpCheckResult {
+  const message = formatCheckRunnerError(error);
+
+  return {
+    status: "failed",
+    latencyMs: Date.now() - startedAtDate.getTime(),
+    responseSummary: "",
+    assertionResults: config
+      ? config.assertions.map((assertion) => ({
+          type: assertion.type,
+          passed: false,
+          message: "Request did not complete, so this assertion could not be evaluated.",
+        }))
+      : [],
+    errorMessage: message,
+    startedAt,
+    completedAt: new Date().toISOString(),
+  };
+}
+
+function formatCheckRunnerError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "Unknown check runner error.";
+  const normalized = /operation was aborted|this operation was aborted/i.test(message)
+    ? "Request timed out."
+    : message;
+
+  return normalized
+    .replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
+    .replace(/(api[_-]?key|token|secret|password)\s*[:=]\s*[^,\s)]+/gi, "$1=[redacted]")
+    .slice(0, 400);
 }
 
 async function sendPinnedWorkflowRequest({
