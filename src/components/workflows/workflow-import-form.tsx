@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { AlertTriangle, CheckCircle2, LockKeyhole, Plus, Timer } from "lucide-react";
+import { useMemo, useState } from "react";
+import { AlertTriangle, Braces, CheckCircle2, Cable, LockKeyhole, Plus, Timer, Workflow, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import type { WorkflowType } from "@/lib/domain/types";
@@ -21,6 +21,7 @@ type ClientOption = {
 type WorkflowImportFormProps = {
   clients: ClientOption[];
   action: (formData: FormData) => void | Promise<void>;
+  onManualSetup?: () => void;
 };
 
 type ImportPreviewState =
@@ -28,7 +29,9 @@ type ImportPreviewState =
   | { status: "error"; message: string }
   | { status: "ready"; plan: WorkflowImportPlan };
 
-const importSources: Array<{
+type ImportPath = "n8n" | "make" | "zapier" | "api";
+
+const apiImportSources: Array<{
   value: WorkflowImportSource;
   label: string;
   placeholder: string;
@@ -56,18 +59,69 @@ const importSources: Array<{
   },
 ];
 
-export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps) {
-  const sourceRef = useRef<HTMLSelectElement>(null);
-  const [importSource, setImportSource] = useState<WorkflowImportSource>("url");
+const platformImportOptions: Array<{
+  path: ImportPath;
+  label: string;
+  detail: string;
+  source: WorkflowImportSource;
+  workflowType?: WorkflowType;
+  placeholder: string;
+  instructions: string;
+  icon: typeof Workflow;
+}> = [
+  {
+    path: "n8n",
+    label: "n8n",
+    detail: "Workflow JSON",
+    source: "n8n_json",
+    workflowType: "n8n",
+    placeholder: '{"name":"Lead intake","nodes":[{"name":"Webhook","type":"n8n-nodes-base.webhook","parameters":{"path":"lead-intake"}}],"connections":{}}',
+    instructions: "Workflow menu -> Download JSON.",
+    icon: Workflow,
+  },
+  {
+    path: "make",
+    label: "Make",
+    detail: "Blueprint JSON",
+    source: "make_blueprint",
+    workflowType: "make",
+    placeholder: '{"name":"Lead intake scenario","flow":[{"id":1,"module":"gateway:CustomWebHook","parameters":{}}]}',
+    instructions: "Scenario builder -> three dots -> Export blueprint.",
+    icon: Braces,
+  },
+  {
+    path: "zapier",
+    label: "Zapier",
+    detail: "Zap JSON",
+    source: "zapier_json",
+    workflowType: "zapier",
+    placeholder: '{"zaps":[{"title":"Lead intake Zap","steps":[{"type":"trigger","app":{"name":"Webhooks by Zapier"}}]}]}',
+    instructions: "Team/Enterprise: export Zap workflow JSON. Otherwise paste Zap steps for guided mapping.",
+    icon: Zap,
+  },
+  {
+    path: "api",
+    label: "API / webhook",
+    detail: "URL, cURL, OpenAPI, Postman",
+    source: "curl",
+    placeholder: 'curl -X POST "https://hooks.example.com/lead" -H "Authorization: Bearer ..." -d \'{"ping":true}\'',
+    instructions: "Paste a URL, cURL command, OpenAPI JSON/YAML/URL, or Postman collection.",
+    icon: Cable,
+  },
+];
+
+export function WorkflowImportForm({ clients, action, onManualSetup }: WorkflowImportFormProps) {
+  const [importPath, setImportPath] = useState<ImportPath>("n8n");
+  const [apiImportSource, setApiImportSource] = useState<WorkflowImportSource>("curl");
   const [importText, setImportText] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [workflowTypeOverride, setWorkflowTypeOverride] = useState<WorkflowType | undefined>();
   const [showRawImportText, setShowRawImportText] = useState(false);
-  const syncFormState = useCallback((sourceOverride?: WorkflowImportSource) => {
-    setImportSource(sourceOverride ?? readImportSource(sourceRef.current?.value));
-  }, []);
-
-  const selectedSource = importSources.find((source) => source.value === importSource) ?? importSources[0];
+  const selectedPlatform = platformImportOptions.find((option) => option.path === importPath) ?? platformImportOptions[0];
+  const importSource = importPath === "api" ? apiImportSource : selectedPlatform.source;
+  const workflowTypeOverride = selectedPlatform.workflowType;
+  const selectedSource = importPath === "api"
+    ? apiImportSources.find((source) => source.value === apiImportSource) ?? apiImportSources[1]
+    : selectedPlatform;
   const selectedTemplate = WORKFLOW_ONBOARDING_TEMPLATES.find((template) => template.type === workflowTypeOverride);
   const maskedImportText = maskWorkflowImportSecrets(importText);
   const importSecretsHidden = Boolean(importText) && maskedImportText !== importText && !showRawImportText;
@@ -84,12 +138,25 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
           plan: {
             name: "OpenAPI URL import",
             type: "custom_api",
+            sourceType: "openapi",
             endpointUrl: importText.trim(),
             method: "GET",
             authType: "none",
             checkFrequencyMinutes: 60,
             expectedStatus: 200,
             maxLatencyMs: 5000,
+            checkEnabled: true,
+            maintenanceMap: {
+              sourcePlatform: "api",
+              sourceName: "OpenAPI URL import",
+              triggerType: "manual",
+              detectedApps: [],
+              detectedNodes: [],
+              detectedEndpointUrl: importText.trim(),
+              suggestedChecks: ["Endpoint health check", "Response assertion check", "Failure alert check"],
+              warnings: [],
+              requiresManualEndpoint: false,
+            },
           },
         };
       }
@@ -121,39 +188,62 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
   return (
     <div className="space-y-5">
       <div>
-        <p className="text-sm font-medium">Optional starting point</p>
-        <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-          {WORKFLOW_ONBOARDING_TEMPLATES.map((template) => (
+        <p className="text-sm font-medium">Import from</p>
+        <div className="mt-2 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+          {platformImportOptions.map((option) => {
+            const Icon = option.icon;
+
+            return (
+              <button
+                key={option.path}
+                type="button"
+                aria-label={option.label}
+                aria-pressed={importPath === option.path}
+                className={`grid min-h-24 gap-2 rounded-lg border p-3 text-left transition-colors focus:border-primary focus:outline-none ${
+                  importPath === option.path
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-background hover:border-primary/50 hover:bg-muted"
+                }`}
+                onClick={() => {
+                  setImportPath(option.path);
+                  setImportText("");
+                  setShowRawImportText(false);
+                }}
+              >
+                <span className="flex items-center gap-2 text-sm font-semibold">
+                  <Icon size={16} className="text-primary" aria-hidden="true" />
+                  {option.label}
+                </span>
+                <span className="text-xs leading-5 text-muted-foreground">{option.detail}</span>
+              </button>
+            );
+          })}
+          {onManualSetup ? (
             <button
-              key={template.type}
               type="button"
-              aria-pressed={workflowTypeOverride === template.type}
-              className={`shrink-0 rounded-lg border px-3 py-2 text-left transition-colors focus:border-primary focus:outline-none ${
-                workflowTypeOverride === template.type
-                  ? "border-primary bg-primary/5"
-                  : "border-border bg-background hover:border-primary/50 hover:bg-muted"
-              }`}
-              onClick={() => {
-                const nextSource = template.defaultMethod === "POST" ? "curl" : "url";
-
-                if (sourceRef.current) {
-                  sourceRef.current.value = nextSource;
-                }
-
-                setWorkflowTypeOverride(template.type);
-                syncFormState(nextSource);
-              }}
+              aria-label="Manual setup"
+              className="grid min-h-24 gap-2 rounded-lg border border-border bg-background p-3 text-left transition-colors hover:border-primary/50 hover:bg-muted focus:border-primary focus:outline-none"
+              onClick={onManualSetup}
             >
-              <p className="whitespace-nowrap text-sm font-medium">{template.label}</p>
+              <span className="flex items-center gap-2 text-sm font-semibold">
+                <Plus size={16} className="text-primary" aria-hidden="true" />
+                Manual setup
+              </span>
+              <span className="text-xs leading-5 text-muted-foreground">Endpoint and check settings</span>
             </button>
-          ))}
+          ) : null}
         </div>
       </div>
 
       <form action={action} className="grid gap-4">
         {workflowTypeOverride ? <input type="hidden" name="workflowType" value={workflowTypeOverride} /> : null}
+        <input type="hidden" name="importSource" value={importSource} />
         <div className="grid gap-4 pb-16 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="grid gap-3 md:grid-cols-4">
+            <div className="rounded-lg bg-muted p-3 text-sm leading-6 text-muted-foreground md:col-span-4">
+              <span className="font-medium text-foreground">{selectedPlatform.label}: </span>
+              {selectedPlatform.instructions}
+            </div>
             <label className="block text-sm font-medium">
               Import client
               <select
@@ -168,23 +258,27 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
                 ))}
               </select>
             </label>
-            <label className="block text-sm font-medium">
-              Import source
-              <select
-                required
-                name="importSource"
-                ref={sourceRef}
-                defaultValue="url"
-                onChange={() => syncFormState()}
-                className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-              >
-                {importSources.map((source) => (
-                  <option key={source.value} value={source.value}>
-                    {source.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            {importPath === "api" ? (
+              <label className="block text-sm font-medium">
+                API source
+                <select
+                  required
+                  value={apiImportSource}
+                  onChange={(event) => {
+                    setApiImportSource(event.currentTarget.value as WorkflowImportSource);
+                    setImportText("");
+                    setShowRawImportText(false);
+                  }}
+                  className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+                >
+                  {apiImportSources.map((source) => (
+                    <option key={source.value} value={source.value}>
+                      {source.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className="block text-sm font-medium md:col-span-2">
               Display name
               <input
@@ -196,7 +290,7 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
                 className="mt-2 h-10 w-full rounded-md border border-border bg-background px-3 text-sm outline-none focus:border-primary"
               />
             </label>
-            <label className="block text-sm font-medium md:col-span-4">
+            <label className={`block text-sm font-medium ${importPath === "api" ? "md:col-span-4" : "md:col-span-4"}`}>
               Import details
               <textarea
                 required
@@ -245,14 +339,6 @@ export function WorkflowImportForm({ clients, action }: WorkflowImportFormProps)
   );
 }
 
-function readImportSource(value: string | undefined): WorkflowImportSource {
-  if (value === "curl" || value === "openapi" || value === "postman") {
-    return value;
-  }
-
-  return "url";
-}
-
 function ImportPreview({
   preview,
   displayName,
@@ -299,6 +385,7 @@ function ImportPreview({
   const plan = preview.plan;
   const finalName = displayName.trim() || plan.name;
   const workflowType = workflowTypeOverride ?? plan.type;
+  const map = plan.maintenanceMap;
 
   return (
     <aside
@@ -313,13 +400,27 @@ function ImportPreview({
       <div className="mt-3 space-y-2 text-sm">
         <PreviewRow label="Name" value={finalName} />
         <PreviewRow label="Type" value={formatWorkflowType(workflowType)} />
-        <PreviewRow label="Endpoint" value={plan.endpointUrl} breakValue />
+        <PreviewRow label="Source" value={`${formatSourcePlatform(map.sourcePlatform)} - ${formatTriggerType(map.triggerType)}`} />
+        {map.detectedApps.length ? <PreviewRow label="Apps" value={map.detectedApps.slice(0, 4).join(", ")} /> : null}
+        {map.detectedNodes.length ? <PreviewRow label="Detected" value={map.detectedNodes.slice(0, 3).join(", ")} /> : null}
+        <PreviewRow
+          label={map.requiresManualEndpoint ? "Next setup" : "Endpoint"}
+          value={map.requiresManualEndpoint ? "Add production webhook or heartbeat" : plan.endpointUrl}
+          breakValue={!map.requiresManualEndpoint}
+        />
         <div className="flex items-center justify-between gap-3">
           <span className="text-muted-foreground">Method</span>
           <Badge>{plan.method}</Badge>
         </div>
         <PreviewRow label="Auth" value={formatAuth(plan)} />
-        <PreviewRow label="Check" value={`Every ${plan.checkFrequencyMinutes} min, ${plan.expectedStatus}, under ${plan.maxLatencyMs} ms`} />
+        <PreviewRow
+          label="Check"
+          value={plan.checkEnabled
+            ? `Every ${plan.checkFrequencyMinutes} min, ${plan.expectedStatus}, under ${plan.maxLatencyMs} ms`
+            : "Created disabled until endpoint is added"}
+        />
+        {map.suggestedChecks.length ? <PreviewList label="Suggested checks" values={map.suggestedChecks.slice(0, 3)} /> : null}
+        {map.warnings.length ? <PreviewList label="Warnings" values={map.warnings.slice(0, 2)} /> : null}
         {plan.requestBody ? <PreviewRow label="Body" value="Request body detected" /> : null}
       </div>
       {plan.authType !== "none" ? (
@@ -329,6 +430,21 @@ function ImportPreview({
         </p>
       ) : null}
     </aside>
+  );
+}
+
+function PreviewList({ label, values }: { label: string; values: string[] }) {
+  return (
+    <div className="grid gap-1">
+      <span className="text-xs uppercase text-muted-foreground">{label}</span>
+      <ul className="grid gap-1 text-sm leading-5">
+        {values.map((value) => (
+          <li key={value} className="rounded-md bg-background px-2 py-1 text-muted-foreground">
+            {value}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -367,4 +483,24 @@ function formatAuth(plan: WorkflowImportPlan) {
 
 function formatWorkflowType(type: WorkflowType): string {
   return type.replaceAll("_", " ");
+}
+
+function formatSourcePlatform(platform: string): string {
+  if (platform === "n8n") {
+    return "n8n";
+  }
+
+  if (platform === "make") {
+    return "Make";
+  }
+
+  if (platform === "zapier") {
+    return "Zapier";
+  }
+
+  return "API";
+}
+
+function formatTriggerType(triggerType: string): string {
+  return triggerType.replaceAll("_", " ");
 }

@@ -9,6 +9,32 @@ describe("AddWorkflowDialog", () => {
     cleanup();
   });
 
+  it("renders platform import cards and platform-specific instructions", () => {
+    render(
+      <AddWorkflowDialog
+        clients={[{ id: "client-1", name: "Acme" }]}
+        createWorkflowAction={vi.fn()}
+        createWorkflowFromImportAction={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add workflow" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Add workflow" });
+
+    expect(within(dialog).getByRole("button", { name: /n8n/i })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /Make/i })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /Zapier/i })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /API \/ webhook/i })).toBeTruthy();
+    expect(within(dialog).getByRole("button", { name: /Manual setup/i })).toBeTruthy();
+    expect(within(dialog).getByText(/Workflow menu -> Download JSON/i)).toBeTruthy();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: /Make/i }));
+
+    expect(within(dialog).getByText(/Scenario builder -> three dots -> Export blueprint/i)).toBeTruthy();
+    expect((within(dialog).getByLabelText("Import details") as HTMLTextAreaElement).placeholder).toContain("Lead intake scenario");
+  });
+
   it("keeps the endpoint URL stable through focus changes and numeric edits", () => {
     render(
       <AddWorkflowDialog

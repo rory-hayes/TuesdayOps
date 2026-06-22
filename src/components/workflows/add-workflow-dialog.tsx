@@ -1,9 +1,9 @@
 "use client";
 
 import { useActionState, useId, useState, useSyncExternalStore } from "react";
-import type { ChangeEventHandler, KeyboardEvent, ReactNode } from "react";
+import type { ChangeEventHandler, KeyboardEvent } from "react";
 import { Dialog, DialogBackdrop, DialogPanel, DialogTitle } from "@headlessui/react";
-import { CheckCircle2, Plus, Upload, Wrench, X } from "lucide-react";
+import { CheckCircle2, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
 import { PageFeedback } from "@/components/ui/page-feedback";
@@ -96,31 +96,20 @@ export function AddWorkflowDialog({
               <JourneyStep label="3. Create & test" detail="Save the workflow, then run its first check." />
             </div>
 
-            <div className="flex flex-wrap gap-2 border-b border-zinc-950/10 p-4">
-              <ModeButton
-                active={mode === "import"}
-                icon={<Upload size={15} aria-hidden="true" />}
-                label="Quick import"
-                onClick={() => setMode("import")}
-              />
-              <ModeButton
-                active={mode === "manual"}
-                icon={<Wrench size={15} aria-hidden="true" />}
-                label="Manual setup"
-                onClick={() => setMode("manual")}
-              />
-            </div>
-
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-6">
               {mode === "import" ? (
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-base/7 font-semibold text-zinc-950">Quick workflow import</h3>
+                    <h3 className="text-base/7 font-semibold text-zinc-950">Import workflow</h3>
                     <p className="mt-1 text-sm/6 text-zinc-500">
-                      Paste a URL, cURL command, OpenAPI JSON/YAML/URL, or Postman collection and review the generated monitor before saving.
+                      Choose the automation platform, paste the export, and review the maintenance map before saving.
                     </p>
                   </div>
-                  <WorkflowImportForm clients={clients} action={createWorkflowFromImportAction} />
+                  <WorkflowImportForm
+                    clients={clients}
+                    action={createWorkflowFromImportAction}
+                    onManualSetup={() => setMode("manual")}
+                  />
                 </div>
               ) : (
                 <ManualWorkflowForm clients={clients} action={createWorkflowAction} />
@@ -142,34 +131,6 @@ function JourneyStep({ label, detail }: { label: string; detail: string }) {
       </div>
       <p className="mt-1 text-xs/5 text-zinc-500">{detail}</p>
     </div>
-  );
-}
-
-function ModeButton({
-  active,
-  icon,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  icon: ReactNode;
-  label: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      className={`inline-flex h-9 items-center justify-center gap-2 rounded-md border px-3 text-sm font-medium transition-colors ${
-        active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-zinc-950/10 bg-white text-zinc-700 hover:bg-zinc-950/5"
-      }`}
-      onClick={onClick}
-    >
-      {icon}
-      {label}
-    </button>
   );
 }
 
