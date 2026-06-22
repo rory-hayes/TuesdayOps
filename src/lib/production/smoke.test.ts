@@ -40,6 +40,11 @@ describe("runProductionSmoke", () => {
     expect(result.appUrl).toBe("https://tuesday-ops.vercel.app");
     expect(result.checks.map((check) => [check.id, check.status])).toEqual([
       ["health", "pass"],
+      ["sign-in-page", "pass"],
+      ["sign-up-page", "pass"],
+      ["google-sign-in-oauth", "pass"],
+      ["google-sign-up-oauth", "pass"],
+      ["auth-callback-error", "pass"],
       ["sentry-example-page", "pass"],
       ["sentry-example-api", "pass"],
       ["scheduler-protection", "pass"],
@@ -49,6 +54,14 @@ describe("runProductionSmoke", () => {
     ]);
     expect(requests).toEqual([
       { url: "https://tuesday-ops.vercel.app/api/health", method: "GET" },
+      { url: "https://tuesday-ops.vercel.app/sign-in", method: "GET" },
+      { url: "https://tuesday-ops.vercel.app/sign-up", method: "GET" },
+      { url: "https://tuesday-ops.vercel.app/auth/google?source=sign-in", method: "GET" },
+      { url: "https://tuesday-ops.vercel.app/auth/google?source=sign-up", method: "GET" },
+      {
+        url: "https://tuesday-ops.vercel.app/auth/callback?error=access_denied&source=sign-up",
+        method: "GET",
+      },
       { url: "https://tuesday-ops.vercel.app/sentry-example-page", method: "GET" },
       { url: "https://tuesday-ops.vercel.app/api/sentry-example-api", method: "GET" },
       { url: "https://tuesday-ops.vercel.app/api/scheduler/run-due-checks", method: "POST" },
@@ -56,6 +69,80 @@ describe("runProductionSmoke", () => {
       { url: "https://tuesday-ops.vercel.app/api/stripe/webhook", method: "POST" },
       { url: "https://tuesday-ops.vercel.app/", method: "GET" },
     ]);
+  });
+
+  it("fails when the sign-in or sign-up pages render the application error shell", async () => {
+    const result = await runProductionSmoke({
+      appUrl: "https://tuesday-ops.vercel.app",
+      fetchImpl: buildFetch({
+        "/api/health": jsonResponse({ ok: true, status: "ready", launchReady: true, checks: [] }),
+        "/sign-in": secureResponse(
+          '<html id="__next_error__"><body>Application error: a client-side exception has occurred</body></html>',
+        ),
+        "/sign-up": secureResponse("Create your account Continue with Google"),
+        "/sentry-example-page": textResponse("not found", 404),
+        "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
+        "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.checks.find((check) => check.id === "sign-in-page")).toMatchObject({
+      status: "fail",
+      detail: expect.stringContaining("application error shell"),
+    });
+  });
+
+  it("fails when Google OAuth does not start with a production callback URL", async () => {
+    const result = await runProductionSmoke({
+      appUrl: "https://tuesday-ops.vercel.app",
+      fetchImpl: buildFetch({
+        "/api/health": jsonResponse({ ok: true, status: "ready", launchReady: true, checks: [] }),
+        "/auth/google?source=sign-in": redirectResponse(
+          "https://project.supabase.co/auth/v1/authorize?provider=github&redirect_to=https%3A%2F%2Fevil.example%2Fauth%2Fcallback",
+        ),
+        "/sentry-example-page": textResponse("not found", 404),
+        "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
+        "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.checks.find((check) => check.id === "google-sign-in-oauth")).toMatchObject({
+      status: "fail",
+      detail: expect.stringContaining("Provider redirect is not for Google"),
+    });
+    expect(result.checks.find((check) => check.id === "google-sign-in-oauth")?.detail).toContain(
+      "callback origin is https://evil.example",
+    );
+  });
+
+  it("fails when callback provider errors do not return to auth UI safely", async () => {
+    const result = await runProductionSmoke({
+      appUrl: "https://tuesday-ops.vercel.app",
+      fetchImpl: buildFetch({
+        "/api/health": jsonResponse({ ok: true, status: "ready", launchReady: true, checks: [] }),
+        "/auth/callback?error=access_denied&source=sign-up": textResponse("application error", 500),
+        "/sentry-example-page": textResponse("not found", 404),
+        "/api/sentry-example-api": jsonResponse({ error: "Not found." }, 404),
+        "/api/scheduler/run-due-checks": jsonResponse({ error: "Unauthorized scheduler trigger." }, 401),
+        "/clients": redirectResponse("/sign-in", 307),
+        "/api/stripe/webhook": jsonResponse({ error: "Missing Stripe signature." }, 400),
+        "/": secureResponse(),
+      }),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.checks.find((check) => check.id === "auth-callback-error")).toMatchObject({
+      status: "fail",
+      detail: expect.stringContaining("Expected redirect, received 500"),
+    });
   });
 
   it("fails health when launch readiness is degraded or the public payload leaks secret-shaped values", async () => {
@@ -351,7 +438,9 @@ function buildFetch(
     const url = String(input);
     const parsedUrl = new URL(url);
     requests?.push({ url, method: init?.method ?? "GET" });
-    const response = responses[parsedUrl.pathname];
+    const response = responses[`${parsedUrl.pathname}${parsedUrl.search}`]
+      ?? responses[parsedUrl.pathname]
+      ?? defaultSmokeResponse(parsedUrl);
 
     if (!response) {
       return textResponse("not found", 404);
@@ -359,6 +448,39 @@ function buildFetch(
 
     return response.clone();
   };
+}
+
+function defaultSmokeResponse(url: URL): Response | undefined {
+  if (url.pathname === "/sign-in") {
+    return secureResponse("Sign in to your account Continue with Google");
+  }
+
+  if (url.pathname === "/sign-up") {
+    return secureResponse("Create your account Continue with Google");
+  }
+
+  if (url.pathname === "/auth/google") {
+    const source = url.searchParams.get("source") === "sign-up" ? "sign-up" : "sign-in";
+    const redirectTo = new URL("/auth/callback", url.origin);
+
+    redirectTo.searchParams.set("next", "/onboarding");
+    redirectTo.searchParams.set("source", source);
+
+    const providerUrl = new URL("https://project.supabase.co/auth/v1/authorize");
+
+    providerUrl.searchParams.set("provider", "google");
+    providerUrl.searchParams.set("redirect_to", redirectTo.toString());
+    providerUrl.searchParams.set("code_challenge", "test-code-challenge");
+    providerUrl.searchParams.set("code_challenge_method", "s256");
+
+    return redirectResponse(providerUrl.toString());
+  }
+
+  if (url.pathname === "/auth/callback") {
+    return redirectResponse(`${url.origin}/sign-up?error=Google%20sign-in%20was%20cancelled.`);
+  }
+
+  return undefined;
 }
 
 function jsonResponse(body: unknown, status = 200): Response {

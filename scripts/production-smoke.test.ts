@@ -7,7 +7,7 @@ import {
 const productionSmokeUrl =
   process.env.PRODUCTION_SMOKE_URL ??
   process.env.NEXT_PUBLIC_APP_URL ??
-  "https://tuesday-ops.vercel.app";
+  "https://www.maintainflow.io";
 
 describe("production smoke", () => {
   it(

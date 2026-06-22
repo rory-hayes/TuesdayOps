@@ -2,6 +2,11 @@ export type ProductionSmokeStatus = "pass" | "fail";
 
 export type ProductionSmokeCheckId =
   | "health"
+  | "sign-in-page"
+  | "sign-up-page"
+  | "google-sign-in-oauth"
+  | "google-sign-up-oauth"
+  | "auth-callback-error"
   | "sentry-example-page"
   | "sentry-example-api"
   | "scheduler-protection"
@@ -38,6 +43,45 @@ export async function runProductionSmoke({
   const checks: ProductionSmokeCheck[] = [];
 
   checks.push(await checkPublicHealth({ appUrl: normalizedAppUrl, fetchImpl }));
+  checks.push(
+    await checkAuthPage({
+      id: "sign-in-page",
+      label: "Sign-in page renders",
+      appUrl: normalizedAppUrl,
+      path: "/sign-in",
+      expectedHeading: "Sign in to your account",
+      fetchImpl,
+    }),
+  );
+  checks.push(
+    await checkAuthPage({
+      id: "sign-up-page",
+      label: "Sign-up page renders",
+      appUrl: normalizedAppUrl,
+      path: "/sign-up",
+      expectedHeading: "Create your account",
+      fetchImpl,
+    }),
+  );
+  checks.push(
+    await checkGoogleOAuthStart({
+      id: "google-sign-in-oauth",
+      label: "Google sign-in OAuth starts",
+      appUrl: normalizedAppUrl,
+      source: "sign-in",
+      fetchImpl,
+    }),
+  );
+  checks.push(
+    await checkGoogleOAuthStart({
+      id: "google-sign-up-oauth",
+      label: "Google sign-up OAuth starts",
+      appUrl: normalizedAppUrl,
+      source: "sign-up",
+      fetchImpl,
+    }),
+  );
+  checks.push(await checkAuthCallbackError({ appUrl: normalizedAppUrl, fetchImpl }));
   checks.push(
     await checkExpectedStatus({
       id: "sentry-example-page",
@@ -167,6 +211,178 @@ async function checkAppRouteProtection({
     return {
       id: "app-route-protection",
       label: "Authenticated app routes require sign-in",
+      status: "fail",
+      detail: `Request failed: ${formatUnknownError(error)}.`,
+    };
+  }
+}
+
+async function checkAuthPage({
+  id,
+  label,
+  appUrl,
+  path,
+  expectedHeading,
+  fetchImpl,
+}: {
+  id: ProductionSmokeCheckId;
+  label: string;
+  appUrl: string;
+  path: "/sign-in" | "/sign-up";
+  expectedHeading: string;
+  fetchImpl: FetchLike;
+}): Promise<ProductionSmokeCheck> {
+  try {
+    const response = await fetchImpl(`${appUrl}${path}`, {
+      method: "GET",
+      cache: "no-store",
+      redirect: "manual",
+    });
+    const body = await response.text();
+    const issues: string[] = [];
+
+    if (response.status !== 200) {
+      issues.push(`expected HTTP 200, received ${response.status}`);
+    }
+
+    if (!body.includes(expectedHeading)) {
+      issues.push(`missing expected heading "${expectedHeading}"`);
+    }
+
+    if (!body.includes("Continue with Google")) {
+      issues.push("missing Google OAuth entry point");
+    }
+
+    if (hasApplicationErrorShell(body)) {
+      issues.push("rendered the Next.js application error shell");
+    }
+
+    if (issues.length > 0) {
+      return {
+        id,
+        label,
+        status: "fail",
+        detail: `${sentenceCase(issues.join("; "))}.`,
+      };
+    }
+
+    return {
+      id,
+      label,
+      status: "pass",
+      detail: `${path} returned the expected auth UI without an application error shell.`,
+    };
+  } catch (error) {
+    return {
+      id,
+      label,
+      status: "fail",
+      detail: `Request failed: ${formatUnknownError(error)}.`,
+    };
+  }
+}
+
+async function checkGoogleOAuthStart({
+  id,
+  label,
+  appUrl,
+  source,
+  fetchImpl,
+}: {
+  id: ProductionSmokeCheckId;
+  label: string;
+  appUrl: string;
+  source: "sign-in" | "sign-up";
+  fetchImpl: FetchLike;
+}): Promise<ProductionSmokeCheck> {
+  try {
+    const response = await fetchImpl(`${appUrl}/auth/google?source=${source}`, {
+      method: "GET",
+      cache: "no-store",
+      redirect: "manual",
+    });
+    const location = response.headers.get("location");
+    const issues = getGoogleOAuthRedirectIssues({
+      status: response.status,
+      location,
+      appUrl,
+      source,
+    });
+
+    if (issues.length > 0) {
+      return {
+        id,
+        label,
+        status: "fail",
+        detail: `${sentenceCase(issues.join("; "))}.`,
+      };
+    }
+
+    return {
+      id,
+      label,
+      status: "pass",
+      detail: `Received expected provider redirect for ${source} with a production callback URL.`,
+    };
+  } catch (error) {
+    return {
+      id,
+      label,
+      status: "fail",
+      detail: `Request failed: ${formatUnknownError(error)}.`,
+    };
+  }
+}
+
+async function checkAuthCallbackError({
+  appUrl,
+  fetchImpl,
+}: {
+  appUrl: string;
+  fetchImpl: FetchLike;
+}): Promise<ProductionSmokeCheck> {
+  try {
+    const response = await fetchImpl(`${appUrl}/auth/callback?error=access_denied&source=sign-up`, {
+      method: "GET",
+      cache: "no-store",
+      redirect: "manual",
+    });
+    const location = response.headers.get("location") ?? "none";
+    const issues: string[] = [];
+
+    if (![302, 303, 307, 308].includes(response.status)) {
+      issues.push(`expected redirect, received ${response.status}`);
+    }
+
+    const parsedLocation = parseUrl(location, appUrl);
+
+    if (parsedLocation?.pathname !== "/sign-up") {
+      issues.push(`expected redirect to /sign-up, received ${location}`);
+    }
+
+    if (!parsedLocation?.searchParams.get("error")) {
+      issues.push("missing safe user-facing error message");
+    }
+
+    if (issues.length > 0) {
+      return {
+        id: "auth-callback-error",
+        label: "Auth callback errors are safe",
+        status: "fail",
+        detail: `${sentenceCase(issues.join("; "))}.`,
+      };
+    }
+
+    return {
+      id: "auth-callback-error",
+      label: "Auth callback errors are safe",
+      status: "pass",
+      detail: `Received expected redirect to ${parsedLocation?.pathname ?? "/sign-up"} with safe error copy.`,
+    };
+  } catch (error) {
+    return {
+      id: "auth-callback-error",
+      label: "Auth callback errors are safe",
       status: "fail",
       detail: `Request failed: ${formatUnknownError(error)}.`,
     };
@@ -320,6 +536,94 @@ function isSignInLocation(location: string): boolean {
   } catch {
     return false;
   }
+}
+
+function getGoogleOAuthRedirectIssues({
+  status,
+  location,
+  appUrl,
+  source,
+}: {
+  status: number;
+  location: string | null;
+  appUrl: string;
+  source: "sign-in" | "sign-up";
+}): string[] {
+  const issues: string[] = [];
+
+  if (![302, 303, 307, 308].includes(status)) {
+    issues.push(`expected redirect, received ${status}`);
+  }
+
+  if (!location) {
+    issues.push("missing provider redirect location");
+    return issues;
+  }
+
+  const providerUrl = parseUrl(location);
+
+  if (!providerUrl) {
+    issues.push(`provider redirect location is not a valid URL: ${location}`);
+    return issues;
+  }
+
+  if (providerUrl.protocol !== "https:") {
+    issues.push("provider redirect is not HTTPS");
+  }
+
+  if (providerUrl.pathname !== "/auth/v1/authorize") {
+    issues.push(`expected Supabase authorize path, received ${providerUrl.pathname}`);
+  }
+
+  if (providerUrl.searchParams.get("provider") !== "google") {
+    issues.push("provider redirect is not for Google");
+  }
+
+  if (!providerUrl.searchParams.get("code_challenge")) {
+    issues.push("provider redirect is missing PKCE code challenge");
+  }
+
+  const callbackUrl = parseUrl(providerUrl.searchParams.get("redirect_to"));
+
+  if (!callbackUrl) {
+    issues.push("provider redirect is missing a valid callback URL");
+    return issues;
+  }
+
+  if (callbackUrl.origin !== appUrl) {
+    issues.push(`callback origin is ${callbackUrl.origin}, expected ${appUrl}`);
+  }
+
+  if (callbackUrl.pathname !== "/auth/callback") {
+    issues.push(`callback path is ${callbackUrl.pathname}, expected /auth/callback`);
+  }
+
+  if (callbackUrl.searchParams.get("next") !== "/onboarding") {
+    issues.push("callback next path is not /onboarding");
+  }
+
+  if (callbackUrl.searchParams.get("source") !== source) {
+    issues.push(`callback source is not ${source}`);
+  }
+
+  return issues;
+}
+
+function parseUrl(value: string | null, base?: string): URL | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return base ? new URL(value, base) : new URL(value);
+  } catch {
+    return null;
+  }
+}
+
+function hasApplicationErrorShell(body: string): boolean {
+  return body.includes('id="__next_error__"')
+    || /Application error: a client-side exception has occurred/i.test(body);
 }
 
 function getSecurityHeaderIssues(headers: Headers): string[] {
