@@ -29,45 +29,34 @@ export type WorkspaceContext = {
   role: "owner" | "admin" | "member" | "viewer";
 };
 
+const WORKSPACE_SELECT_WITH_REPORT_SETTINGS =
+  "role, agencies(id, name, slug, primary_color, plan, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at, report_sender_name, report_sender_email, report_reply_to_email, report_sender_domain, report_sender_domain_status)";
+
+const WORKSPACE_SELECT_BASE =
+  "role, agencies(id, name, slug, primary_color, plan, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at)";
+
+type AgencyRow = {
+  id: string;
+  name: string;
+  slug: string;
+  primary_color: string;
+  plan: string;
+  billing_customer_id: string | null;
+  billing_subscription_id: string | null;
+  billing_status: string | null;
+  billing_price_id: string | null;
+  billing_current_period_end: string | null;
+  trial_ends_at: string | null;
+  report_sender_name?: string | null;
+  report_sender_email?: string | null;
+  report_reply_to_email?: string | null;
+  report_sender_domain?: string | null;
+  report_sender_domain_status?: "pending" | "verified" | "failed" | null;
+};
+
 type MembershipRow = {
   role: WorkspaceContext["role"];
-  agencies:
-    | {
-        id: string;
-        name: string;
-        slug: string;
-        primary_color: string;
-        plan: string;
-        billing_customer_id: string | null;
-        billing_subscription_id: string | null;
-        billing_status: string;
-        billing_price_id: string | null;
-        billing_current_period_end: string | null;
-        trial_ends_at: string | null;
-        report_sender_name: string | null;
-        report_sender_email: string | null;
-        report_reply_to_email: string | null;
-        report_sender_domain: string | null;
-        report_sender_domain_status: "pending" | "verified" | "failed" | null;
-      }
-    | {
-        id: string;
-        name: string;
-        slug: string;
-        primary_color: string;
-        plan: string;
-        billing_customer_id: string | null;
-        billing_subscription_id: string | null;
-        billing_status: string;
-        billing_price_id: string | null;
-        billing_current_period_end: string | null;
-        trial_ends_at: string | null;
-        report_sender_name: string | null;
-        report_sender_email: string | null;
-        report_reply_to_email: string | null;
-        report_sender_domain: string | null;
-        report_sender_domain_status: "pending" | "verified" | "failed" | null;
-      }[];
+  agencies: AgencyRow | AgencyRow[] | null;
 };
 
 export async function getWorkspaceContext(): Promise<{
@@ -87,14 +76,26 @@ export async function getWorkspaceContext(): Promise<{
     return { user, workspace: null };
   }
 
-  const { data, error } = await supabase
+  const workspaceResult = await supabase
     .from("memberships")
-    .select(
-      "role, agencies(id, name, slug, primary_color, plan, billing_customer_id, billing_subscription_id, billing_status, billing_price_id, billing_current_period_end, trial_ends_at, report_sender_name, report_sender_email, report_reply_to_email, report_sender_domain, report_sender_domain_status)",
-    )
+    .select(WORKSPACE_SELECT_WITH_REPORT_SETTINGS)
     .eq("user_id", user.id)
     .limit(1)
     .maybeSingle();
+  let data: unknown = workspaceResult.data;
+  let error = workspaceResult.error;
+
+  if (error && isOptionalWorkspaceColumnError(error.message)) {
+    const fallback = await supabase
+      .from("memberships")
+      .select(WORKSPACE_SELECT_BASE)
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    data = fallback.data;
+    error = fallback.error;
+  }
 
   if (error) {
     throw new Error(`Unable to load workspace: ${error.message}`);
@@ -136,7 +137,7 @@ export async function getWorkspaceContext(): Promise<{
         reportSenderDomain: agency.report_sender_domain ?? undefined,
         reportSenderDomainStatus: agency.report_sender_domain_status ?? undefined,
       },
-	    },
+    },
   };
 }
 
@@ -172,4 +173,8 @@ function redirectIfEmailVerificationRequired(user: User) {
   if (isEmailVerificationRequired(user)) {
     redirect(buildEmailVerificationRequiredRedirect());
   }
+}
+
+function isOptionalWorkspaceColumnError(message: string): boolean {
+  return /report_sender_(name|email|domain|domain_status)|report_reply_to_email/i.test(message);
 }

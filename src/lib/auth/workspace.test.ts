@@ -110,6 +110,78 @@ describe("workspace auth gates", () => {
     expect(from).toHaveBeenCalledWith("memberships");
     expect(maybeSingle).toHaveBeenCalled();
   });
+
+  it("falls back when optional report settings columns are not deployed yet", async () => {
+    const maybeSingle = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: null,
+        error: { message: "column agencies.report_sender_name does not exist" },
+      })
+      .mockResolvedValueOnce({
+        data: {
+          role: "owner",
+          agencies: {
+            id: "agency-1",
+            name: "Maintain Flow",
+            slug: "maintain-flow",
+            primary_color: "#18181b",
+            plan: "growth",
+            billing_customer_id: null,
+            billing_subscription_id: null,
+            billing_status: "active",
+            billing_price_id: null,
+            billing_current_period_end: null,
+            trial_ends_at: null,
+          },
+        },
+        error: null,
+      });
+    const select = vi.fn((query: string) => ({
+      eq: () => ({
+        limit: () => ({
+          maybeSingle,
+        }),
+      }),
+      query,
+    }));
+    const from = vi.fn().mockReturnValue({ select });
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: {
+            user: user({
+              app_metadata: { provider: "google", providers: ["google"] },
+              identities: [
+                {
+                  id: "identity-1",
+                  user_id: "user-1",
+                  identity_id: "identity-1",
+                  provider: "google",
+                },
+              ],
+            }),
+          },
+        }),
+      },
+      from,
+    } as never);
+
+    await expect(getWorkspaceContext()).resolves.toMatchObject({
+      user: expect.objectContaining({ id: "user-1" }),
+      workspace: {
+        role: "owner",
+        agency: {
+          id: "agency-1",
+          name: "Maintain Flow",
+          reportSenderName: undefined,
+        },
+      },
+    });
+
+    expect(select).toHaveBeenNthCalledWith(1, expect.stringContaining("report_sender_name"));
+    expect(select).toHaveBeenNthCalledWith(2, expect.not.stringContaining("report_sender_name"));
+  });
 });
 
 function user(overrides: Partial<User>): User {
