@@ -8,6 +8,7 @@ import type { TuesdayOpsSeedData } from "@/lib/domain/types";
 vi.mock("@/lib/onboarding/actions", () => ({
   createActivationClientAction: vi.fn(async () => null),
   createActivationWorkflowAction: vi.fn(async () => null),
+  createActivationWorkflowImportAction: vi.fn(async () => null),
   runActivationCheckAction: vi.fn(async () => null),
   generateActivationReportAction: vi.fn(async () => null),
 }));
@@ -44,6 +45,7 @@ describe("OnboardingChecklist activation wizard", () => {
     render(<OnboardingChecklist data={makeData({ clients: [makeClient()] })} />);
 
     expect(await screen.findByRole("dialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Manual/i }));
 
     const workflowName = screen.getByLabelText("Workflow name") as HTMLInputElement;
 

@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { recordAuditEvent } from "@/lib/audit/events";
@@ -25,7 +26,11 @@ import {
   buildWorkflowAuthUpdate,
   buildWorkflowSettingsUpdate,
 } from "@/lib/workflows/lifecycle";
-import { parseWorkflowImport } from "@/lib/workflows/onboarding";
+import {
+  buildWorkflowImportSnapshot,
+  parseWorkflowImport,
+  type WorkflowImportPlan,
+} from "@/lib/workflows/onboarding";
 import {
   buildWorkflowFormFieldErrors,
   formatWorkflowFormValidationSummary,
@@ -120,7 +125,15 @@ export async function createWorkflowFromImportAction(formData: FormData) {
       maxLatencyMs: plan.maxLatencyMs,
       timeoutMs: Math.max(plan.maxLatencyMs + 1000, 3000),
       requestBody: plan.requestBody,
+      checkEnabled: plan.checkEnabled,
+      checkName: plan.checkEnabled ? "Endpoint health check" : "Heartbeat setup pending",
     },
+  });
+  await recordWorkflowImportContext({
+    workspace,
+    workflowId,
+    importText,
+    plan,
   });
   await recordWorkflowAuditEvent({
     workspace,
@@ -128,10 +141,12 @@ export async function createWorkflowFromImportAction(formData: FormData) {
     targetId: workflowId,
     metadata: {
       source: "import",
-      importSource: parsed.data.importSource,
+      importSource: plan.sourceType,
       workflowType: parsed.data.workflowType ?? plan.type,
       method: plan.method,
       authType: plan.authType,
+      triggerType: plan.maintenanceMap.triggerType,
+      requiresManualEndpoint: plan.maintenanceMap.requiresManualEndpoint,
     },
   });
 
@@ -304,6 +319,8 @@ type WorkflowCreateInput = {
   notContainsValue?: string;
   matchesRegexPattern?: string;
   requireValidJson?: "on";
+  checkEnabled?: boolean;
+  checkName?: string;
 };
 
 async function createWorkflowWithHealthCheck({
@@ -393,11 +410,11 @@ async function createWorkflowWithHealthCheck({
   const { error: checkError } = await supabase.from("checks").insert({
     agency_id: workspace.agency.id,
     workflow_id: workflow.id,
-    name: "Endpoint health check",
+    name: input.checkName ?? "Endpoint health check",
     type: "health",
     config_json: checkConfig,
     schedule: `Every ${input.checkFrequencyMinutes} minutes`,
-    enabled: true,
+    enabled: input.checkEnabled ?? true,
   });
 
   if (checkError) {
@@ -511,6 +528,34 @@ async function recordWorkflowAuditEvent({
     });
   } catch {
     // Audit logging must not block workflow onboarding or updates.
+  }
+}
+
+async function recordWorkflowImportContext({
+  workspace,
+  workflowId,
+  importText,
+  plan,
+}: {
+  workspace: WorkspaceContext;
+  workflowId: string;
+  importText: string;
+  plan: WorkflowImportPlan;
+}) {
+  const { error } = await createAdminClient()
+    .from("workflow_imports")
+    .insert({
+      agency_id: workspace.agency.id,
+      workflow_id: workflowId,
+      source_type: plan.sourceType,
+      source_name: plan.maintenanceMap.sourceName,
+      source_hash: createHash("sha256").update(importText).digest("hex"),
+      normalized_json: buildWorkflowImportSnapshot(plan),
+      warnings: plan.maintenanceMap.warnings,
+    });
+
+  if (error) {
+    throw new Error(`Workflow import context could not be saved: ${error.message}`);
   }
 }
 

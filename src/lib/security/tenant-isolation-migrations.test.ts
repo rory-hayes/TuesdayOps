@@ -16,6 +16,7 @@ function readAllMigrations(): string {
     .concat("\n", readFileSync(join(migrationsDir, "20260616193000_design_partner_readiness_lifecycle.sql"), "utf8"))
     .concat("\n", readFileSync(join(migrationsDir, "20260617195500_core_loop_production_blockers.sql"), "utf8"))
     .concat("\n", readFileSync(join(migrationsDir, "20260618120000_tenant_issue_check_run_boundary.sql"), "utf8"))
+    .concat("\n", readFileSync(join(migrationsDir, "20260622142000_workflow_import_context.sql"), "utf8"))
     .replace(/\s+/g, " ");
 }
 
@@ -43,6 +44,7 @@ describe("tenant isolation migration contract", () => {
       "reports",
       "report_items",
       "workflow_api_keys",
+      "workflow_imports",
       "audit_events",
     ];
 
@@ -61,6 +63,7 @@ describe("tenant isolation migration contract", () => {
       "test_runs",
       "reports",
       "report_items",
+      "workflow_imports",
     ]) {
       expect(sql).toContain(`on public.${table}`);
       expect(sql).toContain("using (public.is_agency_member(agency_id))");
@@ -89,6 +92,7 @@ describe("tenant isolation migration contract", () => {
       "constraint reports_client_agency_fk foreign key (client_id, agency_id)",
       "constraint report_items_report_agency_fk foreign key (report_id, agency_id)",
       "constraint workflow_api_keys_workflow_agency_fk foreign key (workflow_id, agency_id)",
+      "constraint workflow_imports_workflow_agency_fk foreign key (workflow_id, agency_id)",
     ];
 
     for (const expected of expectedCompositeKeys) {

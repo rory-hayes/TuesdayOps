@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { recordAuditEvent, type AuditAction, type AuditTargetType } from "@/lib/audit/events";
@@ -29,7 +30,13 @@ import {
 import { encryptJsonPayload } from "@/lib/security/secrets";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { fetchOpenApiImportPlan } from "@/lib/workflows/import-fetch";
 import { buildWorkflowAuthConfig } from "@/lib/workflows/lifecycle";
+import {
+  buildWorkflowImportSnapshot,
+  parseWorkflowImport,
+  type WorkflowImportPlan,
+} from "@/lib/workflows/onboarding";
 
 export type ActivationClientActionState = ActivationActionState<{
   clientId: string;
@@ -40,6 +47,7 @@ export type ActivationWorkflowActionState = ActivationActionState<{
   workflowId: string;
   workflowName: string;
   checkId: string;
+  checkEnabled?: boolean;
 }>;
 
 export type ActivationRunActionState = ActivationActionState<{
@@ -119,6 +127,15 @@ const activationWorkflowSchema = z.object({
       message: "Basic auth username is required.",
     });
   }
+});
+
+const activationWorkflowImportSchema = z.object({
+  clientId: z.string().uuid(),
+  importSource: z.enum(["url", "curl", "openapi", "postman", "n8n_json", "make_blueprint", "zapier_json"]),
+  workflowType: activationWorkflowSchema.shape.type.optional(),
+  importedWorkflowName: z.string().trim().max(120).optional(),
+  importText: z.string().trim().min(8),
+  rawImportText: z.string().trim().optional(),
 });
 
 const activationRunSchema = z.object({
@@ -335,9 +352,163 @@ export async function createActivationWorkflowAction(
       workflowId: workflow.id as string,
       workflowName: workflow.name as string,
       checkId: check.id as string,
+      checkEnabled: true,
     };
   } catch (error) {
     return errorState(formatActionError(error, "Workflow could not be added. Review the endpoint settings and try again."));
+  }
+}
+
+export async function createActivationWorkflowImportAction(
+  _previousState: ActivationWorkflowActionState,
+  formData: FormData,
+): Promise<ActivationWorkflowActionState> {
+  const parsed = activationWorkflowImportSchema.safeParse(Object.fromEntries(formData));
+
+  if (!parsed.success) {
+    return errorState("Choose a client and paste a supported n8n, Make, Zapier, cURL, OpenAPI, Postman, or URL import.");
+  }
+
+  const importText = parsed.data.rawImportText || parsed.data.importText;
+  let plan: WorkflowImportPlan;
+
+  try {
+    plan = parsed.data.importSource === "openapi" && /^https?:\/\//i.test(importText)
+      ? await fetchOpenApiImportPlan({ url: importText })
+      : parseWorkflowImport({
+          source: parsed.data.importSource,
+          text: importText,
+        });
+  } catch (error) {
+    return errorState(formatActionError(error, "Workflow import could not be read. Check the source format and try again."));
+  }
+
+  try {
+    const workspace = await requireWorkspace();
+    const supabase = await createClient();
+    const { count, error: countError } = await supabase
+      .from("workflows")
+      .select("id", { count: "exact", head: true })
+      .eq("agency_id", workspace.agency.id)
+      .is("archived_at", null);
+
+    if (countError) {
+      return errorState(formatActionError(countError, "Workflow limits could not be checked. Try again or contact support."));
+    }
+
+    const limitDecision = canCreateWorkflow({
+      plan: workspace.agency.plan,
+      billingStatus: workspace.agency.billingStatus,
+      workflows: count ?? 0,
+    });
+
+    if (!limitDecision.allowed) {
+      return errorState(limitDecision.upgradeMessage ?? "Upgrade required.");
+    }
+
+    const clientExists = await loadActivationClient({
+      supabase,
+      agencyId: workspace.agency.id,
+      clientId: parsed.data.clientId,
+    });
+
+    if (!clientExists) {
+      return errorState("Client was not found or is not accessible.");
+    }
+
+    let endpointUrl: string;
+    try {
+      endpointUrl = assertSafeWorkflowEndpoint(plan.endpointUrl, {
+        allowPrivateEndpoints: shouldAllowPrivateWorkflowEndpoints(),
+      });
+    } catch (error) {
+      return errorState(formatActionError(error, "Workflow endpoint could not be used. Use a public endpoint and try again."));
+    }
+
+    const { data: workflow, error: workflowError } = await createAdminClient()
+      .from("workflows")
+      .insert({
+        agency_id: workspace.agency.id,
+        client_id: parsed.data.clientId,
+        name: parsed.data.importedWorkflowName || plan.name,
+        type: parsed.data.workflowType ?? plan.type,
+        environment: "production",
+        endpoint_url: endpointUrl,
+        method: plan.method,
+        auth_type: plan.authType,
+        encrypted_auth_config: null,
+        check_frequency_minutes: plan.checkFrequencyMinutes,
+        status: "unknown",
+        included_in_reports: true,
+      })
+      .select("id, name")
+      .single();
+
+    if (workflowError || !workflow) {
+      return errorState(formatActionError(workflowError, "Workflow could not be added. Review the import and try again."));
+    }
+
+    const checkConfig = buildHealthCheckConfig({
+      expectedStatus: plan.expectedStatus,
+      maxLatencyMs: plan.maxLatencyMs,
+      timeoutMs: Math.max(plan.maxLatencyMs + 1000, 3000),
+      requestBody: plan.requestBody,
+    });
+    const { data: check, error: checkError } = await supabase
+      .from("checks")
+      .insert({
+        agency_id: workspace.agency.id,
+        workflow_id: workflow.id,
+        name: plan.checkEnabled ? "Endpoint health check" : "Heartbeat setup pending",
+        type: "health",
+        config_json: checkConfig,
+        schedule: `Every ${plan.checkFrequencyMinutes} minutes`,
+        enabled: plan.checkEnabled,
+      })
+      .select("id")
+      .single();
+
+    if (checkError || !check) {
+      return errorState(formatActionError(checkError, "Health check could not be added. Review the import and try again."));
+    }
+
+    await recordActivationWorkflowImportContext({
+      agencyId: workspace.agency.id,
+      workflowId: workflow.id as string,
+      importText,
+      plan,
+    });
+    await recordActivationAuditEvent({
+      agencyId: workspace.agency.id,
+      actorUserId: workspace.user.id,
+      action: "workflow.created",
+      targetType: "workflow",
+      targetId: workflow.id as string,
+      metadata: {
+        source: "activation_import",
+        importSource: plan.sourceType,
+        workflowType: parsed.data.workflowType ?? plan.type,
+        method: plan.method,
+        triggerType: plan.maintenanceMap.triggerType,
+        requiresManualEndpoint: plan.maintenanceMap.requiresManualEndpoint,
+      },
+    });
+
+    revalidateActivationPaths();
+    revalidatePath(`/workflows/${workflow.id}`);
+
+    return {
+      status: "success",
+      message: plan.checkEnabled
+        ? "Workflow imported and first health check created. Run it once to store proof."
+        : "Workflow imported. Add the production webhook or heartbeat before running checks.",
+      workflowId: workflow.id as string,
+      workflowName: workflow.name as string,
+      checkId: check.id as string,
+      checkEnabled: plan.checkEnabled,
+    };
+  } catch (error) {
+    return errorState(formatActionError(error, "Workflow could not be imported. Review the import and try again."));
   }
 }
 
@@ -521,6 +692,34 @@ function revalidateActivationPaths() {
   revalidatePath("/workflows");
   revalidatePath("/checks");
   revalidatePath("/reports");
+}
+
+async function recordActivationWorkflowImportContext({
+  agencyId,
+  workflowId,
+  importText,
+  plan,
+}: {
+  agencyId: string;
+  workflowId: string;
+  importText: string;
+  plan: WorkflowImportPlan;
+}) {
+  const { error } = await createAdminClient()
+    .from("workflow_imports")
+    .insert({
+      agency_id: agencyId,
+      workflow_id: workflowId,
+      source_type: plan.sourceType,
+      source_name: plan.maintenanceMap.sourceName,
+      source_hash: createHash("sha256").update(importText).digest("hex"),
+      normalized_json: buildWorkflowImportSnapshot(plan),
+      warnings: plan.maintenanceMap.warnings,
+    });
+
+  if (error) {
+    throw new Error(`Workflow import context could not be saved: ${error.message}`);
+  }
 }
 
 async function recordActivationAuditEvent(input: {

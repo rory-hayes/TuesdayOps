@@ -73,7 +73,7 @@ export const workflowFormSchema = workflowBaseFormSchema
 
 export const importWorkflowFormSchema = z.object({
   clientId: z.string().uuid(),
-  importSource: z.enum(["url", "curl", "openapi", "postman"]),
+  importSource: z.enum(["url", "curl", "openapi", "postman", "n8n_json", "make_blueprint", "zapier_json"]),
   workflowType: workflowBaseFormSchema.shape.type.optional(),
   importedWorkflowName: z.string().trim().max(120).optional(),
   importText: z.string().trim().min(8),

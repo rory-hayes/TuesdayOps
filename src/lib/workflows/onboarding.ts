@@ -1,5 +1,15 @@
 import type { Workflow } from "@/lib/domain/types";
-export type WorkflowImportSource = "url" | "curl" | "openapi" | "postman";
+
+export type WorkflowImportSource =
+  | "url"
+  | "curl"
+  | "openapi"
+  | "postman"
+  | "n8n_json"
+  | "make_blueprint"
+  | "zapier_json";
+export type WorkflowImportPlatform = "api" | "n8n" | "make" | "zapier";
+export type WorkflowImportTriggerType = "webhook" | "schedule" | "app_event" | "manual" | "unknown";
 
 export type WorkflowOnboardingTemplate = {
   type: Workflow["type"];
@@ -12,6 +22,7 @@ export type WorkflowOnboardingTemplate = {
 export type WorkflowImportPlan = {
   name: string;
   type: Workflow["type"];
+  sourceType: WorkflowImportSource;
   endpointUrl: string;
   method: Workflow["method"];
   authType: Workflow["authType"];
@@ -21,6 +32,34 @@ export type WorkflowImportPlan = {
   checkFrequencyMinutes: number;
   expectedStatus: number;
   maxLatencyMs: number;
+  checkEnabled: boolean;
+  maintenanceMap: WorkflowMaintenanceMap;
+};
+
+export type WorkflowMaintenanceMap = {
+  sourcePlatform: WorkflowImportPlatform;
+  sourceName: string;
+  triggerType: WorkflowImportTriggerType;
+  detectedApps: string[];
+  detectedNodes: string[];
+  detectedEndpointUrl?: string;
+  suggestedChecks: string[];
+  warnings: string[];
+  requiresManualEndpoint: boolean;
+};
+
+export type WorkflowImportSnapshot = {
+  sourcePlatform: WorkflowImportPlatform;
+  sourceName: string;
+  sourceType: WorkflowImportSource;
+  triggerType: WorkflowImportTriggerType;
+  detectedApps: string[];
+  detectedNodes: string[];
+  detectedEndpointUrl?: string;
+  suggestedChecks: string[];
+  warnings: string[];
+  requiresManualEndpoint: boolean;
+  checkEnabled: boolean;
 };
 
 export const WORKFLOW_ONBOARDING_TEMPLATES: WorkflowOnboardingTemplate[] = [
@@ -76,6 +115,8 @@ export const WORKFLOW_ONBOARDING_TEMPLATES: WorkflowOnboardingTemplate[] = [
 ];
 
 const validMethods = ["GET", "POST", "PUT", "PATCH"] as const;
+const maxPlatformImportCharacters = 200_000;
+const pendingRunLogEndpointUrl = "https://maintainflow.io/api/public/run-log";
 
 export function parseWorkflowImport({
   source,
@@ -96,6 +137,7 @@ export function parseWorkflowImport({
       method: "GET",
       type: "http_endpoint",
       authType: "none",
+      sourceType: "url",
     });
   }
 
@@ -107,7 +149,19 @@ export function parseWorkflowImport({
     return parseOpenApiImport(trimmed);
   }
 
-  return parsePostmanImport(trimmed);
+  if (source === "postman") {
+    return parsePostmanImport(trimmed);
+  }
+
+  if (source === "n8n_json") {
+    return parseN8nImport(trimmed);
+  }
+
+  if (source === "make_blueprint") {
+    return parseMakeBlueprintImport(trimmed);
+  }
+
+  return parseZapierImport(trimmed);
 }
 
 export function maskWorkflowImportSecrets(text: string): string {
@@ -116,7 +170,7 @@ export function maskWorkflowImportSecrets(text: string): string {
     .replace(/((?:X[-_])?API[-_]?Key\s*:\s*)([^"'\s]+)/gi, "$1[redacted]")
     .replace(/(-u|--user)\s+("[^"]*"|'[^']*'|\S+)/gi, "$1 [redacted]")
     .replace(
-      /(["'](?:api[_-]?key|token|secret|password)["']\s*:\s*)(["'][^"']*["']|[^,}\s]+)/gi,
+      /(["'](?:api[_-]?key|token|secret|password|authorization|bearer)["']\s*:\s*)(["'][^"']*["']|[^,}\s]+)/gi,
       '$1"[redacted]"',
     );
 }
@@ -167,6 +221,7 @@ function parseCurlImport(command: string): WorkflowImportPlan {
     endpointUrl,
     method: method ?? (requestBody ? "POST" : "GET"),
     type: inferWorkflowType(endpointUrl, "webhook"),
+    sourceType: "curl",
     requestBody,
     ...inferAuth(headers),
   });
@@ -198,6 +253,7 @@ function parseOpenApiImport(text: string): WorkflowImportPlan {
         endpointUrl,
         method,
         type: "custom_api",
+        sourceType: "openapi",
         authType: "none",
         requestBody: extractOpenApiExampleBody(operation),
       });
@@ -252,17 +308,190 @@ function parsePostmanImport(text: string): WorkflowImportPlan {
     endpointUrl,
     method,
     type: "custom_api",
+    sourceType: "postman",
     requestBody: readString(body.raw),
     ...inferAuth(headers),
   });
 }
 
-function withDefaults(
-  input: Partial<WorkflowImportPlan> & Pick<WorkflowImportPlan, "endpointUrl" | "method" | "type">,
-): WorkflowImportPlan {
+function parseN8nImport(text: string): WorkflowImportPlan {
+  assertPlatformImportSize(text, "n8n workflow JSON");
+  const workflow = parseJsonObject(text, "n8n workflow JSON");
+  const nodes = readArray(workflow.nodes);
+
+  if (!nodes.length) {
+    throw new Error("n8n workflow JSON must include at least one node.");
+  }
+
+  const name = readString(workflow.name) ?? "Imported n8n workflow";
+  const nodeNames = nodes.map(formatN8nNodeName).filter(Boolean);
+  const detectedApps = uniqueStrings(nodes.map(formatN8nAppName).filter(Boolean));
+  const webhookNode = nodes.find(isN8nWebhookNode);
+  const scheduleNode = nodes.find(isN8nScheduleNode);
+  const endpointUrl = webhookNode ? findHttpUrl(readRecord(webhookNode.parameters)) : undefined;
+  const method = webhookNode ? readN8nWebhookMethod(webhookNode) : "POST";
+  const warnings = [
+    ...buildImportWarningsFromText(text),
+    ...(!endpointUrl && webhookNode
+      ? ["n8n exports usually contain the webhook path, not the public production URL. Add the production webhook URL or heartbeat after import."]
+      : []),
+    ...(!webhookNode
+      ? ["No n8n webhook trigger was detected. This import will create a maintenance map and disabled heartbeat check."]
+      : []),
+  ];
+
+  return withDefaults({
+    name,
+    type: "n8n",
+    sourceType: "n8n_json",
+    endpointUrl: endpointUrl ?? pendingRunLogEndpointUrl,
+    method,
+    authType: "none",
+    checkEnabled: Boolean(endpointUrl),
+    triggerType: webhookNode ? "webhook" : scheduleNode ? "schedule" : "unknown",
+    detectedApps,
+    detectedNodes: nodeNames,
+    detectedEndpointUrl: endpointUrl,
+    suggestedChecks: buildPlatformSuggestedChecks({
+      platform: "n8n",
+      hasEndpoint: Boolean(endpointUrl),
+      hasAiStep: nodes.some(isAiNode),
+      hasSchedule: Boolean(scheduleNode),
+    }),
+    warnings,
+    requiresManualEndpoint: !endpointUrl,
+  });
+}
+
+function parseMakeBlueprintImport(text: string): WorkflowImportPlan {
+  assertPlatformImportSize(text, "Make blueprint");
+  const blueprint = parseJsonObject(text, "Make blueprint");
+  const modules = readMakeModules(blueprint);
+
+  if (!modules.length) {
+    throw new Error("Make blueprint must include at least one module.");
+  }
+
+  const name = readString(blueprint.name) ??
+    readString(readRecord(readRecord(blueprint.metadata).scenario).name) ??
+    "Imported Make scenario";
+  const moduleNames = modules.map(formatMakeModuleName).filter(Boolean);
+  const detectedApps = uniqueStrings(modules.map(formatMakeAppName).filter(Boolean));
+  const webhookModule = modules.find(isMakeWebhookModule);
+  const scheduleModule = modules.find(isMakeScheduleModule);
+  const endpointUrl = webhookModule ? findHttpUrl(webhookModule) : undefined;
+  const warnings = [
+    "Make blueprints do not reconnect app connections in Maintain Flow. Reconnect credentials in Make and use Maintain Flow for monitoring.",
+    ...buildImportWarningsFromText(text),
+    ...(!endpointUrl && webhookModule
+      ? ["Make blueprints often reference a webhook module without the public webhook URL. Add the production URL or heartbeat after import."]
+      : []),
+  ];
+
+  return withDefaults({
+    name,
+    type: "make",
+    sourceType: "make_blueprint",
+    endpointUrl: endpointUrl ?? pendingRunLogEndpointUrl,
+    method: "POST",
+    authType: "none",
+    checkEnabled: Boolean(endpointUrl),
+    triggerType: webhookModule ? "webhook" : scheduleModule ? "schedule" : "unknown",
+    detectedApps,
+    detectedNodes: moduleNames,
+    detectedEndpointUrl: endpointUrl,
+    suggestedChecks: buildPlatformSuggestedChecks({
+      platform: "make",
+      hasEndpoint: Boolean(endpointUrl),
+      hasAiStep: modules.some(isAiLikeRecord),
+      hasSchedule: Boolean(scheduleModule),
+    }),
+    warnings,
+    requiresManualEndpoint: !endpointUrl,
+  });
+}
+
+function parseZapierImport(text: string): WorkflowImportPlan {
+  assertPlatformImportSize(text, "Zapier JSON");
+  const parsed = parseJsonValue(text, "Zapier JSON");
+  const payload = Array.isArray(parsed) ? { zaps: parsed } : readRecord(parsed);
+  const zap = findZapierWorkflow(payload);
+  const steps = readZapierSteps(zap ?? payload);
+
+  if (!zap && !steps.length) {
+    throw new Error("Zapier JSON must include a Zap workflow or at least one Zap step.");
+  }
+
+  const name = readString(zap?.name) ?? readString(zap?.title) ?? readString(payload.name) ?? "Imported Zapier workflow";
+  const endpointUrl = findHttpUrl(zap ?? payload);
+  const stepNames = steps.map(formatZapierStepName).filter(Boolean);
+  const detectedApps = uniqueStrings(steps.map(formatZapierAppName).filter(Boolean));
+  const triggerType = endpointUrl
+    ? "webhook"
+    : steps.some(isZapierTriggerStep)
+      ? "app_event"
+      : "unknown";
+  const warnings = [
+    "Zapier export access depends on account type. If this JSON omits a callable hook URL, use the generated manual mapping.",
+    ...buildImportWarningsFromText(text),
+  ];
+
+  return withDefaults({
+    name,
+    type: "zapier",
+    sourceType: "zapier_json",
+    endpointUrl: endpointUrl ?? pendingRunLogEndpointUrl,
+    method: "POST",
+    authType: "none",
+    checkEnabled: Boolean(endpointUrl),
+    triggerType,
+    detectedApps,
+    detectedNodes: stepNames,
+    detectedEndpointUrl: endpointUrl,
+    suggestedChecks: buildPlatformSuggestedChecks({
+      platform: "zapier",
+      hasEndpoint: Boolean(endpointUrl),
+      hasAiStep: steps.some(isAiLikeRecord),
+      hasSchedule: steps.some(isZapierScheduleStep),
+    }),
+    warnings,
+    requiresManualEndpoint: !endpointUrl,
+  });
+}
+
+type WorkflowImportPlanDefaultsInput =
+  Partial<Omit<WorkflowImportPlan, "maintenanceMap">> &
+  Partial<WorkflowMaintenanceMap> &
+  Pick<WorkflowImportPlan, "endpointUrl" | "method" | "type"> & {
+    sourcePlatform?: WorkflowImportPlatform;
+  };
+
+function withDefaults(input: WorkflowImportPlanDefaultsInput): WorkflowImportPlan {
+  const name = input.name ?? buildNameFromUrl(input.endpointUrl);
+  const sourceType = input.sourceType ?? "url";
+  const sourcePlatform = input.sourcePlatform ?? platformForImportSource(sourceType);
+  const triggerType = input.triggerType ?? inferTriggerType(input.endpointUrl, sourceType);
+  const detectedEndpointUrl = input.detectedEndpointUrl ?? (input.requiresManualEndpoint ? undefined : input.endpointUrl);
+  const suggestedChecks = input.suggestedChecks ?? defaultSuggestedChecks(triggerType);
+  const warnings = uniqueStrings(input.warnings ?? []);
+  const requiresManualEndpoint = input.requiresManualEndpoint ?? false;
+  const checkEnabled = input.checkEnabled ?? !requiresManualEndpoint;
+  const maintenanceMap: WorkflowMaintenanceMap = {
+    sourcePlatform,
+    sourceName: input.sourceName ?? name,
+    triggerType,
+    detectedApps: uniqueStrings(input.detectedApps ?? []),
+    detectedNodes: uniqueStrings(input.detectedNodes ?? []),
+    detectedEndpointUrl,
+    suggestedChecks,
+    warnings,
+    requiresManualEndpoint,
+  };
+
   return {
-    name: input.name ?? buildNameFromUrl(input.endpointUrl),
+    name,
     type: input.type,
+    sourceType,
     endpointUrl: input.endpointUrl,
     method: input.method,
     authType: input.authType ?? "none",
@@ -272,7 +501,327 @@ function withDefaults(
     checkFrequencyMinutes: input.checkFrequencyMinutes ?? 60,
     expectedStatus: input.expectedStatus ?? 200,
     maxLatencyMs: input.maxLatencyMs ?? 5000,
+    checkEnabled,
+    maintenanceMap,
   };
+}
+
+export function buildWorkflowImportSnapshot(plan: WorkflowImportPlan): WorkflowImportSnapshot {
+  return {
+    sourcePlatform: plan.maintenanceMap.sourcePlatform,
+    sourceName: plan.maintenanceMap.sourceName,
+    sourceType: plan.sourceType,
+    triggerType: plan.maintenanceMap.triggerType,
+    detectedApps: plan.maintenanceMap.detectedApps,
+    detectedNodes: plan.maintenanceMap.detectedNodes,
+    detectedEndpointUrl: plan.maintenanceMap.detectedEndpointUrl,
+    suggestedChecks: plan.maintenanceMap.suggestedChecks,
+    warnings: plan.maintenanceMap.warnings,
+    requiresManualEndpoint: plan.maintenanceMap.requiresManualEndpoint,
+    checkEnabled: plan.checkEnabled,
+  };
+}
+
+function assertPlatformImportSize(text: string, label: string) {
+  if (text.length > maxPlatformImportCharacters) {
+    throw new Error(`${label} is too large for quick import.`);
+  }
+}
+
+function buildPlatformSuggestedChecks({
+  platform,
+  hasEndpoint,
+  hasAiStep,
+  hasSchedule,
+}: {
+  platform: Exclude<WorkflowImportPlatform, "api">;
+  hasEndpoint: boolean;
+  hasAiStep: boolean;
+  hasSchedule: boolean;
+}): string[] {
+  const checks = [
+    hasEndpoint
+      ? "Endpoint health and latency check"
+      : "Heartbeat or run-log check once the production URL is added",
+    `${platformLabel(platform)} run-history freshness check`,
+    "Failure-path and alert routing review",
+  ];
+
+  if (hasSchedule) {
+    checks.push("Schedule freshness check");
+  }
+
+  if (hasAiStep) {
+    checks.push("AI prompt/model regression check");
+  }
+
+  return checks;
+}
+
+function defaultSuggestedChecks(triggerType: WorkflowImportTriggerType): string[] {
+  if (triggerType === "webhook") {
+    return ["Endpoint health and latency check", "Payload schema check", "Failure response check"];
+  }
+
+  if (triggerType === "schedule") {
+    return ["Run-history freshness check", "Schedule drift check", "Failure alert check"];
+  }
+
+  return ["Endpoint health check", "Response assertion check", "Failure alert check"];
+}
+
+function platformForImportSource(sourceType: WorkflowImportSource): WorkflowImportPlatform {
+  if (sourceType === "n8n_json") {
+    return "n8n";
+  }
+
+  if (sourceType === "make_blueprint") {
+    return "make";
+  }
+
+  if (sourceType === "zapier_json") {
+    return "zapier";
+  }
+
+  return "api";
+}
+
+function inferTriggerType(endpointUrl: string, sourceType: WorkflowImportSource): WorkflowImportTriggerType {
+  if (sourceType === "url" || sourceType === "curl" || sourceType === "openapi" || sourceType === "postman") {
+    return inferWorkflowType(endpointUrl, "custom_api") === "webhook" ? "webhook" : "manual";
+  }
+
+  return "unknown";
+}
+
+function platformLabel(platform: WorkflowImportPlatform): string {
+  if (platform === "n8n") {
+    return "n8n";
+  }
+
+  if (platform === "make") {
+    return "Make";
+  }
+
+  if (platform === "zapier") {
+    return "Zapier";
+  }
+
+  return "API";
+}
+
+function buildImportWarningsFromText(text: string): string[] {
+  const warnings: string[] = [];
+
+  if (/["']?(?:token|secret|password|api[_-]?key|authorization)["']?\s*[:=]/i.test(text) ||
+    /Authorization\s*:\s*Bearer\s+\S+/i.test(text)) {
+    warnings.push("Potential credentials were detected. Maintain Flow stores only the normalized maintenance map, not the raw export JSON.");
+  }
+
+  if (/credentials?["']?\s*[:=]/i.test(text)) {
+    warnings.push("Credential references may be present in the export. Review the source tool before sharing full files with clients.");
+  }
+
+  return uniqueStrings(warnings);
+}
+
+function readMakeModules(blueprint: Record<string, unknown>): Record<string, unknown>[] {
+  const flow = readArray(blueprint.flow);
+
+  if (flow.length) {
+    return flow;
+  }
+
+  const modules = readArray(blueprint.modules);
+
+  if (modules.length) {
+    return modules;
+  }
+
+  return readArray(readRecord(blueprint.scenario).flow);
+}
+
+function isN8nWebhookNode(node: Record<string, unknown>): boolean {
+  return /webhook/i.test(`${readString(node.type) ?? ""} ${readString(node.name) ?? ""}`);
+}
+
+function isN8nScheduleNode(node: Record<string, unknown>): boolean {
+  return /schedule|cron|interval/i.test(`${readString(node.type) ?? ""} ${readString(node.name) ?? ""}`);
+}
+
+function isAiNode(node: Record<string, unknown>): boolean {
+  return isAiLikeText(`${readString(node.type) ?? ""} ${readString(node.name) ?? ""}`);
+}
+
+function isAiLikeRecord(record: Record<string, unknown>): boolean {
+  return isAiLikeText(JSON.stringify(record).slice(0, 5000));
+}
+
+function isAiLikeText(value: string): boolean {
+  return /openai|anthropic|claude|gemini|llm|ai|chatgpt|model/i.test(value);
+}
+
+function readN8nWebhookMethod(node: Record<string, unknown>): Workflow["method"] {
+  const parameters = readRecord(node.parameters);
+  const rawMethod = readString(parameters.httpMethod) ?? readString(parameters.method) ?? "POST";
+
+  try {
+    return parseMethod(rawMethod);
+  } catch {
+    return "POST";
+  }
+}
+
+function formatN8nNodeName(node: Record<string, unknown>): string {
+  return readString(node.name) ?? formatSourceIdentifier(readString(node.type) ?? "n8n node");
+}
+
+function formatN8nAppName(node: Record<string, unknown>): string {
+  const type = readString(node.type);
+
+  if (!type) {
+    return readString(node.name) ?? "";
+  }
+
+  return formatSourceIdentifier(type.split(".").at(-1) ?? type);
+}
+
+function isMakeWebhookModule(module: Record<string, unknown>): boolean {
+  return /webhook|gateway/i.test(`${readString(module.module) ?? ""} ${JSON.stringify(readRecord(module.metadata)).slice(0, 1000)}`);
+}
+
+function isMakeScheduleModule(module: Record<string, unknown>): boolean {
+  return /schedule|cron|interval/i.test(`${readString(module.module) ?? ""} ${JSON.stringify(module).slice(0, 1000)}`);
+}
+
+function formatMakeModuleName(module: Record<string, unknown>): string {
+  return readString(readRecord(module.metadata).designerLabel) ??
+    readString(readRecord(module.metadata).label) ??
+    formatSourceIdentifier(readString(module.module) ?? `Module ${String(module.id ?? "")}`.trim());
+}
+
+function formatMakeAppName(module: Record<string, unknown>): string {
+  const value = readString(module.module);
+
+  if (!value) {
+    return "";
+  }
+
+  return formatSourceIdentifier(value.split(":")[0] ?? value);
+}
+
+function findZapierWorkflow(payload: Record<string, unknown>): Record<string, unknown> | null {
+  const zaps = readArray(payload.zaps);
+
+  if (zaps.length) {
+    return zaps[0];
+  }
+
+  const workflows = readArray(payload.workflows);
+
+  if (workflows.length) {
+    return workflows[0];
+  }
+
+  if (readArray(payload.steps).length || readArray(payload.actions).length) {
+    return payload;
+  }
+
+  return null;
+}
+
+function readZapierSteps(zap: Record<string, unknown>): Record<string, unknown>[] {
+  const steps = readArray(zap.steps);
+
+  if (steps.length) {
+    return steps;
+  }
+
+  const actions = readArray(zap.actions);
+
+  if (actions.length) {
+    return actions;
+  }
+
+  return readArray(zap.nodes);
+}
+
+function formatZapierStepName(step: Record<string, unknown>): string {
+  return readString(step.name) ??
+    readString(step.title) ??
+    readString(step.label) ??
+    formatSourceIdentifier(readString(step.type) ?? "Zap step");
+}
+
+function formatZapierAppName(step: Record<string, unknown>): string {
+  const app = readRecord(step.app);
+
+  return readString(app.name) ??
+    readString(app.title) ??
+    readString(step.app) ??
+    readString(step.service) ??
+    readString(step.type) ??
+    "";
+}
+
+function isZapierTriggerStep(step: Record<string, unknown>): boolean {
+  return /trigger/i.test(`${readString(step.type) ?? ""} ${readString(step.kind) ?? ""} ${readString(step.name) ?? ""}`);
+}
+
+function isZapierScheduleStep(step: Record<string, unknown>): boolean {
+  return /schedule|delay|cron/i.test(JSON.stringify(step).slice(0, 1000));
+}
+
+function findHttpUrl(value: unknown, seen = new Set<unknown>()): string | undefined {
+  if (typeof value === "string") {
+    const match = value.match(/https?:\/\/[^\s"',)\\]+/i);
+
+    return match ? normalizeUrl(match[0]) : undefined;
+  }
+
+  if (!value || typeof value !== "object" || seen.has(value)) {
+    return undefined;
+  }
+
+  seen.add(value);
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const found = findHttpUrl(item, seen);
+
+      if (found) {
+        return found;
+      }
+    }
+
+    return undefined;
+  }
+
+  for (const [key, nested] of Object.entries(value)) {
+    if (/token|secret|password|credential/i.test(key)) {
+      continue;
+    }
+
+    const found = findHttpUrl(nested, seen);
+
+    if (found) {
+      return found;
+    }
+  }
+
+  return undefined;
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))].slice(0, 20);
+}
+
+function formatSourceIdentifier(value: string): string {
+  return value
+    .replace(/^n8n-nodes-base\./, "")
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_:.]+/g, " ")
+    .trim();
 }
 
 function tokenizeCommand(command: string): string[] {
@@ -361,6 +910,14 @@ function parseMethod(value: string): Workflow["method"] {
 function parseJsonObject(text: string, label: string): Record<string, unknown> {
   try {
     return readRecord(JSON.parse(text));
+  } catch {
+    throw new Error(`${label} import must be valid JSON.`);
+  }
+}
+
+function parseJsonValue(text: string, label: string): unknown {
+  try {
+    return JSON.parse(text);
   } catch {
     throw new Error(`${label} import must be valid JSON.`);
   }

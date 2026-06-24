@@ -19,9 +19,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { FieldError, ValidatedForm } from "@/components/ui/validated-form";
 import { FormSubmitButton } from "@/components/ui/form-submit-button";
+import { WorkflowImportForm } from "@/components/workflows/workflow-import-form";
 import { buildOnboardingProgress, type OnboardingStepId } from "@/lib/onboarding/progress";
 import {
   createActivationClientAction,
+  createActivationWorkflowImportAction,
   createActivationWorkflowAction,
   generateActivationReportAction,
   runActivationCheckAction,
@@ -48,6 +50,7 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
   const [activeStep, setActiveStep] = useState<WizardStepId>(progress.nextStep?.id ?? "client");
   const [clientState, clientAction] = useActionState(createActivationClientAction, null);
   const [workflowState, workflowAction] = useActionState(createActivationWorkflowAction, null);
+  const [workflowImportState, workflowImportAction] = useActionState(createActivationWorkflowImportAction, null);
   const [runState, runAction] = useActionState(runActivationCheckAction, null);
   const [reportState, reportAction] = useActionState(generateActivationReportAction, null);
   const storageKey = `tuesdayops:activation-wizard-skipped:${data.agency.id}`;
@@ -56,10 +59,11 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
       data,
       clientState,
       workflowState,
+      workflowImportState,
       runState,
       reportState,
     }),
-    [data, clientState, workflowState, runState, reportState],
+    [data, clientState, workflowState, workflowImportState, runState, reportState],
   );
 
   useEffect(() => {
@@ -95,12 +99,12 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
   }, [clientState]);
 
   useEffect(() => {
-    if (workflowState?.status === "success") {
+    if (workflowState?.status === "success" || workflowImportState?.status === "success") {
       const stepTimer = window.setTimeout(() => setActiveStep("check_run"), 0);
 
       return () => window.clearTimeout(stepTimer);
     }
-  }, [workflowState]);
+  }, [workflowState, workflowImportState]);
 
   useEffect(() => {
     if (runState?.status === "success") {
@@ -252,6 +256,8 @@ export function OnboardingChecklist({ data }: OnboardingChecklistProps) {
                     clientState={clientState}
                     workflowAction={workflowAction}
                     workflowState={workflowState}
+                    workflowImportAction={workflowImportAction}
+                    workflowImportState={workflowImportState}
                     runAction={runAction}
                     runState={runState}
                     reportAction={reportAction}
@@ -289,6 +295,8 @@ function WizardStepPanel({
   clientState,
   workflowAction,
   workflowState,
+  workflowImportAction,
+  workflowImportState,
   runAction,
   runState,
   reportAction,
@@ -302,6 +310,8 @@ function WizardStepPanel({
   clientState: ActivationClientActionState;
   workflowAction: (formData: FormData) => void;
   workflowState: ActivationWorkflowActionState;
+  workflowImportAction: (formData: FormData) => void;
+  workflowImportState: ActivationWorkflowActionState;
   runAction: (formData: FormData) => void;
   runState: ActivationRunActionState;
   reportAction: (formData: FormData) => void;
@@ -362,6 +372,8 @@ function WizardStepPanel({
         client={context.client}
         action={workflowAction}
         state={workflowState}
+        importAction={workflowImportAction}
+        importState={workflowImportState}
       />
     );
   }
@@ -372,6 +384,16 @@ function WizardStepPanel({
         <BlockedPanel
           title="Create the health check first"
           description="Maintain Flow creates the first health check when you connect a workflow endpoint."
+          onClick={() => onContinue("workflow")}
+        />
+      );
+    }
+
+    if (!context.check.enabled) {
+      return (
+        <BlockedPanel
+          title="Add the production endpoint first"
+          description="This import created a maintenance map, but the health check is disabled until a production webhook or heartbeat is configured."
           onClick={() => onContinue("workflow")}
         />
       );
@@ -485,20 +507,45 @@ function WorkflowStepForm({
   client,
   action,
   state,
+  importAction,
+  importState,
 }: {
   client: ActivationClient;
   action: (formData: FormData) => void;
   state: ActivationWorkflowActionState;
+  importAction: (formData: FormData) => void;
+  importState: ActivationWorkflowActionState;
 }) {
+  const [setupMode, setSetupMode] = useState<"import" | "manual">("import");
   const [method, setMethod] = useState<WorkflowMethod>("GET");
   const [authType, setAuthType] = useState<WorkflowAuthType>("none");
   const showRequestBody = method !== "GET";
   const authSecretLabel =
     authType === "basic" ? "Password" : authType === "api_key_header" ? "API key" : "Bearer token";
 
+  if (setupMode === "import") {
+    return (
+      <div className="max-w-5xl">
+        <InlineActionState state={importState} />
+        <div className="mt-5">
+          <WorkflowImportForm
+            clients={[client]}
+            action={importAction}
+            onManualSetup={() => setSetupMode("manual")}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl">
       <InlineActionState state={state} />
+      <div className="mb-4 flex justify-end">
+        <Button type="button" variant="secondary" size="sm" onClick={() => setSetupMode("import")}>
+          Back to import
+        </Button>
+      </div>
       <ValidatedForm action={action} aria-label="Activation workflow setup" className="mt-5 grid gap-5">
         <input type="hidden" name="clientId" value={client.id} />
         <section className="rounded-xl border border-zinc-950/10 p-4">
@@ -974,12 +1021,14 @@ function buildActivationContext({
   data,
   clientState,
   workflowState,
+  workflowImportState,
   runState,
   reportState,
 }: {
   data: TuesdayOpsSeedData;
   clientState: ActivationClientActionState;
   workflowState: ActivationWorkflowActionState;
+  workflowImportState: ActivationWorkflowActionState;
   runState: ActivationRunActionState;
   reportState: ActivationReportActionState;
 }): ActivationContext {
@@ -990,12 +1039,17 @@ function buildActivationContext({
       ? { id: clientState.clientId, name: clientState.clientName }
       : undefined;
   const existingWorkflow = data.workflows.find((workflow) => workflow.clientId === client?.id) ?? data.workflows[0];
+  const createdWorkflowState = workflowState?.status === "success"
+    ? workflowState
+    : workflowImportState?.status === "success"
+      ? workflowImportState
+      : null;
   const workflow = existingWorkflow
     ? toActivationWorkflow(existingWorkflow)
-    : workflowState?.status === "success"
+    : createdWorkflowState
       ? {
-          id: workflowState.workflowId,
-          name: workflowState.workflowName,
+          id: createdWorkflowState.workflowId,
+          name: createdWorkflowState.workflowName,
           endpointUrl: "Endpoint saved. Refresh to view details.",
         }
       : undefined;
@@ -1004,8 +1058,8 @@ function buildActivationContext({
     ?? data.checks[0];
   const check = existingCheck
     ? toActivationCheck(existingCheck)
-    : workflowState?.status === "success"
-      ? { id: workflowState.checkId, name: "Endpoint health check" }
+    : createdWorkflowState
+      ? { id: createdWorkflowState.checkId, name: "Endpoint health check", enabled: createdWorkflowState.checkEnabled ?? true }
       : undefined;
   const hasCheckRun = data.checkRuns.length > 0 || runState?.status === "success";
   const existingReport = data.reports.find((report) => report.clientId === client?.id) ?? data.reports[0];
@@ -1083,6 +1137,7 @@ function toActivationCheck(check: Check): ActivationCheck {
   return {
     id: check.id,
     name: check.name,
+    enabled: check.enabled,
   };
 }
 
@@ -1097,7 +1152,7 @@ function getStepTitle(step: WizardStepId): string {
   const titles: Record<WizardStepId, string> = {
     agency: "Confirm the agency workspace",
     client: "Add the client",
-    workflow: "Connect the workflow endpoint",
+    workflow: "Import the first workflow",
     check_run: "Run the first health check",
     report: "Generate the first report",
   };
@@ -1109,7 +1164,7 @@ function getStepDescription(step: WizardStepId): string {
   const descriptions: Record<WizardStepId, string> = {
     agency: "The workspace anchors every client, workflow, check, issue, and report.",
     client: "Start with one retained client so monitoring data has the right owner.",
-    workflow: "Preserve the full endpoint URL and configure the check that proves it is healthy.",
+    workflow: "Choose n8n, Make, Zapier, API, or manual setup and create the first maintenance map.",
     check_run: "Send a safe request, store the result, and let Maintain Flow update health and issues.",
     report: "Create a client-facing proof draft from the real source data collected so far.",
   };
@@ -1150,6 +1205,7 @@ type ActivationWorkflow = {
 type ActivationCheck = {
   id: string;
   name: string;
+  enabled: boolean;
 };
 
 type ActivationReport = {
